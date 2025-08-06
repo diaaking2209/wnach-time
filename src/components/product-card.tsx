@@ -43,9 +43,15 @@ export function ProductCard({ product }: { product: Product }) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: selectedCurrency.code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(converted);
   };
   
+  const priceToDisplay = (product.discount && product.originalPrice) 
+    ? product.originalPrice - (product.originalPrice * (product.discount / 100))
+    : product.price;
+
   return (
     <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2">
       <CardContent className="flex flex-grow flex-col p-0">
@@ -97,7 +103,7 @@ export function ProductCard({ product }: { product: Product }) {
                  </div>
               )}
               <p className="text-base font-bold text-foreground">
-                {formatPrice(product.price)}
+                {formatPrice(priceToDisplay)}
               </p>
             </div>
             <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white">

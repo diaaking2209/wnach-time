@@ -9,8 +9,8 @@ export type CurrencyCode = 'USD' | 'EUR' | 'SAR' | 'AED' | 'BHD' | 'KWD' | 'QAR'
 
 export const currencies: Currency[] = [
   { code: 'USD', name: 'United States Dollar', nameAr: 'دولار أمريكي' },
-  { code: 'EUR', name: 'Euro', nameAr: 'يورو' },
   { code: 'SAR', name: 'Saudi Riyal', nameAr: 'ريال سعودي' },
+  { code: 'EUR', name: 'Euro', nameAr: 'يورو' },
   { code: 'AED', name: 'UAE Dirham', nameAr: 'درهم إماراتي' },
   { code: 'BHD', name: 'Bahraini Dinar', nameAr: 'دينار بحريني' },
   { code: 'KWD', name: 'Kuwaiti Dinar', nameAr: 'دينار كويتي' },
@@ -18,11 +18,11 @@ export const currencies: Currency[] = [
   { code: 'EGP', name: 'Egyptian Pound', nameAr: 'جنيه مصري' },
 ];
 
-// Base currency is USD
+// Base currency is USD. Rates as of recent data.
 const exchangeRates: { [key in CurrencyCode]: number } = {
   USD: 1,      // Base
-  EUR: 0.92,   // 1 USD = 0.92 EUR
   SAR: 3.75,   // 1 USD = 3.75 SAR
+  EUR: 0.93,   // 1 USD = 0.93 EUR
   AED: 3.67,   // 1 USD = 3.67 AED
   BHD: 0.38,   // 1 USD = 0.38 BHD
   KWD: 0.31,   // 1 USD = 0.31 KWD
@@ -46,7 +46,7 @@ export function convertPriceToUSD(price: number, fromCurrency: CurrencyCode): nu
   const rate = exchangeRates[fromCurrency];
   if (rate === undefined || rate === 0) {
     // Fallback or prevent division by zero
-    return price;
+    return price; // Should not happen with defined currencies
   }
   return price / rate;
 }
