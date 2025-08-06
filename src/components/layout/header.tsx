@@ -16,11 +16,11 @@ import { AuthButton } from "../auth-button";
 import Image from "next/image";
 
 const navLinks = [
-    { name: "Games", icon: Gamepad2, href: "#", dropdown: true },
-    { name: "Cards", icon: CreditCard, href: "#", dropdown: true },
-    { name: "Subscriptions", icon: CalendarDays, href: "#" },
-    { name: "In-game Purchases", icon: ShoppingBag, href: "#" },
-    { name: "Computer Programs", icon: Laptop, href: "#" },
+    { name: "Games", icon: Gamepad2, href: "/games", dropdown: false },
+    { name: "Cards", icon: CreditCard, href: "/cards", dropdown: false },
+    { name: "Subscriptions", icon: CalendarDays, href: "/subscriptions" },
+    { name: "In-game Purchases", icon: ShoppingBag, href: "/ingame" },
+    { name: "Computer Programs", icon: Laptop, href: "/programs" },
 ];
 
 export function Header() {

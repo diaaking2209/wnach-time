@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function CardsPage() {
+export default function InGamePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -17,11 +17,11 @@ export default function CardsPage() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('category', 'Cards')
+        .eq('category', 'In-game Purchases')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error("Error fetching card products:", error);
+        console.error("Error fetching in-game products:", error);
         toast({
           variant: "destructive",
           title: "Error fetching products",
@@ -53,9 +53,9 @@ export default function CardsPage() {
         <div className="w-1 bg-primary h-8"></div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Digital Cards
+            In-game Purchases
           </h1>
-          <p className="text-muted-foreground">Get your favorite subscriptions and gift cards</p>
+          <p className="text-muted-foreground">Get your in-game items and currency</p>
         </div>
       </div>
       {loading ? (
@@ -70,7 +70,7 @@ export default function CardsPage() {
         </div>
       ) : (
          <div className="text-center py-20">
-            <p className="text-muted-foreground">No card products found at the moment.</p>
+            <p className="text-muted-foreground">No in-game products found at the moment.</p>
         </div>
       )}
       <ScrollToTop />
