@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/carousel"
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CreditCard, Gamepad2, CalendarDays, ShoppingBag } from "lucide-react";
+import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 
 const topProducts: Product[] = [
   {
@@ -21,8 +21,8 @@ const topProducts: Product[] = [
     originalPrice: 200.00,
     discount: 25,
     platforms: ["PC", "Rockstar"],
-    imageUrl: "",
-    aiHint: "video game"
+    imageUrl: "https://placehold.co/400x400.png",
+    aiHint: "video game cover"
   },
   {
     name: "Red Dead Redemption 2",
@@ -30,15 +30,15 @@ const topProducts: Product[] = [
     originalPrice: 300.00,
     discount: 20,
     platforms: ["PC", "Steam"],
-    imageUrl: "",
-    aiHint: "video game"
+    imageUrl: "https://placehold.co/400x400.png",
+    aiHint: "video game cover"
   },
   {
     name: "Cyberpunk 2077",
     price: 200.00,
     platforms: ["PC"],
-    imageUrl: "",
-    aiHint: "video game"
+    imageUrl: "https://placehold.co/400x400.png",
+    aiHint: "video game cover"
   },
   {
     name: "The Witcher 3: Wild Hunt",
@@ -46,23 +46,16 @@ const topProducts: Product[] = [
     originalPrice: 100.00,
     discount: 20,
     platforms: ["PC", "Steam"],
-    imageUrl: "",
-    aiHint: "video game"
+    imageUrl: "https://placehold.co/400x400.png",
+    aiHint: "video game cover"
   },
   {
     name: "ELDEN RING",
     price: 480.00,
     platforms: ["PC", "Steam"],
-    imageUrl: "",
-    aiHint: "video game"
+    imageUrl: "https://placehold.co/400x400.png",
+    aiHint: "video game cover"
   },
-  {
-    name: "EA SPORTS FC™ 24",
-    price: 600.00,
-    platforms: ["PC"],
-    imageUrl: "",
-    aiHint: "video game"
-  }
 ];
 
 const bestDeals = [
@@ -84,9 +77,10 @@ const bestDeals = [
 
 const categories = [
     { name: "Games", icon: Gamepad2, href: "/games" },
-    { name: "Gift Cards", icon: CreditCard, href: "/cards" },
+    { name: "Digital Cards", icon: CreditCard, href: "/cards" },
     { name: "Subscriptions", icon: CalendarDays, href: "/subscriptions" },
-    { name: "In-game Purchases", icon: ShoppingBag, href: "/ingame" },
+    { name: "In-game Items", icon: ShoppingBag, href: "/ingame" },
+    { name: "Computer Programs", icon: Code, href: "/programs" },
 ];
 
 export default function HomePage() {
@@ -136,10 +130,10 @@ export default function HomePage() {
                 <p className="text-muted-foreground">Browse products by category</p>
             </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => (
             <Link key={category.name} href={category.href}>
-              <div className="flex items-center gap-4 rounded-lg bg-card p-4 transition-all hover:bg-accent/50">
+              <div className="flex items-center gap-4 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50">
                 <div className="rounded-md bg-muted p-3 text-primary">
                   <category.icon className="h-6 w-6" />
                 </div>
