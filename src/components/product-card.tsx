@@ -69,11 +69,6 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <DiscordIcon className="w-16 h-16 text-muted-foreground" />
           )}
-           {product.discount && product.discount > 0 && !isOutOfStock &&(
-            <div className="absolute top-2 right-2 z-10 rounded-full bg-primary px-2 py-1 text-xs font-bold text-primary-foreground">
-                {product.discount}% OFF
-            </div>
-           )}
            {isOutOfStock && (
              <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-md">
                 Out of Stock
@@ -103,11 +98,18 @@ export function ProductCard({ product }: { product: Product }) {
 
 
           <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start">
                  {product.originalPrice && (
-                     <span className="text-sm text-muted-foreground line-through">
-                        {formatPrice(product.originalPrice)}
-                     </span>
+                     <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground line-through">
+                            {formatPrice(product.originalPrice)}
+                        </span>
+                        {product.discount && product.discount > 0 && (
+                             <Badge variant="destructive">
+                                {product.discount}%
+                             </Badge>
+                        )}
+                     </div>
                  )}
                  <p className="text-base font-bold text-foreground">
                     {formatPrice(priceToDisplay)}
