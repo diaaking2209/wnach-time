@@ -21,7 +21,7 @@ import {
 
 const DISCORD_SERVER_ID = '1130580097439637694';
 const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with your actual invite link
-const ADMIN_USER_IDS = ['815920922141392918'];
+const ADMIN_PROVIDER_IDS = ['815920922141392918'];
 
 export function AuthButton() {
   const [session, setSession] = useState<Session | null>(null);
@@ -132,7 +132,8 @@ export function AuthButton() {
     const { user } = session;
     const avatarUrl = user?.user_metadata?.avatar_url;
     const userName = user?.user_metadata?.full_name;
-    const isUserAdmin = ADMIN_USER_IDS.includes(user.id);
+    const providerId = user?.user_metadata?.provider_id;
+    const isUserAdmin = providerId && ADMIN_PROVIDER_IDS.includes(providerId);
 
     return (
       <DropdownMenu>
