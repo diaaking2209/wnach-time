@@ -1,3 +1,4 @@
+
 "use client"
 import Image from "next/image";
 import { ProductCard, type Product } from "@/components/product-card";
@@ -123,28 +124,6 @@ export default function HomePage() {
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
         </Carousel>
-      </section>
-
-      <section className="mb-12">
-        <div className="mb-8 flex items-baseline gap-4">
-            <div className="w-1 bg-primary h-8"></div>
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                    Categories
-                </h2>
-                <p className="text-muted-foreground">Browse our wide selection of digital products</p>
-            </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {categories.map((category) => (
-                <Link href={category.href} key={category.name}>
-                    <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-card p-6 text-card-foreground transition-transform duration-300 hover:-translate-y-2 hover:bg-accent/60">
-                        <category.icon className="h-10 w-10 text-primary" />
-                        <span className="font-semibold">{category.name}</span>
-                    </div>
-                </Link>
-            ))}
-        </div>
       </section>
 
       <section>

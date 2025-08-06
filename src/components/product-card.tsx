@@ -69,11 +69,6 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <DiscordIcon className="w-16 h-16 text-muted-foreground" />
           )}
-           {product.discount && (
-             <div className="absolute top-2 right-2 bg-pink-600 text-white text-xs font-bold px-2 py-1 rounded-md">
-                -{product.discount}%
-            </div>
-           )}
            {isOutOfStock && (
              <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-md">
                 Out of Stock
@@ -103,15 +98,15 @@ export function ProductCard({ product }: { product: Product }) {
 
 
           <div className="flex items-center justify-between mt-auto">
-            <div className="flex flex-col items-start">
-              {product.originalPrice && (
-                 <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.originalPrice)}
-                 </span>
-              )}
-              <p className="text-base font-bold text-foreground">
-                {formatPrice(priceToDisplay)}
-              </p>
+            <div className="flex items-center gap-2">
+                 {product.originalPrice && (
+                     <span className="text-sm text-muted-foreground line-through">
+                        {formatPrice(product.originalPrice)}
+                     </span>
+                 )}
+                 <p className="text-base font-bold text-foreground">
+                    {formatPrice(priceToDisplay)}
+                 </p>
             </div>
             <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" disabled={isOutOfStock}>
                 <ShoppingCart className="h-5 w-5" />
