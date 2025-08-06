@@ -1,3 +1,4 @@
+"use client"
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,10 +6,12 @@ import { PcIcon } from "./icons/pc-icon";
 import { SteamIcon } from "./icons/steam-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/context/currency-context";
+import { convertPrice } from "@/lib/currency";
 
 export type Product = {
   name: string;
-  originalPrice: number;
+  originalPrice: number; // in MAD
   discountPercentage: number;
   platform: "PC" | "Steam" | "Rockstar";
   imageUrl: string;
@@ -25,13 +28,20 @@ const platformIcons: PlatformIcons = {
   Rockstar: RockstarIcon,
 };
 
-function formatPrice(price: number) {
-  return `${price.toFixed(2)} MAD`;
-}
-
 export function ProductCard({ product }: { product: Product }) {
+  const { selectedCurrency } = useCurrency();
   const finalPrice = product.originalPrice * (1 - product.discountPercentage / 100);
   const PlatformIcon = platformIcons[product.platform];
+
+  const formatPrice = (price: number) => {
+    const converted = convertPrice(price, selectedCurrency.code);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: selectedCurrency.code,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(converted);
+  };
 
   return (
     <Card className="group overflow-hidden border-border/60 bg-card transition-all duration-300 hover:border-accent/60 hover:shadow-lg hover:shadow-accent/10">

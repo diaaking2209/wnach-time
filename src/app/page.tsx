@@ -1,3 +1,4 @@
+"use client"
 import { ProductCard, type Product } from "@/components/product-card";
 
 const products: Product[] = [

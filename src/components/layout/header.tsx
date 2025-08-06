@@ -1,3 +1,4 @@
+"use client"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, ShoppingCart, User, Globe, CircleDollarSign } from "lucide-react";
+import { useCurrency } from "@/context/currency-context";
+import { currencies } from "@/lib/currency";
 
 export function Header() {
+  const { selectedCurrency, setCurrency } = useCurrency();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
       <div className="bg-black text-white">
@@ -31,13 +36,15 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="text-xs font-medium text-muted-foreground hover:text-primary p-0 h-auto hover:bg-transparent">
                 <CircleDollarSign className="h-4 w-4 mr-1" />
-                Currency (USD)
+                Currency ({selectedCurrency.code})
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem>MAD</DropdownMenuItem>
-              <DropdownMenuItem>USD</DropdownMenuItem>
-              <DropdownMenuItem>EUR</DropdownMenuItem>
+              {currencies.map((currency) => (
+                <DropdownMenuItem key={currency.code} onClick={() => setCurrency(currency.code)}>
+                  {currency.name} ({currency.code})
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
