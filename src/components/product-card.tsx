@@ -14,9 +14,9 @@ export type Product = {
   price: number; // in MAD
   originalPrice?: number; // in MAD
   discount?: number;
-  platforms: ("PC" | "Steam" | "Rockstar")[];
+  platforms?: ("PC" | "Steam" | "Rockstar")[];
   imageUrl: string;
-  aiHint: string;
+  aiHint?: string;
 };
 
 const platformIcons = {
@@ -31,19 +31,20 @@ export function ProductCard({ product }: { product: Product }) {
   const formatPrice = (price: number) => {
     const converted = convertPrice(price, selectedCurrency.code);
     return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      style: 'currency',
+      currency: selectedCurrency.code,
     }).format(converted);
   };
   
   return (
-    <Card className="group flex h-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
+    <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
-        <div className="relative overflow-hidden rounded-t-lg aspect-[4/3]">
+        <div className="relative w-full aspect-square overflow-hidden rounded-t-lg">
           <Image
             src={product.imageUrl}
             alt={product.name}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             data-ai-hint={product.aiHint}
           />
@@ -67,7 +68,7 @@ export function ProductCard({ product }: { product: Product }) {
                  </div>
               )}
               <p className="text-base font-bold text-foreground">
-                {formatPrice(product.price)} {selectedCurrency.code}
+                {formatPrice(product.price)}
               </p>
             </div>
             <Button size="icon" className="h-8 w-8 shrink-0 bg-secondary text-secondary-foreground hover:bg-secondary/80">
@@ -75,12 +76,14 @@ export function ProductCard({ product }: { product: Product }) {
                 <span className="sr-only">Add to cart</span>
             </Button>
           </div>
-            <div className="flex items-center gap-1.5 mt-2">
-                {product.platforms.map((p) => {
-                    const Icon = platformIcons[p];
-                    return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
-                })}
-            </div>
+            {product.platforms && (
+                <div className="flex items-center gap-1.5 mt-2">
+                    {product.platforms.map((p) => {
+                        const Icon = platformIcons[p];
+                        return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
+                    })}
+                </div>
+            )}
         </div>
       </CardContent>
     </Card>
