@@ -83,10 +83,10 @@ const bestDeals = [
 ];
 
 const categories = [
-    { name: "Games", icon: Gamepad2, href: "#" },
+    { name: "Games", icon: Gamepad2, href: "/games" },
     { name: "Gift Cards", icon: CreditCard, href: "/cards" },
-    { name: "Subscriptions", icon: CalendarDays, href: "#" },
-    { name: "In-game Purchases", icon: ShoppingBag, href: "#" },
+    { name: "Subscriptions", icon: CalendarDays, href: "/subscriptions" },
+    { name: "In-game Purchases", icon: ShoppingBag, href: "/ingame" },
 ];
 
 export default function HomePage() {
@@ -124,6 +124,34 @@ export default function HomePage() {
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
         </Carousel>
+      </section>
+
+       <section className="mb-12">
+         <div className="mb-8 flex items-baseline gap-4">
+            <div className="w-1 bg-primary h-8"></div>
+            <div>
+                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                    Categories
+                </h2>
+                <p className="text-muted-foreground">Browse products by category</p>
+            </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+          {categories.map((category) => (
+            <Link key={category.name} href={category.href}>
+              <div className="flex items-center gap-4 rounded-lg bg-card p-4 transition-all hover:bg-accent/50">
+                <div className="rounded-md bg-muted p-3 text-primary">
+                  <category.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {category.name}
+                  </h3>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section>
