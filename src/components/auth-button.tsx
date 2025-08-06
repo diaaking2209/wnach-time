@@ -8,11 +8,22 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import { User, LogOut } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const DISCORD_SERVER_ID = '1130580097439637694';
+const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with your actual invite link
 
 export function AuthButton() {
   const [session, setSession] = useState<Session | null>(null);
+  const [showGuildModal, setShowGuildModal] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -67,12 +78,8 @@ export function AuthButton() {
         const isMember = guilds.some((guild: any) => guild.id === DISCORD_SERVER_ID);
 
         if (!isMember) {
-            toast({
-                variant: "destructive",
-                title: "Access Denied",
-                description: "You are not a member of the required Discord server.",
-            });
             await handleSignOut();
+            setShowGuildModal(true);
         }
     } catch (error) {
         console.error('Error checking guild membership:', error);
@@ -87,6 +94,7 @@ export function AuthButton() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    setSession(null);
   };
 
   if (session) {
@@ -117,9 +125,32 @@ export function AuthButton() {
   }
 
   return (
-    <Button variant="ghost" size="icon" className="h-9 w-9 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={handleSignIn}>
-      <User className="h-5 w-5" />
-      <span className="sr-only">User Account</span>
-    </Button>
+    <>
+      <AlertDialog open={showGuildModal} onOpenChange={setShowGuildModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Access requirement</AlertDialogTitle>
+            <AlertDialogDescription>
+              To access this application, you must be a member of our Discord server. Please join the server and then sign in again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+             <Button variant="outline" onClick={() => setShowGuildModal(false)}>
+              Close
+            </Button>
+            <AlertDialogAction asChild>
+              <a href={DISCORD_SERVER_INVITE} target="_blank" rel="noopener noreferrer">
+                Join Server
+              </a>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Button variant="ghost" size="icon" className="h-9 w-9 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={handleSignIn}>
+        <User className="h-5 w-5" />
+        <span className="sr-only">User Account</span>
+      </Button>
+    </>
   );
 }
