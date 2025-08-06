@@ -1,3 +1,4 @@
+
 "use client"
 import { useEffect, useState } from 'react';
 import { ProductCard, type Product } from "@/components/product-card";
@@ -35,6 +36,7 @@ export default function CardsPage() {
           originalPrice: item.original_price,
           discount: item.discount,
           platforms: item.platforms || [],
+          tags: item.tags || [],
           imageUrl: item.image_url,
           description: item.description,
           category: item.category,

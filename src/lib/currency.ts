@@ -1,3 +1,4 @@
+
 export interface Currency {
   code: CurrencyCode;
   name: string;
@@ -17,24 +18,23 @@ export const currencies: Currency[] = [
   { code: 'EGP', name: 'Egyptian Pound', nameAr: 'جنيه مصري' },
 ];
 
-// Base currency is MAD
-const exchangeRates: { [key in CurrencyCode | 'MAD']: number } = {
-  MAD: 1,
-  USD: 0.10,   // 1 MAD = 0.10 USD
-  EUR: 0.09,   // 1 MAD = 0.09 EUR
-  SAR: 0.37,   // 1 MAD = 0.37 SAR
-  AED: 0.36,   // 1 MAD = 0.36 AED
-  BHD: 0.038,  // 1 MAD = 0.038 BHD
-  KWD: 0.030,  // 1 MAD = 0.030 KWD
-  QAR: 0.36,   // 1 MAD = 0.36 QAR
-  EGP: 4.8,    // 1 MAD = 4.8 EGP
+// Base currency is USD
+const exchangeRates: { [key in CurrencyCode]: number } = {
+  USD: 1,      // Base
+  EUR: 0.92,   // 1 USD = 0.92 EUR
+  SAR: 3.75,   // 1 USD = 3.75 SAR
+  AED: 3.67,   // 1 USD = 3.67 AED
+  BHD: 0.38,   // 1 USD = 0.38 BHD
+  KWD: 0.31,   // 1 USD = 0.31 KWD
+  QAR: 3.64,   // 1 USD = 3.64 QAR
+  EGP: 47.65,  // 1 USD = 47.65 EGP
 };
 
-export function convertPrice(priceInMAD: number, targetCurrency: CurrencyCode): number {
+export function convertPrice(priceInUSD: number, targetCurrency: CurrencyCode): number {
   const rate = exchangeRates[targetCurrency];
   if (rate === undefined) {
     // Fallback to USD if currency not found
-    return priceInMAD * exchangeRates.USD;
+    return priceInUSD;
   }
-  return priceInMAD * rate;
+  return priceInUSD * rate;
 }

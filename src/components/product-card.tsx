@@ -5,29 +5,34 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/currency-context";
 import { convertPrice } from "@/lib/currency";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Smartphone, Gamepad2 } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
 import { DiscordIcon } from "./icons/discord-icon";
+import { Badge } from "./ui/badge";
 
 export type Product = {
   id?: string;
   name: string;
-  price: number; // in MAD
-  originalPrice?: number; // in MAD
+  price: number; // in USD
+  originalPrice?: number; // in USD
   discount?: number;
-  platforms?: ("PC" | "Steam" | "Rockstar")[];
+  platforms?: ("PC" | "Xbox" | "Playstation" | "Mobile")[];
+  tags?: string[];
   imageUrl: string;
   description?: string;
   aiHint?: string;
   category?: string;
 };
 
-const platformIcons = {
+const platformIcons: { [key: string]: React.ComponentType<{ className?: string }> } = {
   PC: PcIcon,
   Steam: SteamIcon,
   Rockstar: RockstarIcon,
+  Xbox: Gamepad2,
+  Playstation: Gamepad2,
+  Mobile: Smartphone,
 }
 
 export function ProductCard({ product }: { product: Product }) {
@@ -64,7 +69,22 @@ export function ProductCard({ product }: { product: Product }) {
             {product.name}
           </h3>
 
-          <div className="flex items-center justify-between">
+          <div className="mb-2 flex flex-wrap gap-1">
+             {product.platforms && (
+                <div className="flex items-center gap-1.5 mr-2">
+                    {product.platforms.map((p) => {
+                        const Icon = platformIcons[p];
+                        return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" title={p} /> : null;
+                    })}
+                </div>
+            )}
+            {product.tags && product.tags.slice(0, 2).map(tag => (
+                <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+            ))}
+          </div>
+
+
+          <div className="flex items-center justify-between mt-auto">
             <div className="flex flex-col">
               {product.discount && product.originalPrice && (
                  <div className="flex items-center gap-2">
@@ -81,18 +101,10 @@ export function ProductCard({ product }: { product: Product }) {
               </p>
             </div>
             <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white">
-                <ShoppingCart className="h-6 w-6" />
+                <ShoppingCart className="h-5 w-5" />
                 <span className="sr-only">Add to cart</span>
             </Button>
           </div>
-            {product.platforms && (
-                <div className="flex items-center gap-1.5 mt-2">
-                    {product.platforms.map((p) => {
-                        const Icon = platformIcons[p];
-                        return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
-                    })}
-                </div>
-            )}
         </div>
       </CardContent>
     </Card>

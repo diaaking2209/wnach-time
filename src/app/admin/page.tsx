@@ -71,6 +71,7 @@ export default function AdminPage() {
         imageUrl: item.image_url,
         description: item.description,
         category: item.category,
+        tags: item.tags || [],
       }));
       setProducts(formattedProducts);
     }
@@ -143,6 +144,7 @@ export default function AdminPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Tags</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -151,7 +153,7 @@ export default function AdminPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10">
+                    <TableCell colSpan={5} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         <p className="mt-2 text-muted-foreground">Loading products...</p>
                     </TableCell>
@@ -163,6 +165,11 @@ export default function AdminPage() {
                     <TableCell>${product.price.toFixed(2)}</TableCell>
                     <TableCell>
                         {product.category && <Badge variant="secondary">{product.category}</Badge>}
+                    </TableCell>
+                     <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                            {product.tags?.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
+                        </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -205,7 +212,7 @@ export default function AdminPage() {
                 ))
               ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center py-10">
+                    <TableCell colSpan={5} className="text-center py-10">
                         <p className="text-muted-foreground">No products found. Add your first product!</p>
                     </TableCell>
                 </TableRow>

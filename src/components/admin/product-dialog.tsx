@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabase";
 import { Product } from "@/components/product-card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { Badge } from "../ui/badge";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ interface ProductDialogProps {
 }
 
 const categories = ["Games", "Cards", "Subscriptions", "In-game Purchases", "Computer Programs"];
-const platformOptions = ["PC", "Steam", "Rockstar"];
+const platformOptions = ["PC", "Xbox", "Playstation", "Mobile"];
 
 
 export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDialogProps) {
@@ -46,6 +47,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -59,6 +61,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
       setCategory(product.category || "");
+      setTags(product.tags || []);
     } else {
       // Reset form for new product
       setName("");
@@ -69,6 +72,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setPlatforms([]);
       setImageUrl("");
       setCategory("");
+      setTags([]);
     }
   }, [product, isOpen]);
 
@@ -85,6 +89,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       platforms,
       image_url: imageUrl,
       category,
+      tags,
     };
 
     let error;
@@ -146,11 +151,11 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">Price (MAD)</Label>
+              <Label htmlFor="price" className="text-right">Price (USD)</Label>
               <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Original Price</Label>
+              <Label htmlFor="originalPrice" className="text-right">Original Price (USD)</Label>
               <Input id="originalPrice" type="number" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
@@ -159,14 +164,43 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platforms" className="text-right">Platforms</Label>
-                <Select value={platforms.join(',')} onValueChange={(value) => setPlatforms(value ? value.split(',') : [])}>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select platforms" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {platformOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+                 <div className="col-span-3">
+                    <div className="flex flex-wrap gap-2">
+                        {platformOptions.map((opt) => (
+                            <Button
+                                type="button"
+                                key={opt}
+                                variant={platforms.includes(opt) ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => {
+                                    setPlatforms(prev =>
+                                        prev.includes(opt)
+                                            ? prev.filter(p => p !== opt)
+                                            : [...prev, opt]
+                                    );
+                                }}
+                            >
+                                {opt}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tags" className="text-right">Tags</Label>
+                <div className="col-span-3">
+                    <Input 
+                        id="tags" 
+                        placeholder="e.g. rockstar, minecraft"
+                        value={tags.join(", ")} 
+                        onChange={(e) => setTags(e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag))} 
+                    />
+                    <div className="flex flex-wrap gap-1 mt-2">
+                        {tags.map(tag => (
+                            <Badge key={tag} variant="secondary">{tag}</Badge>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
@@ -186,4 +220,3 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     </Dialog>
   );
 }
-
