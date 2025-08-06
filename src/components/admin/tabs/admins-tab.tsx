@@ -84,6 +84,7 @@ export function AdminsTab() {
 
     setIsSaving(true);
     try {
+      // We don't have the username/avatar yet, so we'll use the ID as a placeholder
       const { data, error } = await supabase
         .from("admins")
         .insert([{ provider_id: newAdminId.trim(), username: `User ${newAdminId.trim()}`, role: 'product_adder' }])
@@ -110,7 +111,7 @@ export function AdminsTab() {
   const handleDeleteAdmin = async (adminId: string, providerId: string) => {
     setIsSaving(true);
     try {
-        const { error } = await supabase.from('admins').delete().match({ id: adminId });
+        const { error } = await supabase.from('admins').delete().eq('id', adminId);
         if (error) throw error;
 
         setAdmins(prev => prev.filter(admin => admin.id !== adminId));
@@ -130,7 +131,7 @@ export function AdminsTab() {
   const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder') => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('admins').update({ role: newRole }).match({ id: adminId });
+      const { error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId);
       if (error) throw error;
       setAdmins(prev => prev.map(admin => admin.id === adminId ? { ...admin, role: newRole } : admin));
       toast({ title: "Role Updated", description: "Admin role has been successfully updated." });
@@ -201,7 +202,7 @@ export function AdminsTab() {
                             <Select 
                                 defaultValue={admin.role}
                                 onValueChange={(value: 'owner' | 'product_adder') => handleRoleChange(admin.id, value)}
-                                disabled={isSaving}
+                                disabled={isSaving || admin.role === 'owner'}
                             >
                                 <SelectTrigger className="w-full sm:w-[180px]">
                                     <SelectValue placeholder="Select a role" />
@@ -213,7 +214,7 @@ export function AdminsTab() {
                             </Select>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={isSaving}>
+                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.role === 'owner'}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
@@ -244,5 +245,3 @@ export function AdminsTab() {
     </div>
   );
 }
-
-    

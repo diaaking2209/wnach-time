@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [showGuildModal, setShowGuildModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Added loading state
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const checkAdminStatus = useCallback(async (user: User | null) => {
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // If not a super admin, check the admins table in the database
     const { data, error } = await supabase
         .from('admins')
-        .select('provider_id, role')
+        .select('role')
         .eq('provider_id', providerId)
         .single();
     
@@ -228,5 +228,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
