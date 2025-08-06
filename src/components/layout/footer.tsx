@@ -27,7 +27,7 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
             <Link href="/" className="mb-4 flex items-center gap-2">
-              <Image src="/logo.png" alt="Wnash time" width={140} height={40} />
+              <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time" width={140} height={40} />
             </Link>
             <p className="text-sm text-muted-foreground">
               A digital store that provides games, cards, subscriptions, and
