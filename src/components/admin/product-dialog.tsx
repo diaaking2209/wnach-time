@@ -26,6 +26,7 @@ import { Product } from "@/components/product-card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { convertPriceToUSD, CurrencyCode } from "@/lib/currency";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -42,12 +43,14 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | string>("");
+  const [priceCurrency, setPriceCurrency] = useState<CurrencyCode>('USD');
   const [originalPrice, setOriginalPrice] = useState<number | string | undefined>("");
   const [discount, setDiscount] = useState<number | string | undefined>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  const [currentTagInput, setCurrentTagInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -56,6 +59,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setName(product.name);
       setDescription(product.description || "");
       setPrice(product.price);
+      setPriceCurrency('USD');
       setOriginalPrice(product.originalPrice);
       setDiscount(product.discount);
       setPlatforms(product.platforms || []);
@@ -67,6 +71,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setName("");
       setDescription("");
       setPrice("");
+      setPriceCurrency('USD');
       setOriginalPrice("");
       setDiscount("");
       setPlatforms([]);
@@ -76,15 +81,34 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     }
   }, [product, isOpen]);
 
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const newTag = currentTagInput.trim();
+        if (newTag && !tags.includes(newTag)) {
+            setTags([...tags, newTag]);
+        }
+        setCurrentTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    
+    const priceInUSD = convertPriceToUSD(Number(price), priceCurrency);
+    const originalPriceInUSD = originalPrice ? convertPriceToUSD(Number(originalPrice), priceCurrency) : null;
 
     const productData = {
       name,
       description,
-      price: Number(price),
-      original_price: originalPrice ? Number(originalPrice) : null,
+      price: priceInUSD,
+      original_price: originalPriceInUSD,
       discount: discount ? Number(discount) : null,
       platforms,
       image_url: imageUrl,
@@ -151,11 +175,22 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">Price (USD)</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-3" required />
+              <Label htmlFor="price" className="text-right">Price</Label>
+                <div className="col-span-3 grid grid-cols-3 gap-2">
+                    <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-2" required />
+                    <Select value={priceCurrency} onValueChange={(v) => setPriceCurrency(v as CurrencyCode)}>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="SAR">SAR</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Original Price (USD)</Label>
+              <Label htmlFor="originalPrice" className="text-right">Original Price</Label>
               <Input id="originalPrice" type="number" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
@@ -189,17 +224,20 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="tags" className="text-right">Tags</Label>
                 <div className="col-span-3">
-                    <Input 
-                        id="tags" 
-                        placeholder="e.g. rockstar, minecraft"
-                        value={tags.join(", ")} 
-                        onChange={(e) => setTags(e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag))} 
-                    />
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1 mb-2">
                         {tags.map(tag => (
-                            <Badge key={tag} variant="secondary">{tag}</Badge>
+                            <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                                {tag} &times;
+                            </Badge>
                         ))}
                     </div>
+                    <Input 
+                        id="tags" 
+                        placeholder="Add tags (press Enter)"
+                        value={currentTagInput}
+                        onChange={(e) => setCurrentTagInput(e.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                    />
                 </div>
             </div>
 

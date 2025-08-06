@@ -38,3 +38,15 @@ export function convertPrice(priceInUSD: number, targetCurrency: CurrencyCode): 
   }
   return priceInUSD * rate;
 }
+
+export function convertPriceToUSD(price: number, fromCurrency: CurrencyCode): number {
+  if (fromCurrency === 'USD') {
+    return price;
+  }
+  const rate = exchangeRates[fromCurrency];
+  if (rate === undefined || rate === 0) {
+    // Fallback or prevent division by zero
+    return price;
+  }
+  return price / rate;
+}
