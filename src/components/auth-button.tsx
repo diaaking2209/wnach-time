@@ -97,7 +97,7 @@ export function AuthButton() {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+          <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
             <Avatar className="h-9 w-9">
               <AvatarImage src={avatarUrl} alt={userName} />
               <AvatarFallback>
@@ -117,7 +117,7 @@ export function AuthButton() {
   }
 
   return (
-    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleSignIn}>
+    <Button variant="ghost" size="icon" className="h-9 w-9 focus-visible:ring-0 focus-visible:ring-offset-0" onClick={handleSignIn}>
       <User className="h-5 w-5" />
       <span className="sr-only">User Account</span>
     </Button>

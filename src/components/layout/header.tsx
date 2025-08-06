@@ -73,7 +73,7 @@ export function Header() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/cart">
-            <Button variant="ghost" className="relative h-9 w-9 p-0">
+            <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
               <ShoppingCart className="h-5 w-5 text-accent" />
               <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">0</span>
               <span className="sr-only">Shopping Cart</span>
