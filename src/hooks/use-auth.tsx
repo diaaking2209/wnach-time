@@ -155,13 +155,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const user = session.user;
             if (user && user.user_metadata) {
                 const { provider_id, full_name, avatar_url } = user.user_metadata;
-                const { error: updateError } = await supabase
-                    .from('admins')
-                    .update({ username: full_name, avatar_url: avatar_url })
-                    .eq('provider_id', provider_id)
+                
+                // Ensure we have a provider_id before trying to upsert
+                if (provider_id) {
+                    const { error: updateError } = await supabase
+                        .from('admins')
+                        .update({ username: full_name, avatar_url: avatar_url })
+                        .eq('provider_id', provider_id);
 
-                if (updateError && updateError.code !== '23505') { // 23505 is unique violation, ignore
-                    console.error("Error updating admin profile:", updateError);
+                    if (updateError) {
+                        console.error("Error updating admin profile:", updateError.message);
+                    }
                 }
             }
         }
