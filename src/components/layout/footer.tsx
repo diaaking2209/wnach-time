@@ -25,8 +25,7 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <Gamepad2 className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold">GamerTech</span>
+              <span className="text-2xl font-bold tracking-wider">BLACKDOZER</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               A digital store that provides games, cards, subscriptions, and digital software.
@@ -51,7 +50,7 @@ export function Footer() {
             <div className="space-y-3">
                <a href="mailto:contact@gamertech.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <Mail className="h-4 w-4" />
-                <span>contact@gamertech.dev</span>
+                <span>contact@blackdozer.dev</span>
               </a>
               <a href="#" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <MessageSquare className="h-4 w-4" />
@@ -70,7 +69,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border/40 pt-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} GamerTech. All Rights Reserved.
+          &copy; {new Date().getFullYear()} BLACKDOZER. All Rights Reserved.
         </div>
       </div>
     </footer>

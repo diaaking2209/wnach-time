@@ -34,7 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
   const PlatformIcon = platformIcons[product.platform];
 
   return (
-    <Card className="group overflow-hidden border-border/60 bg-card transition-all duration-300 hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10">
+    <Card className="group overflow-hidden border-border/60 bg-card transition-all duration-300 hover:border-accent/60 hover:shadow-lg hover:shadow-accent/10">
       <CardContent className="p-0">
         <div className="relative">
           <Image
@@ -47,13 +47,13 @@ export function ProductCard({ product }: { product: Product }) {
           />
           <Badge
             variant="destructive"
-            className="absolute top-3 right-3 bg-primary text-primary-foreground"
+            className="absolute top-3 right-3 bg-accent text-accent-foreground"
           >
             -{product.discountPercentage.toFixed(0)}%
           </Badge>
         </div>
         <div className="p-4">
-          <h3 className="mb-2 h-10 text-sm font-semibold leading-tight text-foreground group-hover:text-primary">
+          <h3 className="mb-2 h-10 text-sm font-semibold leading-tight text-foreground group-hover:text-accent">
             {product.name}
           </h3>
           <div className="mt-2 flex items-center justify-between">
