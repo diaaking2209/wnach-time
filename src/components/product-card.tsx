@@ -13,8 +13,9 @@ import { ShoppingCart } from "lucide-react";
 
 export type Product = {
   name: string;
+  description: string;
   originalPrice: number; // in MAD
-  discountPercentage: number;
+  discountPercentage?: number;
   platform: "PC" | "Steam" | "Rockstar";
   imageUrl: string;
   aiHint: string;
@@ -33,9 +34,8 @@ const platformIcons: PlatformIcons = {
 
 export function ProductCard({ product }: { product: Product }) {
   const { selectedCurrency } = useCurrency();
-  const finalPrice = product.originalPrice * (1 - product.discountPercentage / 100);
-  const PlatformIcon = platformIcons[product.platform];
-
+  const finalPrice = product.discountPercentage ? product.originalPrice * (1 - product.discountPercentage / 100) : product.originalPrice;
+  
   const formatPrice = (price: number) => {
     const converted = convertPrice(price, selectedCurrency.code);
     return new Intl.NumberFormat('en-US', {
@@ -59,16 +59,21 @@ export function ProductCard({ product }: { product: Product }) {
           {product.isDlc && <Badge className="absolute top-2 right-2 bg-black/70 text-white border-none text-xs">DLC</Badge>}
         </div>
         <div className="pt-4 px-1">
-          <h3 className="mb-2 h-10 text-sm font-semibold leading-tight text-foreground group-hover:text-accent truncate">
+          <h3 className="mb-2 h-10 text-sm font-semibold leading-tight text-foreground group-hover:text-accent">
             {product.name}
           </h3>
+          <p className="text-xs text-muted-foreground h-8 mb-2">{product.description}</p>
           <div className="flex items-center gap-2">
-            <Badge variant="destructive" className="bg-red-600 text-white">
-              -{product.discountPercentage.toFixed(1)}%
-            </Badge>
-            <p className="text-sm text-muted-foreground line-through">
-              {formatPrice(product.originalPrice)}
-            </p>
+            {product.discountPercentage && (
+              <Badge variant="destructive" className="bg-red-600 text-white">
+                -{product.discountPercentage.toFixed(1)}%
+              </Badge>
+            )}
+             {product.discountPercentage && (
+               <p className="text-sm text-muted-foreground line-through">
+                {formatPrice(product.originalPrice)}
+              </p>
+             )}
             <p className="text-sm font-bold text-foreground">
               {formatPrice(finalPrice)} {selectedCurrency.code}
             </p>
@@ -76,13 +81,9 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </CardContent>
        <div className="mt-2 flex items-center justify-between p-1">
-          <div className="flex items-center gap-2">
-            {PlatformIcon && (
-                <PlatformIcon className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 bg-card hover:bg-accent rounded-md">
-            <ShoppingCart className="h-4 w-4" />
+          <Button className="w-full" variant="secondary">
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Add to cart
           </Button>
         </div>
     </Card>
