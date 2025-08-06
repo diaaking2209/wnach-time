@@ -76,8 +76,8 @@ export function ProductCard({ product }: { product: Product }) {
                 {formatPrice(product.price)}
               </p>
             </div>
-            <Button size="icon" className="h-8 w-8 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:text-accent">
-                <ShoppingCart className="h-4 w-4" />
+            <Button size="icon" className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:text-accent">
+                <ShoppingCart className="h-5 w-5" />
                 <span className="sr-only">Add to cart</span>
             </Button>
           </div>
