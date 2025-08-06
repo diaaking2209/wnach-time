@@ -1,5 +1,7 @@
 "use client"
 import { ProductCard, type Product } from "@/components/product-card";
+import { ScrollToTop } from "@/components/scroll-to-top";
+import { ArrowUp } from "lucide-react";
 
 const products: Product[] = [
   {
@@ -86,6 +88,7 @@ export default function Home() {
           <ProductCard key={index} product={product} />
         ))}
       </div>
+      <ScrollToTop />
     </div>
   );
 }
