@@ -5,68 +5,76 @@ import { ArrowUp } from "lucide-react";
 
 const products: Product[] = [
   {
-    name: "Discord Nitro Subscription",
+    name: "EA SPORTS FC 25 (PC)",
     description: "Unlock premium perks with Discord Nitro.",
-    originalPrice: 99.99,
+    originalPrice: 72.00,
+    discountPercentage: 38.9,
     platform: "PC",
-    imageUrl: "https://placehold.co/400x500/5865F2/FFFFFF?text=Discord",
-    aiHint: "chat subscription"
+    imageUrl: "https://placehold.co/400x500/1a1b22/ffffff?text=FC25",
+    aiHint: "sports football"
   },
   {
-    name: "Spotify Premium",
+    name: "ELDEN RING Shadow of the Er...",
     description: "Listen without limits. Ad-free music.",
-    originalPrice: 109.90,
-    platform: "PC",
-    imageUrl: "https://placehold.co/400x500/1DB954/FFFFFF?text=Spotify",
-    aiHint: "music streaming"
-  },
-  {
-    name: "Netflix Gift Card",
-    description: "Watch your favorite shows and movies.",
-    originalPrice: 250.00,
-    platform: "PC",
-    imageUrl: "https://placehold.co/400x500/E50914/FFFFFF?text=Netflix",
-    aiHint: "movie streaming"
-  },
-  {
-    name: "Apple Gift Card",
-    description: "For apps, games, music, and more.",
-    originalPrice: 500.00,
-    platform: "PC",
-    imageUrl: "https://placehold.co/400x500/A2AAAD/FFFFFF?text=Apple",
-    aiHint: "gift card"
-  },
-  {
-    name: "Steam Gift Card",
-    description: "The ultimate gift for any gamer.",
-    originalPrice: 200.00,
+    originalPrice: 87.73,
+    discountPercentage: 24.6,
     platform: "Steam",
-    imageUrl: "https://placehold.co/400x500/1B2838/FFFFFF?text=Steam",
-    aiHint: "gaming gift"
+    imageUrl: "https://placehold.co/400x500/1a1b22/ffffff?text=Elden+Ring",
+    aiHint: "fantasy rpg"
   },
   {
-    name: "Razer Gold Pin",
-    description: "The unified virtual credit for gamers.",
-    originalPrice: 150.00,
+    name: "Elden Ring (PC)",
+    description: "Watch your favorite shows and movies.",
+    originalPrice: 66.40,
+    discountPercentage: 45.8,
     platform: "PC",
-    imageUrl: "https://placehold.co/400x500/000000/FFFFFF?text=Razer",
-    aiHint: "gaming credit"
+    imageUrl: "https://placehold.co/400x500/1a1b22/ffffff?text=Elden+Ring",
+    aiHint: "fantasy rpg"
+  },
+  {
+    name: "Elden Ring Shadow of the Erd...",
+    description: "For apps, games, music, and more.",
+    originalPrice: 45.97,
+    discountPercentage: 8.3,
+    platform: "PC",
+    imageUrl: "https://placehold.co/400x500/1a1b22/ffffff?text=Elden+Ring",
+    aiHint: "fantasy rpg",
+    isDlc: true,
+  },
+  {
+    name: "Call Of Duty: Modern Warfare...",
+    description: "The ultimate gift for any gamer.",
+    originalPrice: 79.73,
+    discountPercentage: 48.2,
+    platform: "Steam",
+    imageUrl: "https://placehold.co/400x500/992020/ffffff?text=Modern+Warfare",
+    aiHint: "shooter fps"
+  },
+  {
+    name: "Bully: Scholarship Edition (PC)",
+    description: "The unified virtual credit for gamers.",
+    originalPrice: 12.53,
+    discountPercentage: 57.4,
+    platform: "Rockstar",
+    imageUrl: "https://placehold.co/400x500/184878/ffffff?text=Bully",
+    aiHint: "open world"
   },
    {
-    name: "Amazon Gift Card",
+    name: "Grand Theft Auto IV - GTA 4 (...",
     description: "Millions of items at your fingertips.",
-    originalPrice: 300.00,
+    originalPrice: 10.67,
     platform: "PC",
-    imageUrl: "https://placehold.co/400x500/FF9900/FFFFFF?text=Amazon",
-    aiHint: "shopping gift"
+    imageUrl: "https://placehold.co/400x500/3a3a3a/ffffff?text=GTA+IV",
+    aiHint: "action adventure"
   },
   {
-    name: "PlayStation Store Card",
+    name: "Minecraft (PC)",
     description: "Your one-stop shop for digital games.",
-    originalPrice: 250.00,
+    originalPrice: 29.33,
+    discountPercentage: 46.4,
     platform: "PC",
-    imageUrl: "https://placehold.co/400x500/0070D1/FFFFFF?text=PlayStation",
-    aiHint: "console gaming"
+    imageUrl: "https://placehold.co/400x500/6a9a3a/ffffff?text=Minecraft",
+    aiHint: "sandbox building"
   },
 ];
 
@@ -83,7 +91,7 @@ export default function Home() {
           <p className="text-muted-foreground">Top-selling cards and subscriptions</p>
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {products.map((product, index) => (
           <ProductCard key={index} product={product} />
         ))}
