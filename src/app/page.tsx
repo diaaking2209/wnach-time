@@ -10,6 +10,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { CreditCard, Gamepad2, CalendarDays, ShoppingBag } from "lucide-react";
 
 const topProducts: Product[] = [
   {
@@ -55,11 +57,19 @@ const topProducts: Product[] = [
   },
 ];
 
+const categories = [
+    { name: "Digital Cards", href: "/cards", icon: CreditCard, aiHint: "gift cards" },
+    { name: "Games", href: "#", icon: Gamepad2, aiHint: "gaming controller" },
+    { name: "Subscriptions", href: "#", icon: CalendarDays, aiHint: "video streaming logo" },
+    { name: "In-game Purchases", href: "#", icon: ShoppingBag, aiHint: "game currency coins" },
+];
+
 
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <section className="mb-12">
+        <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Best Deals</h2>
         <Carousel className="w-full">
           <CarouselContent>
             <CarouselItem className="md:basis-2/3">
@@ -91,6 +101,28 @@ export default function Home() {
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
         </Carousel>
+      </section>
+
+      <section className="mb-12">
+        <div className="mb-8 flex items-baseline gap-4">
+          <div className="w-1 bg-primary h-8"></div>
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Categories
+            </h2>
+            <p className="text-muted-foreground">Browse our product categories</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {categories.map((category) => (
+                <Link key={category.name} href={category.href}>
+                    <div className="group relative flex flex-col items-center justify-center gap-2 rounded-lg border bg-card p-6 text-card-foreground transition-all hover:border-primary/60 hover:bg-primary/10">
+                        <category.icon className="h-12 w-12 text-primary transition-transform group-hover:scale-110" />
+                        <h3 className="text-lg font-semibold">{category.name}</h3>
+                    </div>
+                </Link>
+            ))}
+        </div>
       </section>
 
       <section>
