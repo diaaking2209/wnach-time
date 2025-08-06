@@ -159,7 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isVerifying, toast]);
+  }, [isVerifying, toast, handleSignOut]);
 
 
   useEffect(() => {
