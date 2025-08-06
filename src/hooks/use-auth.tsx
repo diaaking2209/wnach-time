@@ -8,19 +8,21 @@ import type { Session, User } from '@supabase/supabase-js';
 // The Discord server users must be a member of to access the app.
 const DISCORD_SERVER_ID = '1130580097439637694'; 
 
-// The list of "Super Admins" who have ultimate control and can manage other admins.
-// This should be the Discord User ID(s) of the main owner(s).
+// The list of "Super Admins" (Owners) who have ultimate control.
 const SUPER_ADMIN_PROVIDER_IDS = ['815920922141392918'];
+
+type UserRole = 'owner' | 'product_adder';
 
 interface AuthContextType {
     session: Session | null;
     user: User | null;
     isUserAdmin: boolean;
-    isSuperAdmin: boolean;
+    userRole: UserRole | null;
     showGuildModal: boolean;
     setShowGuildModal: (show: boolean) => void;
     isVerifying: boolean;
     isSigningIn: boolean;
+    isLoading: boolean;
     handleSignIn: () => Promise<void>;
     handleSignOut: (showModal?: boolean) => Promise<void>;
     handleCloseAndSignOut: () => Promise<void>;
@@ -32,47 +34,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [showGuildModal, setShowGuildModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Added loading state
   const { toast } = useToast();
 
   const checkAdminStatus = useCallback(async (user: User | null) => {
     if (!user) {
         setIsUserAdmin(false);
-        setIsSuperAdmin(false);
+        setUserRole(null);
+        setIsLoading(false);
         return;
     }
 
     const providerId = user.user_metadata?.provider_id;
     if (!providerId) {
         setIsUserAdmin(false);
-        setIsSuperAdmin(false);
+        setUserRole(null);
+        setIsLoading(false);
         return;
     }
     
-    // Check if the user is a Super Admin
+    // Check if the user is a Super Admin (Owner)
     const isSuper = SUPER_ADMIN_PROVIDER_IDS.includes(providerId);
-    setIsSuperAdmin(isSuper);
-
     if (isSuper) {
         setIsUserAdmin(true);
+        setUserRole('owner');
+        setIsLoading(false);
         return;
     }
 
     // If not a super admin, check the admins table in the database
     const { data, error } = await supabase
         .from('admins')
-        .select('provider_id')
+        .select('provider_id, role')
         .eq('provider_id', providerId)
         .single();
     
     if (error && error.code !== 'PGRST116') { // PGRST116: "No rows found"
         console.error("Error checking admin status:", error);
     }
-
+    
     setIsUserAdmin(!!data);
+    setUserRole(data?.role as UserRole || null);
+    setIsLoading(false);
 
   }, []);
 
@@ -92,9 +99,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleSignOut = async (showModal = true) => {
     await supabase.auth.signOut();
     setSession(null);
-    setUser(null); // Clear user and admin status on sign out
+    setUser(null);
     setIsUserAdmin(false);
-    setIsSuperAdmin(false);
+    setUserRole(null);
     if(showModal) {
       setShowGuildModal(false);
     }
@@ -159,22 +166,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isVerifying, toast, handleSignOut]);
+  }, [isVerifying, toast]);
 
 
   useEffect(() => {
-    // Initial session check
+    setIsLoading(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       checkAdminStatus(session?.user ?? null);
       if(session) {
          checkGuildMembership(session);
+      } else {
+        setIsLoading(false);
       }
     });
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoading(true);
       setSession(session);
       setUser(session?.user ?? null);
       checkAdminStatus(session?.user ?? null);
@@ -184,7 +193,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       if (_event === 'SIGNED_OUT') {
         setIsUserAdmin(false);
-        setIsSuperAdmin(false);
+        setUserRole(null);
+        setIsLoading(false);
       }
     });
 
@@ -196,11 +206,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session, 
         user,
         isUserAdmin, 
-        isSuperAdmin,
+        userRole,
         showGuildModal, 
         setShowGuildModal, 
         isVerifying, 
         isSigningIn, 
+        isLoading,
         handleSignIn,
         handleSignOut,
         handleCloseAndSignOut

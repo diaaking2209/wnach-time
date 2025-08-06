@@ -23,9 +23,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 type AdminUser = {
   id: string;
@@ -33,6 +34,7 @@ type AdminUser = {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
+  role: 'owner' | 'product_adder';
 };
 
 export function AdminsTab() {
@@ -70,13 +72,11 @@ export function AdminsTab() {
       return;
     }
     
-    // Basic validation for Discord ID (should be a number)
     if (!/^\d+$/.test(newAdminId.trim())) {
         toast({ variant: "destructive", title: "Invalid Discord ID", description: "Please enter a valid numeric Discord user ID." });
         return;
     }
 
-    // Prevent adding existing admin
     if (admins.some(admin => admin.provider_id === newAdminId.trim())) {
         toast({ variant: "destructive", title: "Admin already exists." });
         return;
@@ -86,7 +86,7 @@ export function AdminsTab() {
     try {
       const { data, error } = await supabase
         .from("admins")
-        .insert([{ provider_id: newAdminId.trim(), username: `User ${newAdminId.trim()}` }])
+        .insert([{ provider_id: newAdminId.trim(), username: `User ${newAdminId.trim()}`, role: 'product_adder' }])
         .select()
         .single();
 
@@ -94,7 +94,7 @@ export function AdminsTab() {
       
       setAdmins(prev => [...prev, data as AdminUser]);
       setNewAdminId("");
-      toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added as an admin.` });
+      toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added as a product adder.` });
 
     } catch (error: any) {
       toast({
@@ -127,6 +127,25 @@ export function AdminsTab() {
     }
   }
 
+  const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder') => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('admins').update({ role: newRole }).match({ id: adminId });
+      if (error) throw error;
+      setAdmins(prev => prev.map(admin => admin.id === adminId ? { ...admin, role: newRole } : admin));
+      toast({ title: "Role Updated", description: "Admin role has been successfully updated." });
+    } catch (error: any) {
+       toast({
+        variant: "destructive",
+        title: "Failed to update role",
+        description: error.message,
+      });
+    } finally {
+        setIsSaving(false);
+    }
+  }
+
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -141,7 +160,7 @@ export function AdminsTab() {
         <CardHeader>
           <CardTitle>Manage Admins</CardTitle>
           <CardDescription>
-            Add or remove administrators. Admins can manage products and home page content.
+            Add or remove administrators and assign their roles.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -167,7 +186,7 @@ export function AdminsTab() {
             </div>
             {admins.length > 0 ? (
                 admins.map((admin) => (
-                    <div key={admin.id} className="flex items-center justify-between gap-4 p-3 border rounded-lg bg-background">
+                    <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
                         <div className="flex items-center gap-3">
                             <Avatar>
                                 <AvatarImage src={admin.avatar_url || ''} alt={admin.username || 'admin'} />
@@ -178,27 +197,42 @@ export function AdminsTab() {
                                 <p className="text-sm text-muted-foreground">ID: {admin.provider_id}</p>
                             </div>
                         </div>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="icon" disabled={isSaving}>
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action will remove admin privileges from this user. They will no longer be able to access the admin panel.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id, admin.provider_id)}>
-                                        Continue
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Select 
+                                defaultValue={admin.role}
+                                onValueChange={(value: 'owner' | 'product_adder') => handleRoleChange(admin.id, value)}
+                                disabled={isSaving}
+                            >
+                                <SelectTrigger className="w-full sm:w-[180px]">
+                                    <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="owner">Owner</SelectItem>
+                                    <SelectItem value="product_adder">Products Adder</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" disabled={isSaving}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action will remove admin privileges from this user. They will no longer be able to access the admin panel.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id, admin.provider_id)}>
+                                            Continue
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
                     </div>
                 ))
             ) : (

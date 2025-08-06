@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
 import { User, LogOut, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -16,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from '@/hooks/use-auth';
+import { Skeleton } from './ui/skeleton';
 
 const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with your actual invite link
 
@@ -27,12 +27,15 @@ export function AuthButton() {
     setShowGuildModal, 
     isSigningIn, 
     isVerifying,
+    isLoading, // Use the loading state
     handleSignIn,
     handleSignOut,
     handleCloseAndSignOut,
   } = useAuth();
   
-  const { toast } = useToast();
+  if (isLoading) {
+    return <Skeleton className="h-9 w-9 rounded-full" />;
+  }
 
   if (session) {
     const { user } = session;
