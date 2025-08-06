@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { CurrencyProvider } from '@/context/currency-context';
 
 export const metadata: Metadata = {
-  title: 'BLACKDOZER',
+  title: 'Wnash time',
   description: 'Your one-stop shop for digital games, cards, and more.',
 };
 

@@ -25,7 +25,7 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <span className="text-2xl font-bold tracking-wider">BLACKDOZER</span>
+              <span className="text-2xl font-bold tracking-wider">Wnash time</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               A digital store that provides games, cards, subscriptions, and digital software.
@@ -48,9 +48,9 @@ export function Footer() {
           <div className="md:justify-self-end">
              <h3 className="mb-4 font-semibold text-foreground">Contact Us</h3>
             <div className="space-y-3">
-               <a href="mailto:contact@gamertech.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
+               <a href="mailto:contact@wnashtime.dev" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <Mail className="h-4 w-4" />
-                <span>contact@blackdozer.dev</span>
+                <span>contact@wnashtime.dev</span>
               </a>
               <a href="#" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <MessageSquare className="h-4 w-4" />
@@ -69,7 +69,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border/40 pt-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} BLACKDOZER. All Rights Reserved.
+          &copy; {new Date().getFullYear()} Wnash time. All Rights Reserved.
         </div>
       </div>
     </footer>
