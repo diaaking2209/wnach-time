@@ -9,9 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ShoppingCart, User, Globe, CircleDollarSign, Gamepad2, CreditCard, CalendarDays, ShoppingBag, Laptop } from "lucide-react";
+import { Search, ShoppingCart, Globe, CircleDollarSign, Gamepad2, CreditCard, CalendarDays, ShoppingBag, Laptop } from "lucide-react";
 import { useCurrency } from "@/context/currency-context";
 import { currencies } from "@/lib/currency";
+import { AuthButton } from "../auth-button";
 
 const navLinks = [
     { name: "Games", icon: Gamepad2, href: "#", dropdown: true },
@@ -76,10 +77,7 @@ export function Header() {
               <span className="sr-only">Shopping Cart</span>
             </Button>
           </Link>
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <User className="h-5 w-5" />
-            <span className="sr-only">User Account</span>
-          </Button>
+          <AuthButton />
         </div>
       </div>
       <div className="border-t border-border/40">
