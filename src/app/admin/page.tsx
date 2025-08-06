@@ -18,7 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Product } from "@/components/product-card";
-import { PlusCircle, MoreHorizontal, Loader2 } from "lucide-react";
+import { PlusCircle, MoreHorizontal, Loader2, Trash2, Edit } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -28,38 +28,100 @@ import {
   } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
+import { ProductDialog } from "@/components/admin/product-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { toast } = useToast();
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error("Error fetching products:", error);
+      toast({
+        variant: "destructive",
+        title: "Error fetching products",
+        description: error.message,
+      });
+    } else {
+      const formattedProducts: Product[] = data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        originalPrice: item.original_price,
+        discount: item.discount,
+        platforms: item.platforms || [],
+        imageUrl: item.image_url,
+        description: item.description,
+        category: item.category,
+      }));
+      setProducts(formattedProducts);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-      if (error) {
-        console.error("Error fetching products:", error);
-      } else {
-        // Supabase returns an array of objects. We need to map it to the Product type.
-        const formattedProducts: Product[] = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          originalPrice: item.originalPrice,
-          discount: item.discount,
-          platforms: item.platforms || [],
-          imageUrl: item.imageUrl,
-          description: item.description,
-        }));
-        setProducts(formattedProducts);
-      }
-      setLoading(false);
-    };
-
     fetchProducts();
   }, []);
 
+  const handleAddProduct = () => {
+    setSelectedProduct(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    const { error } = await supabase.from('products').delete().match({ id: productId });
+    if(error) {
+      toast({
+        variant: "destructive",
+        title: "Error deleting product",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Product Deleted",
+        description: "The product has been successfully deleted.",
+      });
+      fetchProducts(); // Refresh the list
+    }
+  }
+
+  const handleDialogSave = () => {
+    setIsDialogOpen(false);
+    fetchProducts(); // Refresh products after add/edit
+  }
+
+
   return (
+    <>
+    <ProductDialog 
+        isOpen={isDialogOpen} 
+        setIsOpen={setIsDialogOpen} 
+        product={selectedProduct}
+        onSave={handleDialogSave}
+    />
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6">
             <div>
@@ -68,7 +130,7 @@ export default function AdminPage() {
                     Manage all the products in your store.
                 </p>
             </div>
-            <Button>
+            <Button onClick={handleAddProduct}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Product
             </Button>
@@ -80,7 +142,7 @@ export default function AdminPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Platforms</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -100,9 +162,7 @@ export default function AdminPage() {
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>${product.price.toFixed(2)}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                          {product.platforms?.map(p => <Badge key={p} variant="secondary">{p}</Badge>)}
-                      </div>
+                        {product.category && <Badge variant="secondary">{product.category}</Badge>}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -114,8 +174,30 @@ export default function AdminPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                           <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this product.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteProduct(product.id!)}>Continue</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -133,5 +215,6 @@ export default function AdminPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }

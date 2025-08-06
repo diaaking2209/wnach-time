@@ -1,3 +1,4 @@
+
 "use client"
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ export type Product = {
   imageUrl: string;
   description?: string;
   aiHint?: string;
+  category?: string;
 };
 
 const platformIcons = {
@@ -78,7 +80,7 @@ export function ProductCard({ product }: { product: Product }) {
                 {formatPrice(product.price)}
               </p>
             </div>
-            <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:text-pink-500">
+            <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white">
                 <ShoppingCart className="h-6 w-6" />
                 <span className="sr-only">Add to cart</span>
             </Button>
