@@ -48,9 +48,7 @@ export function ProductCard({ product }: { product: Product }) {
     }).format(converted);
   };
   
-  const priceToDisplay = (product.discount && product.originalPrice) 
-    ? product.originalPrice - (product.originalPrice * (product.discount / 100))
-    : product.price;
+  const priceToDisplay = product.price;
 
   return (
     <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2">
@@ -68,6 +66,11 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <DiscordIcon className="w-16 h-16 text-muted-foreground" />
           )}
+           {product.discount && (
+             <div className="absolute top-2 right-2 bg-pink-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+                -{product.discount}%
+            </div>
+           )}
         </div>
 
         <div className="flex flex-grow flex-col p-3">
@@ -91,16 +94,11 @@ export function ProductCard({ product }: { product: Product }) {
 
 
           <div className="flex items-center justify-between mt-auto">
-            <div className="flex flex-col">
-              {product.discount && product.originalPrice && (
-                 <div className="flex items-center gap-2">
-                    <span className="inline-block bg-pink-600 text-white text-xs font-bold px-2 py-1 rounded-md">
-                        -{product.discount}%
-                    </span>
-                    <span className="text-sm text-muted-foreground line-through">
-                        {formatPrice(product.originalPrice)}
-                    </span>
-                 </div>
+            <div className="flex flex-col items-start">
+              {product.originalPrice && (
+                 <span className="text-sm text-muted-foreground line-through">
+                    {formatPrice(product.originalPrice)}
+                 </span>
               )}
               <p className="text-base font-bold text-foreground">
                 {formatPrice(priceToDisplay)}

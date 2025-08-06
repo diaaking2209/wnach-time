@@ -42,9 +42,8 @@ const platformOptions = ["PC", "Xbox", "Playstation", "Mobile"];
 export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState<number | string>("");
-  const [priceCurrency, setPriceCurrency] = useState<CurrencyCode>('USD');
-  const [originalPrice, setOriginalPrice] = useState<number | string | undefined>("");
+  const [originalPrice, setOriginalPrice] = useState<number | string>("");
+  const [originalPriceCurrency, setOriginalPriceCurrency] = useState<CurrencyCode>('USD');
   const [discount, setDiscount] = useState<number | string | undefined>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
@@ -58,9 +57,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     if (product) {
       setName(product.name);
       setDescription(product.description || "");
-      setPrice(product.price);
-      setPriceCurrency('USD');
-      setOriginalPrice(product.originalPrice);
+      setOriginalPrice(product.originalPrice || product.price); // Fallback to price if original is not set
+      setOriginalPriceCurrency('USD');
       setDiscount(product.discount);
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
@@ -70,9 +68,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       // Reset form for new product
       setName("");
       setDescription("");
-      setPrice("");
-      setPriceCurrency('USD');
       setOriginalPrice("");
+      setOriginalPriceCurrency('USD');
       setDiscount("");
       setPlatforms([]);
       setImageUrl("");
@@ -101,15 +98,23 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     e.preventDefault();
     setIsSaving(true);
     
-    const priceInUSD = convertPriceToUSD(Number(price), priceCurrency);
-    const originalPriceInUSD = originalPrice ? convertPriceToUSD(Number(originalPrice), priceCurrency) : null;
+    const originalPriceNum = Number(originalPrice);
+    const discountNum = discount ? Number(discount) : 0;
+
+    const originalPriceInUSD = convertPriceToUSD(originalPriceNum, originalPriceCurrency);
+    
+    // Calculate final price automatically
+    const finalPriceInUSD = discountNum > 0
+        ? originalPriceInUSD - (originalPriceInUSD * (discountNum / 100))
+        : originalPriceInUSD;
+
 
     const productData = {
       name,
       description,
-      price: priceInUSD,
-      original_price: originalPriceInUSD,
-      discount: discount ? Number(discount) : null,
+      price: finalPriceInUSD,
+      original_price: discountNum > 0 ? originalPriceInUSD : null,
+      discount: discountNum > 0 ? discountNum : null,
       platforms,
       image_url: imageUrl,
       category,
@@ -175,10 +180,10 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="price" className="text-right">Price</Label>
+              <Label htmlFor="originalPrice" className="text-right">Price</Label>
                 <div className="col-span-3 grid grid-cols-3 gap-2">
-                    <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-2" required />
-                    <Select value={priceCurrency} onValueChange={(v) => setPriceCurrency(v as CurrencyCode)}>
+                    <Input id="originalPrice" type="number" placeholder="Original Price" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-2" required />
+                    <Select value={originalPriceCurrency} onValueChange={(v) => setOriginalPriceCurrency(v as CurrencyCode)}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
@@ -189,13 +194,9 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                     </Select>
                 </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Original Price</Label>
-              <Input id="originalPrice" type="number" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-3" />
-            </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="discount" className="text-right">Discount (%)</Label>
-              <Input id="discount" type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
+              <Input id="discount" type="number" placeholder="e.g. 10" value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platforms" className="text-right">Platforms</Label>
