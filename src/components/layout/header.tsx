@@ -13,7 +13,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
       <div className="bg-black text-white">
-        <div className="container mx-auto flex h-10 max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8 gap-4">
+        <div className="container mx-auto flex h-10 max-w-7xl items-center justify-start px-4 sm:px-6 lg:px-8 gap-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="text-xs font-medium text-muted-foreground hover:text-primary p-0 h-auto hover:bg-transparent">
@@ -21,7 +21,7 @@ export function Header() {
                 Language
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="start">
               <DropdownMenuItem>English</DropdownMenuItem>
               <DropdownMenuItem>العربية</DropdownMenuItem>
             </DropdownMenuContent>
@@ -34,7 +34,7 @@ export function Header() {
                 Currency (USD)
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="start">
               <DropdownMenuItem>MAD</DropdownMenuItem>
               <DropdownMenuItem>USD</DropdownMenuItem>
               <DropdownMenuItem>EUR</DropdownMenuItem>
