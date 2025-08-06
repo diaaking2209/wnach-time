@@ -69,6 +69,11 @@ export function ProductCard({ product }: { product: Product }) {
           ) : (
             <DiscordIcon className="w-16 h-16 text-muted-foreground" />
           )}
+           {product.discount && product.discount > 0 && !isOutOfStock &&(
+            <div className="absolute top-2 right-2 z-10 rounded-full bg-primary px-2 py-1 text-xs font-bold text-primary-foreground">
+                {product.discount}% OFF
+            </div>
+           )}
            {isOutOfStock && (
              <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-md">
                 Out of Stock
