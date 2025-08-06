@@ -21,6 +21,7 @@ import {
 
 const DISCORD_SERVER_ID = '1130580097439637694';
 const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with your actual invite link
+// Important: Replace 'YOUR_DISCORD_USER_ID' with your actual Discord user ID
 const ADMIN_PROVIDER_IDS = ['815920922141392918'];
 
 export function AuthButton() {

@@ -14,49 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 
-const topProducts: Product[] = [
-  {
-    name: "Grand Theft Auto V",
-    price: 150.00,
-    originalPrice: 200.00,
-    discount: 25,
-    platforms: ["PC", "Rockstar"],
-    imageUrl: "https://placehold.co/400x400.png",
-    aiHint: "video game cover"
-  },
-  {
-    name: "Red Dead Redemption 2",
-    price: 240.00,
-    originalPrice: 300.00,
-    discount: 20,
-    platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/400x400.png",
-    aiHint: "video game cover"
-  },
-  {
-    name: "Cyberpunk 2077",
-    price: 200.00,
-    platforms: ["PC"],
-    imageUrl: "https://placehold.co/400x400.png",
-    aiHint: "video game cover"
-  },
-  {
-    name: "The Witcher 3: Wild Hunt",
-    price: 80.00,
-    originalPrice: 100.00,
-    discount: 20,
-    platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/400x400.png",
-    aiHint: "video game cover"
-  },
-  {
-    name: "ELDEN RING",
-    price: 480.00,
-    platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/400x400.png",
-    aiHint: "video game cover"
-  },
-];
+const topProducts: Product[] = [];
 
 const bestDeals = [
     {
@@ -158,11 +116,17 @@ export default function HomePage() {
                 <p className="text-muted-foreground">Check out our best-selling items</p>
             </div>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {topProducts.map((product, index) => (
-            <ProductCard key={index} product={product} />
-          ))}
-        </div>
+        {topProducts.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {topProducts.map((product, index) => (
+              <ProductCard key={index} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 text-muted-foreground">
+            <p>No top products featured at the moment. Add some from the admin panel!</p>
+          </div>
+        )}
       </section>
 
       <ScrollToTop />
