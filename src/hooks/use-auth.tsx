@@ -8,10 +8,7 @@ import type { Session, User } from '@supabase/supabase-js';
 // The Discord server users must be a member of to access the app.
 const DISCORD_SERVER_ID = '1130580097439637694'; 
 
-// The list of "Super Admins" (Owners) who have ultimate control.
-const SUPER_ADMIN_PROVIDER_IDS = ['815920922141392918'];
-
-type UserRole = 'owner' | 'product_adder';
+type UserRole = 'super_owner' | 'owner' | 'product_adder';
 
 interface AuthContextType {
     session: Session | null;
@@ -55,15 +52,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // Check if the user is a Super Admin (Owner)
-    const isOwner = SUPER_ADMIN_PROVIDER_IDS.includes(providerId);
-    if (isOwner) {
-        setIsUserAdmin(true);
-        setUserRole('owner');
-        return;
-    }
-
-    // If not an owner, check the admins table in the database
     const { data, error } = await supabase
         .from('admins')
         .select('role')
@@ -151,20 +139,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isMember) {
             setShowGuildModal(true); // This will prompt the user to join
         } else {
-             // If user is member, update their profile info in admins table
+             // If user is member, update their profile info in admins table if they are an admin
             const user = session.user;
             if (user && user.user_metadata) {
                 const { provider_id, full_name, avatar_url } = user.user_metadata;
                 
-                // Ensure we have a provider_id before trying to upsert
                 if (provider_id) {
-                    const { error: updateError } = await supabase
-                        .from('admins')
-                        .update({ username: full_name, avatar_url: avatar_url })
-                        .eq('provider_id', provider_id);
+                    const { data: adminExists } = await supabase.from('admins').select('id').eq('provider_id', provider_id).single();
 
-                    if (updateError) {
-                        console.error("Error updating admin profile:", updateError.message);
+                    if(adminExists) {
+                        const { error: updateError } = await supabase
+                            .from('admins')
+                            .update({ username: full_name, avatar_url: avatar_url })
+                            .eq('provider_id', provider_id);
+
+                        if (updateError) {
+                            console.error("Error updating admin profile:", updateError.message);
+                        }
                     }
                 }
             }

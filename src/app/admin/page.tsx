@@ -29,7 +29,8 @@ export default function AdminPage() {
     );
   }
 
-  const isOwner = userRole === 'owner';
+  const isSuperOwner = userRole === 'super_owner';
+  const isOwner = userRole === 'owner' || isSuperOwner;
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -39,23 +40,23 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="products">
-        <TabsList className={isOwner ? "grid w-full grid-cols-3" : "grid w-full grid-cols-1"}>
+        <TabsList className={isSuperOwner ? "grid w-full grid-cols-3" : (isOwner ? "grid w-full grid-cols-2" : "grid w-full grid-cols-1")}>
           <TabsTrigger value="products">Products</TabsTrigger>
           {isOwner && <TabsTrigger value="homepage">Home Page</TabsTrigger>}
-          {isOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}
+          {isSuperOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}
         </TabsList>
         <TabsContent value="products" className="mt-6">
           <ProductsTab />
         </TabsContent>
         {isOwner && (
-            <>
-                <TabsContent value="homepage" className="mt-6">
-                    <HomePageTab />
-                </TabsContent>
-                <TabsContent value="admins" className="mt-6">
-                    <AdminsTab />
-                </TabsContent>
-            </>
+            <TabsContent value="homepage" className="mt-6">
+                <HomePageTab />
+            </TabsContent>
+        )}
+        {isSuperOwner && (
+            <TabsContent value="admins" className="mt-6">
+                <AdminsTab />
+            </TabsContent>
         )}
       </Tabs>
     </div>

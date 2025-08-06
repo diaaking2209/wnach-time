@@ -23,10 +23,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
 
 type AdminUser = {
   id: string;
@@ -34,11 +35,12 @@ type AdminUser = {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
-  role: 'owner' | 'product_adder';
+  role: 'owner' | 'product_adder' | 'super_owner';
 };
 
 export function AdminsTab() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -134,10 +136,10 @@ export function AdminsTab() {
   const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder') => {
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId);
+      const { data, error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
       if (error) throw error;
       
-      setAdmins(prev => prev.map(admin => admin.id === adminId ? { ...admin, role: newRole } : admin));
+      setAdmins(prev => prev.map(admin => admin.id === adminId ? data as AdminUser : admin));
       toast({ title: "Role Updated", description: "Admin role has been successfully updated." });
     } catch (error: any) {
        toast({
@@ -158,6 +160,8 @@ export function AdminsTab() {
       </div>
     );
   }
+  
+  const currentUserProviderId = user?.user_metadata?.provider_id;
 
   return (
     <div className="space-y-8">
@@ -206,19 +210,20 @@ export function AdminsTab() {
                             <Select 
                                 value={admin.role}
                                 onValueChange={(value: 'owner' | 'product_adder') => handleRoleChange(admin.id, value)}
-                                disabled={isSaving || admin.role === 'owner'}
+                                disabled={isSaving || admin.provider_id === currentUserProviderId}
                             >
                                 <SelectTrigger className="w-full sm:w-[180px]">
                                     <SelectValue placeholder="Select a role" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="super_owner">Super Owner</SelectItem>
                                     <SelectItem value="owner">Owner</SelectItem>
                                     <SelectItem value="product_adder">Product Adder</SelectItem>
                                 </SelectContent>
                             </Select>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.role === 'owner'}>
+                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
