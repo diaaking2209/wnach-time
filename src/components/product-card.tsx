@@ -8,6 +8,7 @@ import { ShoppingCart } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
+import { DiscordIcon } from "./icons/discord-icon";
 
 export type Product = {
   name: string;
@@ -39,15 +40,19 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
-        <div className="relative w-full aspect-square overflow-hidden rounded-t-lg">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            data-ai-hint={product.aiHint}
-          />
+        <div className="relative flex w-full aspect-square items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
+          {product.imageUrl ? (
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              data-ai-hint={product.aiHint}
+            />
+          ) : (
+            <DiscordIcon className="w-16 h-16 text-muted-foreground" />
+          )}
         </div>
 
         <div className="flex flex-grow flex-col p-3">
