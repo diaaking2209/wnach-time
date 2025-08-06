@@ -13,6 +13,7 @@ import { Search, ShoppingCart, Globe, CircleDollarSign, Gamepad2, CreditCard, Ca
 import { useCurrency } from "@/context/currency-context";
 import { currencies } from "@/lib/currency";
 import { AuthButton } from "../auth-button";
+import Image from "next/image";
 
 const navLinks = [
     { name: "Games", icon: Gamepad2, href: "#", dropdown: true },
@@ -61,7 +62,7 @@ export function Header() {
       </div>
       <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl font-bold tracking-wider">Wnash time</span>
+          <Image src="/logo.png" alt="Wnash time" width={140} height={40} />
         </Link>
         <div className="flex-1 flex justify-center px-8">
           <div className="relative w-full max-w-md">

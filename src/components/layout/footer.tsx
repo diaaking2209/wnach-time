@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Gamepad2, Mail, MessageSquare, Instagram, Youtube } from "lucide-react";
+import { Mail, MessageSquare, Instagram, Youtube } from "lucide-react";
 import { XIcon } from "../icons/x-icon";
 import { DiscordIcon } from "../icons/discord-icon";
 import { TiktokIcon } from "../icons/tiktok-icon";
+import Image from "next/image";
 
 const socialLinks = [
   { name: "X", icon: XIcon, href: "#" },
@@ -24,11 +25,12 @@ export function Footer() {
       <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <span className="text-2xl font-bold tracking-wider">Wnash time</span>
+            <Link href="/" className="mb-4 flex items-center gap-2">
+              <Image src="/logo.png" alt="Wnash time" width={140} height={40} />
             </Link>
             <p className="text-sm text-muted-foreground">
-              A digital store that provides games, cards, subscriptions, and digital software.
+              A digital store that provides games, cards, subscriptions, and
+              digital software.
             </p>
           </div>
 
