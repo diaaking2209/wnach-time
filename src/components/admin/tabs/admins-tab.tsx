@@ -200,7 +200,7 @@ export function AdminsTab() {
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Select 
-                                defaultValue={admin.role}
+                                value={admin.role}
                                 onValueChange={(value: 'owner' | 'product_adder') => handleRoleChange(admin.id, value)}
                                 disabled={isSaving || admin.role === 'owner'}
                             >
@@ -209,7 +209,7 @@ export function AdminsTab() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="owner">Owner</SelectItem>
-                                    <SelectItem value="product_adder">Products Adder</SelectItem>
+                                    <SelectItem value="product_adder">Product Adder</SelectItem>
                                 </SelectContent>
                             </Select>
                             <AlertDialog>

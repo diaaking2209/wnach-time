@@ -39,7 +39,7 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="products">
-        <TabsList className={isOwner ? "grid w-full grid-cols-2 md:w-auto md:grid-cols-3" : ""}>
+        <TabsList className={isOwner ? "grid w-full grid-cols-3" : "grid w-full grid-cols-1"}>
           <TabsTrigger value="products">Products</TabsTrigger>
           {isOwner && <TabsTrigger value="homepage">Home Page</TabsTrigger>}
           {isOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}

@@ -45,7 +45,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) {
         setIsUserAdmin(false);
         setUserRole(null);
-        setIsLoading(false);
         return;
     }
 
@@ -53,20 +52,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!providerId) {
         setIsUserAdmin(false);
         setUserRole(null);
-        setIsLoading(false);
         return;
     }
     
     // Check if the user is a Super Admin (Owner)
-    const isSuper = SUPER_ADMIN_PROVIDER_IDS.includes(providerId);
-    if (isSuper) {
+    const isOwner = SUPER_ADMIN_PROVIDER_IDS.includes(providerId);
+    if (isOwner) {
         setIsUserAdmin(true);
         setUserRole('owner');
-        setIsLoading(false);
         return;
     }
 
-    // If not a super admin, check the admins table in the database
+    // If not an owner, check the admins table in the database
     const { data, error } = await supabase
         .from('admins')
         .select('role')
@@ -79,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     setIsUserAdmin(!!data);
     setUserRole(data?.role as UserRole || null);
-    setIsLoading(false);
 
   }, []);
 
@@ -171,31 +167,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setIsLoading(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      checkAdminStatus(session?.user ?? null);
+      await checkAdminStatus(session?.user ?? null);
       if(session) {
-         checkGuildMembership(session);
-      } else {
-        setIsLoading(false);
+         await checkGuildMembership(session);
       }
+      setIsLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoading(true);
       setSession(session);
       setUser(session?.user ?? null);
-      checkAdminStatus(session?.user ?? null);
+      await checkAdminStatus(session?.user ?? null);
 
       if (_event === 'SIGNED_IN' && session) {
-        checkGuildMembership(session);
+        await checkGuildMembership(session);
       }
       if (_event === 'SIGNED_OUT') {
         setIsUserAdmin(false);
         setUserRole(null);
-        setIsLoading(false);
       }
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
