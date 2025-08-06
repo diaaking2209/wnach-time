@@ -26,7 +26,6 @@ import { Product } from "@/components/product-card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { convertPriceToUSD, CurrencyCode } from "@/lib/currency";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -43,7 +42,6 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [originalPrice, setOriginalPrice] = useState<number | string>("");
-  const [originalPriceCurrency, setOriginalPriceCurrency] = useState<CurrencyCode>('USD');
   const [discount, setDiscount] = useState<number | string | undefined>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
@@ -58,7 +56,6 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setName(product.name);
       setDescription(product.description || "");
       setOriginalPrice(product.originalPrice || product.price); // Fallback to price if original is not set
-      setOriginalPriceCurrency('USD');
       setDiscount(product.discount);
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
@@ -69,7 +66,6 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setName("");
       setDescription("");
       setOriginalPrice("");
-      setOriginalPriceCurrency('USD');
       setDiscount("");
       setPlatforms([]);
       setImageUrl("");
@@ -100,20 +96,18 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     
     const originalPriceNum = Number(originalPrice);
     const discountNum = discount ? Number(discount) : 0;
-
-    const originalPriceInUSD = convertPriceToUSD(originalPriceNum, originalPriceCurrency);
     
     // Calculate final price automatically
-    const finalPriceInUSD = discountNum > 0
-        ? originalPriceInUSD - (originalPriceInUSD * (discountNum / 100))
-        : originalPriceInUSD;
+    const finalPrice = discountNum > 0
+        ? originalPriceNum - (originalPriceNum * (discountNum / 100))
+        : originalPriceNum;
 
 
     const productData = {
       name,
       description,
-      price: finalPriceInUSD,
-      original_price: discountNum > 0 ? originalPriceInUSD : null,
+      price: finalPrice,
+      original_price: discountNum > 0 ? originalPriceNum : null,
       discount: discountNum > 0 ? discountNum : null,
       platforms,
       image_url: imageUrl,
@@ -180,19 +174,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Price</Label>
-                <div className="col-span-3 grid grid-cols-3 gap-2">
-                    <Input id="originalPrice" type="number" placeholder="Original Price" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-2" required />
-                    <Select value={originalPriceCurrency} onValueChange={(v) => setOriginalPriceCurrency(v as CurrencyCode)}>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="SAR">SAR</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+              <Label htmlFor="originalPrice" className="text-right">Price (USD)</Label>
+              <Input id="originalPrice" type="number" placeholder="Price in USD" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="discount" className="text-right">Discount (%)</Label>
