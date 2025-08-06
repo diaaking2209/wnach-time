@@ -65,8 +65,8 @@ export function AuthButton() {
         });
 
         if (response.status === 401) { // Unauthorized, token likely expired or scopes missing
-            await handleSignOut(); // Clear the invalid session
-            await handleSignIn(); // Re-authenticate to get a new token with correct scopes
+            await handleSignOut(); 
+            // The user will be redirected to sign in again, no need to call handleSignIn here
             return;
         }
 
