@@ -11,12 +11,14 @@ import { SteamIcon } from "./icons/steam-icon";
 import { DiscordIcon } from "./icons/discord-icon";
 
 export type Product = {
+  id?: string;
   name: string;
   price: number; // in MAD
   originalPrice?: number; // in MAD
   discount?: number;
   platforms?: ("PC" | "Steam" | "Rockstar")[];
   imageUrl: string;
+  description?: string;
   aiHint?: string;
 };
 
@@ -64,7 +66,7 @@ export function ProductCard({ product }: { product: Product }) {
             <div className="flex flex-col">
               {product.discount && product.originalPrice && (
                  <div className="flex items-center gap-2">
-                    <span className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+                    <span className="inline-block bg-pink-600 text-white text-xs font-bold px-2 py-1 rounded-md">
                         -{product.discount}%
                     </span>
                     <span className="text-sm text-muted-foreground line-through">
@@ -76,8 +78,8 @@ export function ProductCard({ product }: { product: Product }) {
                 {formatPrice(product.price)}
               </p>
             </div>
-            <Button size="icon" className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:text-accent">
-                <ShoppingCart className="h-5 w-5" />
+            <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:text-pink-500">
+                <ShoppingCart className="h-6 w-6" />
                 <span className="sr-only">Add to cart</span>
             </Button>
           </div>
