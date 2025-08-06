@@ -6,21 +6,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useCurrency } from "@/context/currency-context";
-import { ShoppingCart } from "lucide-react";
+import { useCart, CartItem } from "@/context/cart-context";
+import { ShoppingCart, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function CartPage() {
     const { selectedCurrency } = useCurrency();
-    const subTotal = 0;
-    const discount = 0;
-    const vat = 0;
+    const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+    
+    const subTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const discount = 0; // Placeholder for coupon logic
+    const vat = 0; // Placeholder for VAT logic
     const total = subTotal - discount + vat;
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: selectedCurrency.code,
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(price);
+    };
+    
+    const handleQuantityChange = (productId: string, newQuantity: number) => {
+        if (newQuantity >= 1) {
+            updateQuantity(productId, newQuantity);
+        }
     };
 
     return (
@@ -35,19 +47,49 @@ export default function CartPage() {
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <Card className="bg-card border-border/60">
-                        <CardHeader>
-                            <CardTitle className="text-lg font-semibold">Cart Items</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg font-semibold">Cart Items ({cart.length})</CardTitle>
+                             {cart.length > 0 && (
+                                <Button variant="outline" size="sm" onClick={clearCart}>Clear Cart</Button>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-col items-center justify-center py-20 text-center">
-                                <div className="relative mb-4">
-                                    <ShoppingCart className="h-16 w-16 text-muted-foreground" />
-                                    <div className="absolute top-0 right-0 -mt-2 -mr-2 flex h-8 w-8 items-center justify-center rounded-full bg-card">
-                                        <span className="text-2xl font-bold text-muted-foreground">×</span>
+                            {cart.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-center">
+                                    <div className="relative mb-4">
+                                        <ShoppingCart className="h-16 w-16 text-muted-foreground" />
                                     </div>
+                                    <p className="text-muted-foreground">Your cart is empty</p>
+                                    <Button asChild className="mt-4">
+                                        <Link href="/">Continue Shopping</Link>
+                                    </Button>
                                 </div>
-                                <p className="text-muted-foreground">Your cart is empty</p>
-                            </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {cart.map(item => (
+                                        <div key={item.id} className="flex items-center gap-4 border-b border-border/40 pb-4">
+                                            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
+                                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover"/>
+                                            </div>
+                                            <div className="flex-grow">
+                                                <Link href="#" className="font-semibold hover:text-primary">{item.name}</Link>
+                                                <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>-</Button>
+                                                 <Input type="number" value={item.quantity} onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))} className="h-8 w-14 text-center" />
+                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity + 1)}>+</Button>
+                                            </div>
+                                             <div className="text-right font-semibold">
+                                                {formatPrice(item.price * item.quantity)}
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeFromCart(item.id)}>
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -55,7 +97,7 @@ export default function CartPage() {
                 <div className="space-y-6">
                     <Card className="bg-card border-border/60">
                         <CardHeader>
-                            <CardTitle className="text-lg font-semibold">Have coupon?</CardTitle>
+                            <CardTitle className="text-lg font-semibold">Have a coupon?</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-2">
@@ -84,7 +126,9 @@ export default function CartPage() {
                                 <span>Total ({selectedCurrency.code}):</span>
                                 <span>{formatPrice(total)}</span>
                             </div>
-                            <Button className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground">Continue Shopping</Button>
+                            <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground" disabled={cart.length === 0}>
+                                Proceed to Checkout
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>

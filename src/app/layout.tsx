@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/footer';
 import { Toaster } from "@/components/ui/toaster"
 import { CurrencyProvider } from '@/context/currency-context';
 import { AuthProvider } from '@/hooks/use-auth';
+import { CartProvider } from '@/context/cart-context';
 
 export const metadata: Metadata = {
   title: 'Wnash time',
@@ -29,12 +30,14 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <CurrencyProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-grow">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
+            <CartProvider>
+                <div className="flex min-h-screen flex-col">
+                  <Header />
+                  <main className="flex-grow">{children}</main>
+                  <Footer />
+                </div>
+                <Toaster />
+            </CartProvider>
           </CurrencyProvider>
         </AuthProvider>
       </body>

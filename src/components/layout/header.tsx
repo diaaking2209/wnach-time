@@ -16,6 +16,7 @@ import { AuthButton } from "../auth-button";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/context/cart-context";
 
 const navLinks = [
     { name: "Home", href: "/" },
@@ -28,7 +29,10 @@ const navLinks = [
 
 export function Header() {
   const { selectedCurrency, setCurrency } = useCurrency();
+  const { cart } = useCart();
   const pathname = usePathname();
+  
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
@@ -81,7 +85,9 @@ export function Header() {
           <Link href="/cart">
             <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
               <ShoppingCart className="h-5 w-5 text-accent" />
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">0</span>
+              {totalItems > 0 && (
+                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">{totalItems}</span>
+              )}
               <span className="sr-only">Shopping Cart</span>
             </Button>
           </Link>
