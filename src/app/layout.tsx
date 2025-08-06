@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from "@/components/ui/toaster"
 import { CurrencyProvider } from '@/context/currency-context';
+import { AuthProvider } from '@/hooks/use-auth';
 
 export const metadata: Metadata = {
   title: 'Wnash time',
@@ -26,14 +27,16 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <CurrencyProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-          <Toaster />
-        </CurrencyProvider>
+        <AuthProvider>
+          <CurrencyProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-grow">{children}</main>
+              <Footer />
+            </div>
+            <Toaster />
+          </CurrencyProvider>
+        </AuthProvider>
       </body>
     </html>
   );
