@@ -8,9 +8,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ShoppingCart, User, Globe, CircleDollarSign } from "lucide-react";
+import { Search, ShoppingCart, User, Globe, CircleDollarSign, Gamepad2, CreditCard, CalendarDays, ShoppingBag, Laptop } from "lucide-react";
 import { useCurrency } from "@/context/currency-context";
 import { currencies } from "@/lib/currency";
+
+const navLinks = [
+    { name: "Games", icon: Gamepad2, href: "#", dropdown: true },
+    { name: "Cards", icon: CreditCard, href: "#", dropdown: true },
+    { name: "Subscriptions", icon: CalendarDays, href: "#" },
+    { name: "In-game Purchases", icon: ShoppingBag, href: "#" },
+    { name: "Computer Programs", icon: Laptop, href: "#" },
+];
 
 export function Header() {
   const { selectedCurrency, setCurrency } = useCurrency();
@@ -70,6 +78,17 @@ export function Header() {
             <span className="sr-only">User Account</span>
           </Button>
         </div>
+      </div>
+      <div className="border-t border-border/40">
+        <nav className="container mx-auto flex max-w-7xl items-center justify-start px-4 sm:px-6 lg:px-8 gap-6 h-14">
+            {navLinks.map((link) => (
+                <Link key={link.name} href={link.href} className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary">
+                    <link.icon className="h-4 w-4" />
+                    <span>{link.name}</span>
+                    {link.dropdown && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-down h-4 w-4"><path d="m6 9 6 6 6-6"/></svg>}
+                </Link>
+            ))}
+        </nav>
       </div>
     </header>
   );
