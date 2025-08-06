@@ -24,19 +24,17 @@ const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with 
 export function AuthButton() {
   const [session, setSession] = useState<Session | null>(null);
   const [showGuildModal, setShowGuildModal] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session) {
-        checkGuildMembership(session);
-      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (_event === 'SIGNED_IN') {
+      if (_event === 'SIGNED_IN' && session) {
         checkGuildMembership(session);
       }
     });
@@ -54,9 +52,11 @@ export function AuthButton() {
   };
   
   const checkGuildMembership = async (session: Session | null) => {
-    if (!session?.provider_token) {
+    if (!session?.provider_token || isVerifying) {
         return;
     }
+    setIsVerifying(true);
+    
     try {
         const response = await fetch('https://discord.com/api/users/@me/guilds', {
             headers: {
@@ -64,9 +64,9 @@ export function AuthButton() {
             },
         });
 
-        if (response.status === 401) { // Unauthorized, token likely expired or scopes missing
-            await handleSignOut(); 
-            // The user will be redirected to sign in again, no need to call handleSignIn here
+        if (response.status === 401) { // Unauthorized
+            await handleSignOut();
+            await handleSignIn(); // Re-authenticate to get fresh tokens/scopes
             return;
         }
 
@@ -86,9 +86,11 @@ export function AuthButton() {
         toast({
             variant: "destructive",
             title: "Verification Failed",
-            description: "Could not verify your Discord server membership.",
+            description: "Could not verify your Discord server membership. Please try signing in again.",
         });
         await handleSignOut();
+    } finally {
+      setIsVerifying(false);
     }
   };
 
