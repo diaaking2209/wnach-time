@@ -41,6 +41,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 
 export default function AdminPage() {
@@ -72,6 +73,8 @@ export default function AdminPage() {
         description: item.description,
         category: item.category,
         tags: item.tags || [],
+        stockStatus: item.stock_status,
+        isActive: item.is_active,
       }));
       setProducts(formattedProducts);
     }
@@ -142,9 +145,10 @@ export default function AdminPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Stock</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead>Tags</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -153,7 +157,7 @@ export default function AdminPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10">
+                    <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         <p className="mt-2 text-muted-foreground">Loading products...</p>
                     </TableCell>
@@ -162,14 +166,19 @@ export default function AdminPage() {
                 products.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>
+                         <Badge variant={product.isActive ? "default" : "secondary"} className={cn(product.isActive ? "bg-green-600" : "bg-gray-500")}>
+                            {product.isActive ? 'On' : 'Off'}
+                         </Badge>
+                    </TableCell>
+                     <TableCell>
+                         <Badge variant={product.stockStatus === 'In Stock' ? "outline" : "destructive"}>
+                            {product.stockStatus}
+                         </Badge>
+                    </TableCell>
                     <TableCell>${product.price.toFixed(2)}</TableCell>
                     <TableCell>
                         {product.category && <Badge variant="secondary">{product.category}</Badge>}
-                    </TableCell>
-                     <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                            {product.tags?.map(tag => <Badge key={tag} variant="outline">{tag}</Badge>)}
-                        </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -212,7 +221,7 @@ export default function AdminPage() {
                 ))
               ) : (
                 <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10">
+                    <TableCell colSpan={6} className="text-center py-10">
                         <p className="text-muted-foreground">No products found. Add your first product!</p>
                     </TableCell>
                 </TableRow>

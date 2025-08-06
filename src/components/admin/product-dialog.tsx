@@ -26,6 +26,7 @@ import { Product } from "@/components/product-card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { Switch } from "../ui/switch";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -36,18 +37,21 @@ interface ProductDialogProps {
 
 const categories = ["Games", "Cards", "Subscriptions", "In-game Purchases", "Computer Programs"];
 const platformOptions = ["PC", "Xbox", "Playstation", "Mobile"];
+const stockStatusOptions = ["In Stock", "Out of Stock"];
 
 
 export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [originalPrice, setOriginalPrice] = useState<number | string>("");
+  const [price, setPrice] = useState<number | string>("");
   const [discount, setDiscount] = useState<number | string | undefined>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
+  const [stockStatus, setStockStatus] = useState("In Stock");
+  const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -55,22 +59,26 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     if (product) {
       setName(product.name);
       setDescription(product.description || "");
-      setOriginalPrice(product.originalPrice || product.price); // Fallback to price if original is not set
+      setPrice(product.originalPrice || product.price); // Use original price for editing
       setDiscount(product.discount);
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
       setCategory(product.category || "");
       setTags(product.tags || []);
+      setStockStatus(product.stockStatus || "In Stock");
+      setIsActive(product.isActive === false ? false : true);
     } else {
       // Reset form for new product
       setName("");
       setDescription("");
-      setOriginalPrice("");
+      setPrice("");
       setDiscount("");
       setPlatforms([]);
       setImageUrl("");
       setCategory("");
       setTags([]);
+      setStockStatus("In Stock");
+      setIsActive(true);
     }
   }, [product, isOpen]);
 
@@ -94,7 +102,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     e.preventDefault();
     setIsSaving(true);
     
-    const originalPriceNum = Number(originalPrice);
+    const originalPriceNum = Number(price);
     const discountNum = discount ? Number(discount) : 0;
     
     // Calculate final price automatically
@@ -113,6 +121,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       image_url: imageUrl,
       category,
       tags,
+      stock_status: stockStatus,
+      is_active: isActive,
     };
 
     let error;
@@ -153,10 +163,17 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
               {product ? "Edit the details of your product." : "Fill in the details for your new product."}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">Name</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="isActive" className="text-right">Status</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
+                <span className="text-sm text-muted-foreground">{isActive ? "On (Visible in store)" : "Off (Hidden from store)"}</span>
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="description" className="text-right">Description</Label>
@@ -164,7 +181,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="category" className="text-right">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -175,11 +192,22 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="originalPrice" className="text-right">Price (USD)</Label>
-              <Input id="originalPrice" type="number" placeholder="Price in USD" value={originalPrice} onChange={(e) => setOriginalPrice(e.target.value)} className="col-span-3" required />
+              <Input id="originalPrice" type="number" placeholder="Original price in USD" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="discount" className="text-right">Discount (%)</Label>
               <Input id="discount" type="number" placeholder="e.g. 10" value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="stockStatus" className="text-right">Stock</Label>
+                <Select value={stockStatus} onValueChange={setStockStatus}>
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select stock status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {stockStatusOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platforms" className="text-right">Platforms</Label>

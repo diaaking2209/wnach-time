@@ -24,6 +24,8 @@ export type Product = {
   description?: string;
   aiHint?: string;
   category?: string;
+  stockStatus?: 'In Stock' | 'Out of Stock';
+  isActive?: boolean;
 };
 
 const platformIcons: { [key: string]: React.ComponentType<{ className?: string }> } = {
@@ -49,6 +51,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   const priceToDisplay = product.price;
+  const isOutOfStock = product.stockStatus === 'Out of Stock';
 
   return (
     <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2">
@@ -71,6 +74,12 @@ export function ProductCard({ product }: { product: Product }) {
                 -{product.discount}%
             </div>
            )}
+           {isOutOfStock && (
+             <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-md">
+                Out of Stock
+            </div>
+           )}
+           {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
         </div>
 
         <div className="flex flex-grow flex-col p-3">
@@ -104,7 +113,7 @@ export function ProductCard({ product }: { product: Product }) {
                 {formatPrice(priceToDisplay)}
               </p>
             </div>
-            <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white">
+            <Button size="icon" className="h-10 w-10 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" disabled={isOutOfStock}>
                 <ShoppingCart className="h-5 w-5" />
                 <span className="sr-only">Add to cart</span>
             </Button>

@@ -19,6 +19,7 @@ export default function GamesPage() {
         .from('products')
         .select('*')
         .eq('category', 'Games')
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -40,6 +41,8 @@ export default function GamesPage() {
           imageUrl: item.image_url,
           description: item.description,
           category: item.category,
+          stockStatus: item.stock_status,
+          isActive: item.is_active,
         }));
         setProducts(formattedProducts);
       }
