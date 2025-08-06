@@ -61,8 +61,9 @@ export function Header() {
         </div>
       </div>
       <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time" width={140} height={40} />
+        <Link href="/" className="flex items-center gap-3">
+          <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time Logo" width={40} height={40} />
+           <span className="text-xl font-bold tracking-tight text-foreground">Wnash time</span>
         </Link>
         <div className="flex-1 flex justify-center px-8">
           <div className="relative w-full max-w-md">
