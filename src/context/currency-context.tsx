@@ -11,7 +11,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies.find(c => c.code === 'MAD')!);
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(currencies.find(c => c.code === 'USD')!);
 
   const setCurrency = (code: CurrencyCode) => {
     const newCurrency = currencies.find(c => c.code === code);

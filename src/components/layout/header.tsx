@@ -42,7 +42,7 @@ export function Header() {
             <DropdownMenuContent align="start">
               {currencies.map((currency) => (
                 <DropdownMenuItem key={currency.code} onClick={() => setCurrency(currency.code)}>
-                  {currency.name} ({currency.code})
+                  {currency.nameAr} - {currency.code}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
