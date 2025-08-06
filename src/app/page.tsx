@@ -1,5 +1,6 @@
 
 "use client"
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
@@ -10,28 +11,17 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel"
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/lib/supabase";
+import { Loader2, CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 import Link from "next/link";
-import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-const topProducts: Product[] = [];
-
-const bestDeals = [
-    {
-        title: "YouTube Premium Subscription",
-        description: "",
-        imageUrl: "https://placehold.co/1200x400",
-        aiHint: "youtube logo",
-        link: "#"
-    },
-    {
-        title: "Spotify Premium",
-        description: "",
-        imageUrl: "https://placehold.co/1200x400",
-        aiHint: "spotify logo",
-        link: "#"
-    }
-];
+type CarouselDeal = {
+    title: string;
+    imageUrl: string;
+    aiHint: string;
+    link: string;
+}
 
 const categories = [
     { name: "Games", icon: Gamepad2, href: "/games" },
@@ -42,9 +32,81 @@ const categories = [
 ];
 
 export default function HomePage() {
+  const [topProducts, setTopProducts] = useState<Product[]>([]);
+  const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchHomepageContent = async () => {
+      setLoading(true);
+      try {
+        // Fetch Carousel Deals
+        const { data: dealsData, error: dealsError } = await supabase
+          .from('homepage_carousel')
+          .select('*')
+          .order('sort_order');
+
+        if (dealsError) throw dealsError;
+        
+        const formattedDeals: CarouselDeal[] = dealsData.map(d => ({
+            title: d.title,
+            imageUrl: d.image_url,
+            aiHint: d.ai_hint,
+            link: d.link,
+        }));
+        setBestDeals(formattedDeals);
+
+        // Fetch Top Products
+        const { data: topProductsData, error: topProductsError } = await supabase
+            .from('homepage_top_products')
+            .select('products(*)') // This joins the products table
+            .order('sort_order');
+        
+        if (topProductsError) throw topProductsError;
+
+        const formattedProducts: Product[] = topProductsData
+            .map(item => item.products) // Extract the product object
+            .filter(p => p) // Filter out any null products if the join failed
+            .map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                originalPrice: item.original_price,
+                discount: item.discount,
+                platforms: item.platforms || [],
+                tags: item.tags || [],
+                imageUrl: item.image_url,
+                description: item.description,
+                category: item.category,
+                stockStatus: item.stock_status,
+                isActive: item.is_active,
+            }));
+        setTopProducts(formattedProducts);
+
+      } catch (error: any) {
+        console.error("Error fetching homepage content:", error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching page content",
+          description: error.message,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHomepageContent();
+  }, [toast]);
+
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <section className="mb-12">
+       {loading ? (
+          <div className="relative h-64 w-full overflow-hidden rounded-lg md:h-80 bg-muted/30 flex items-center justify-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+       ) : (
         <Carousel
           opts={{
             align: "start",
@@ -76,6 +138,7 @@ export default function HomePage() {
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
         </Carousel>
+       )}
       </section>
 
        <section className="mb-12">
@@ -116,10 +179,20 @@ export default function HomePage() {
                 <p className="text-muted-foreground">Check out our best-selling items</p>
             </div>
         </div>
-        {topProducts.length > 0 ? (
+        {loading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                        <div className="aspect-square w-full rounded-lg bg-muted/30 animate-pulse"></div>
+                        <div className="h-4 w-3/4 rounded bg-muted/30 animate-pulse"></div>
+                        <div className="h-6 w-1/2 rounded bg-muted/30 animate-pulse"></div>
+                    </div>
+                ))}
+            </div>
+        ) : topProducts.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {topProducts.map((product, index) => (
-              <ProductCard key={index} product={product} />
+            {topProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         ) : (
