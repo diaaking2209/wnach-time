@@ -5,15 +5,25 @@ import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/currency-context";
 import { convertPrice } from "@/lib/currency";
 import { ShoppingCart } from "lucide-react";
+import { PcIcon } from "./icons/pc-icon";
+import { RockstarIcon } from "./icons/rockstar-icon";
+import { SteamIcon } from "./icons/steam-icon";
 
 export type Product = {
   name: string;
-  description: string;
   price: number; // in MAD
-  platform: "PC" | "Steam" | "Rockstar";
+  originalPrice?: number; // in MAD
+  discount?: number;
+  platforms: ("PC" | "Steam" | "Rockstar")[];
   imageUrl: string;
   aiHint: string;
 };
+
+const platformIcons = {
+  PC: PcIcon,
+  Steam: SteamIcon,
+  Rockstar: RockstarIcon,
+}
 
 export function ProductCard({ product }: { product: Product }) {
   const { selectedCurrency } = useCurrency();
@@ -27,7 +37,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   return (
-    <Card className="group flex h-full flex-col overflow-hidden rounded-lg border border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
+    <Card className="group flex h-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
         <div className="relative overflow-hidden rounded-t-lg">
           <Image
@@ -41,15 +51,33 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         <div className="flex flex-grow flex-col p-3">
-          <h3 className="mb-1 flex-grow text-sm font-semibold leading-tight text-foreground truncate">
+          <h3 className="mb-2 flex-grow text-sm font-semibold leading-tight text-foreground truncate">
             {product.name}
           </h3>
-          <p className="text-xs text-muted-foreground mb-2 truncate">{product.description}</p>
+
+          {product.discount && product.originalPrice && (
+             <div className="flex items-center gap-2 mb-2">
+                <span className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+                    -{product.discount}%
+                </span>
+                <span className="text-sm text-muted-foreground line-through">
+                    {formatPrice(product.originalPrice)} {selectedCurrency.code}
+                </span>
+             </div>
+          )}
           
-          <div className="mt-auto flex items-center justify-between">
-            <p className="text-base font-bold text-foreground">
-                {formatPrice(product.price)} {selectedCurrency.code}
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                 <div className="flex items-center gap-1.5">
+                    {product.platforms.map((p) => {
+                        const Icon = platformIcons[p];
+                        return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
+                    })}
+                 </div>
+                 <p className="text-base font-bold text-foreground">
+                    {formatPrice(product.price)} {selectedCurrency.code}
+                 </p>
+            </div>
             <Button size="icon" className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80">
                 <ShoppingCart className="h-4 w-4" />
                 <span className="sr-only">Add to cart</span>
