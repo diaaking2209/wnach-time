@@ -39,13 +39,13 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Card className="group flex h-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
-        <div className="relative overflow-hidden rounded-t-lg">
+        <div className="relative overflow-hidden rounded-t-lg aspect-square">
           <Image
             src={product.imageUrl}
             alt={product.name}
             width={300}
-            height={400}
-            className="h-auto w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            height={300}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             data-ai-hint={product.aiHint}
           />
         </div>

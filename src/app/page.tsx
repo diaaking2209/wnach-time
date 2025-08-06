@@ -9,7 +9,7 @@ const products: Product[] = [
     originalPrice: 299.99,
     discount: 50,
     platforms: ["PC", "Rockstar"],
-    imageUrl: "https://placehold.co/300x400/000000/ffffff?text=GTA+V",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "action adventure game"
   },
   {
@@ -18,7 +18,7 @@ const products: Product[] = [
     originalPrice: 599.99,
     discount: 60,
     platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/300x400/b22222/ffffff?text=RDR2",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "western action game"
   },
   {
@@ -27,7 +27,7 @@ const products: Product[] = [
     originalPrice: 399.99,
     discount: 50,
     platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/300x400/fdfc01/000000?text=Cyberpunk",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "sci-fi rpg"
   },
   {
@@ -36,21 +36,21 @@ const products: Product[] = [
     originalPrice: 399.99,
     discount: 80,
     platforms: ["PC"],
-    imageUrl: "https://placehold.co/300x400/2c2c2c/ffffff?text=Witcher+3",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "fantasy rpg"
   },
   {
     name: "ELDEN RING",
     price: 480.00,
     platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/300x400/e5b533/000000?text=Elden+Ring",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "souls-like rpg"
   },
   {
     name: "EA SPORTS FC™ 24",
     price: 600.00,
     platforms: ["PC", "Steam"],
-    imageUrl: "https://placehold.co/300x400/004d25/ffffff?text=FC+24",
+    imageUrl: "https://placehold.co/300x300",
     aiHint: "sports football game"
   },
 ];
