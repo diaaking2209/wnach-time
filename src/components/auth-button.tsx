@@ -64,9 +64,9 @@ export function AuthButton() {
             },
         });
 
-        if (response.status === 401) { // Unauthorized, likely missing scope
-            await handleSignOut();
-            await handleSignIn(); // Re-authenticate to get new scopes
+        if (response.status === 401) { // Unauthorized, token likely expired or scopes missing
+            await handleSignOut(); // Clear the invalid session
+            await handleSignIn(); // Re-authenticate to get a new token with correct scopes
             return;
         }
 
