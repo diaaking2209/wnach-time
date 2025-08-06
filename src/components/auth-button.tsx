@@ -33,10 +33,17 @@ export function AuthButton() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const handleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'discord',
+      options: {
+        scopes: 'identify email guilds',
+      },
+    });
+  };
+  
   const checkGuildMembership = async (session: Session | null) => {
     if (!session?.provider_token) {
-        // This might happen if the token is not available, we may need to re-authenticate to get it
-        // For now, we will assume it's present after a fresh login.
         return;
     }
     try {
@@ -45,9 +52,17 @@ export function AuthButton() {
                 Authorization: `Bearer ${session.provider_token}`,
             },
         });
-        if (!response.ok) {
-            throw new Error('Failed to fetch Discord guilds.');
+
+        if (response.status === 401) { // Unauthorized, likely missing scope
+            await handleSignOut();
+            await handleSignIn(); // Re-authenticate to get new scopes
+            return;
         }
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch Discord guilds. Status: ${response.status}`);
+        }
+        
         const guilds = await response.json();
         const isMember = guilds.some((guild: any) => guild.id === DISCORD_SERVER_ID);
 
@@ -68,15 +83,6 @@ export function AuthButton() {
         });
         await handleSignOut();
     }
-  };
-
-  const handleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'discord',
-      options: {
-        scopes: 'identify email guilds',
-      },
-    });
   };
 
   const handleSignOut = async () => {
