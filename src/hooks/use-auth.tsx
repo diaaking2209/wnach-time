@@ -150,6 +150,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (!isMember) {
             setShowGuildModal(true); // This will prompt the user to join
+        } else {
+             // If user is member, update their profile info in admins table
+            const user = session.user;
+            if (user && user.user_metadata) {
+                const { provider_id, full_name, avatar_url } = user.user_metadata;
+                const { error: updateError } = await supabase
+                    .from('admins')
+                    .update({ username: full_name, avatar_url: avatar_url })
+                    .eq('provider_id', provider_id)
+
+                if (updateError && updateError.code !== '23505') { // 23505 is unique violation, ignore
+                    console.error("Error updating admin profile:", updateError);
+                }
+            }
         }
     } catch (error) {
         console.error('Error checking guild membership:', error);

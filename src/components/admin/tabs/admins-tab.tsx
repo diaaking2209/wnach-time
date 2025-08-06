@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, PlusCircle, User, RefreshCw } from "lucide-react";
@@ -44,7 +44,7 @@ export function AdminsTab() {
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 
-  const fetchAdmins = async () => {
+  const fetchAdmins = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
@@ -59,11 +59,11 @@ export function AdminsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchAdmins();
-  }, []);
+  }, [fetchAdmins]);
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,10 +84,13 @@ export function AdminsTab() {
 
     setIsSaving(true);
     try {
-      // We don't have the username/avatar yet, so we'll use the ID as a placeholder
       const { data, error } = await supabase
         .from("admins")
-        .insert([{ provider_id: newAdminId.trim(), username: `User ${newAdminId.trim()}`, role: 'product_adder' }])
+        .insert([{ 
+            provider_id: newAdminId.trim(), 
+            username: `User ${newAdminId.trim()}`, // Placeholder username
+            role: 'product_adder' 
+        }])
         .select()
         .single();
 
@@ -133,6 +136,7 @@ export function AdminsTab() {
     try {
       const { error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId);
       if (error) throw error;
+      
       setAdmins(prev => prev.map(admin => admin.id === adminId ? { ...admin, role: newRole } : admin));
       toast({ title: "Role Updated", description: "Admin role has been successfully updated." });
     } catch (error: any) {
@@ -161,7 +165,7 @@ export function AdminsTab() {
         <CardHeader>
           <CardTitle>Manage Admins</CardTitle>
           <CardDescription>
-            Add or remove administrators and assign their roles.
+            Add or remove administrators and assign their roles. Added users must sign in once for their info to appear.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -181,7 +185,7 @@ export function AdminsTab() {
           <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Current Admins</h3>
-                <Button variant="ghost" size="icon" onClick={fetchAdmins} disabled={loading}>
+                <Button variant="ghost" size="icon" onClick={() => fetchAdmins()} disabled={loading}>
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             </div>
@@ -190,7 +194,7 @@ export function AdminsTab() {
                     <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
                         <div className="flex items-center gap-3">
                             <Avatar>
-                                <AvatarImage src={admin.avatar_url || ''} alt={admin.username || 'admin'} />
+                                <AvatarImage src={admin.avatar_url || undefined} alt={admin.username || 'admin'} />
                                 <AvatarFallback><User /></AvatarFallback>
                             </Avatar>
                             <div>
