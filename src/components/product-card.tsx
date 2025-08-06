@@ -39,13 +39,12 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Card className="group flex h-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
-        <div className="relative overflow-hidden rounded-t-lg aspect-square">
+        <div className="relative overflow-hidden rounded-t-lg aspect-[4/3]">
           <Image
             src={product.imageUrl}
             alt={product.name}
-            width={300}
-            height={300}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
             data-ai-hint={product.aiHint}
           />
         </div>
@@ -55,34 +54,33 @@ export function ProductCard({ product }: { product: Product }) {
             {product.name}
           </h3>
 
-          {product.discount && product.originalPrice && (
-             <div className="flex items-center gap-2 mb-2">
-                <span className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md">
-                    -{product.discount}%
-                </span>
-                <span className="text-sm text-muted-foreground line-through">
-                    {formatPrice(product.originalPrice)} {selectedCurrency.code}
-                </span>
-             </div>
-          )}
-          
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                 <div className="flex items-center gap-1.5">
-                    {product.platforms.map((p) => {
-                        const Icon = platformIcons[p];
-                        return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
-                    })}
+            <div className="flex flex-col">
+              {product.discount && product.originalPrice && (
+                 <div className="flex items-center gap-2">
+                    <span className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md">
+                        -{product.discount}%
+                    </span>
+                    <span className="text-sm text-muted-foreground line-through">
+                        {formatPrice(product.originalPrice)}
+                    </span>
                  </div>
-                 <p className="text-base font-bold text-foreground">
-                    {formatPrice(product.price)} {selectedCurrency.code}
-                 </p>
+              )}
+              <p className="text-base font-bold text-foreground">
+                {formatPrice(product.price)} {selectedCurrency.code}
+              </p>
             </div>
-            <Button size="icon" className="h-8 w-8 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+            <Button size="icon" className="h-8 w-8 shrink-0 bg-secondary text-secondary-foreground hover:bg-secondary/80">
                 <ShoppingCart className="h-4 w-4" />
                 <span className="sr-only">Add to cart</span>
             </Button>
           </div>
+            <div className="flex items-center gap-1.5 mt-2">
+                {product.platforms.map((p) => {
+                    const Icon = platformIcons[p];
+                    return Icon ? <Icon key={p} className="h-4 w-4 text-muted-foreground" /> : null;
+                })}
+            </div>
         </div>
       </CardContent>
     </Card>
