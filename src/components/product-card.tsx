@@ -38,7 +38,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   return (
-    <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2">
+    <Card className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60">
       <CardContent className="flex flex-grow flex-col p-0">
         <div className="relative flex w-full aspect-square items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
           {product.imageUrl ? (
