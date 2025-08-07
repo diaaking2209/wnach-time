@@ -4,8 +4,6 @@ import Image from "next/image";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useCurrency } from "@/context/currency-context";
-import { convertPrice } from "@/lib/currency";
 import { Smartphone, Gamepad2, ShoppingCart } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
@@ -40,17 +38,15 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const { selectedCurrency } = useCurrency();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   
   const formatPrice = (price: number) => {
-    const converted = convertPrice(price, selectedCurrency.code);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: selectedCurrency.code,
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(converted);
+    }).format(price);
   };
   
   const priceToDisplay = product.price;

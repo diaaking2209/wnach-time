@@ -9,9 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ShoppingCart, Globe, CircleDollarSign } from "lucide-react";
-import { useCurrency } from "@/context/currency-context";
-import { currencies } from "@/lib/currency";
+import { Search, ShoppingCart, Globe } from "lucide-react";
 import { AuthButton } from "../auth-button";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -28,7 +26,6 @@ const navLinks = [
 ]
 
 export function Header() {
-  const { selectedCurrency, setCurrency } = useCurrency();
   const { cart } = useCart();
   const pathname = usePathname();
   
@@ -36,38 +33,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
-      <div className="bg-black/80 text-white">
-        <div className="container mx-auto flex h-10 max-w-7xl items-center justify-end px-4 sm:px-6 lg:px-8 gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-xs font-medium text-muted-foreground hover:text-primary p-0 h-auto hover:bg-transparent">
-                <Globe className="h-4 w-4 mr-1" />
-                Language
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>English</DropdownMenuItem>
-              <DropdownMenuItem>العربية</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-xs font-medium text-muted-foreground hover:text-primary p-0 h-auto hover:bg-transparent">
-                <CircleDollarSign className="h-4 w-4 mr-1" />
-                Currency ({selectedCurrency.code})
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {currencies.map((currency) => (
-                <DropdownMenuItem key={currency.code} onClick={() => setCurrency(currency.code)}>
-                  {currency.nameAr} - {currency.code}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
       <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time Logo" width={40} height={40} />
@@ -82,6 +47,19 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 focus-visible:ring-0 focus-visible:ring-offset-0">
+                    <Globe className="h-5 w-5" />
+                    <span className="sr-only">Change Language</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>English</DropdownMenuItem>
+                  <DropdownMenuItem>العربية</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
           <Link href="/cart">
             <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
               <ShoppingCart className="h-5 w-5 text-accent" />

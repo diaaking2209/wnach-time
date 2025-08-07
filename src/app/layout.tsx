@@ -3,7 +3,6 @@ import './globals.css';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from "@/components/ui/toaster"
-import { CurrencyProvider } from '@/context/currency-context';
 import { AuthProvider } from '@/hooks/use-auth';
 import { CartProvider } from '@/context/cart-context';
 
@@ -29,7 +28,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <CurrencyProvider>
             <CartProvider>
                 <div className="flex min-h-screen flex-col">
                   <Header />
@@ -38,7 +36,6 @@ export default function RootLayout({
                 </div>
                 <Toaster />
             </CartProvider>
-          </CurrencyProvider>
         </AuthProvider>
       </body>
     </html>

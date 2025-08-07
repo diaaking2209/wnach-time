@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/components/product-card";
-import { useCurrency } from "@/context/currency-context";
-import { convertPrice } from "@/lib/currency";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart } from "lucide-react";
@@ -25,20 +23,18 @@ interface ProductDetailDialogProps {
 
 export function ProductDetailDialog({ isOpen, setIsOpen, product }: ProductDetailDialogProps) {
   const [quantity, setQuantity] = useState(1);
-  const { selectedCurrency } = useCurrency();
   const { addToCart } = useCart();
   const { toast } = useToast();
 
   if (!product) return null;
 
   const formatPrice = (price: number) => {
-    const converted = convertPrice(price, selectedCurrency.code);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: selectedCurrency.code,
+      currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(converted);
+    }).format(price);
   };
 
   const handleAddToCart = () => {

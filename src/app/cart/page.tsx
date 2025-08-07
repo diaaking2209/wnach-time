@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { useCurrency } from "@/context/currency-context";
 import { useCart } from "@/context/cart-context";
 import { ShoppingCart, Trash2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 
 export default function CartPage() {
-    const { selectedCurrency } = useCurrency();
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
     const { toast } = useToast();
     
@@ -31,7 +29,7 @@ export default function CartPage() {
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: selectedCurrency.code,
+            currency: 'USD',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(price);
@@ -189,7 +187,7 @@ export default function CartPage() {
 
                             <Separator className="bg-border/60" />
                             <div className="flex justify-between font-semibold">
-                                <span>Total ({selectedCurrency.code}):</span>
+                                <span>Total (USD):</span>
                                 <span>{formatPrice(total)}</span>
                             </div>
                             <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground" disabled={cart.length === 0}>
