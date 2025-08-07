@@ -96,7 +96,7 @@ export function Header() {
       </div>
       <div className="border-t border-border/40">
         <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <ul className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 overflow-x-auto py-2">
+          <ul className="flex items-center justify-center gap-4 sm:gap-6 overflow-x-auto py-2">
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className={cn(
