@@ -180,17 +180,17 @@ export default function HomePage() {
             </div>
         </div>
         {loading ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {Array.from({ length: 5 }).map((_, i) => (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="space-y-2">
-                        <div className="aspect-square w-full rounded-lg bg-muted/30 animate-pulse"></div>
+                        <div className="aspect-[4/3] w-full rounded-lg bg-muted/30 animate-pulse"></div>
                         <div className="h-4 w-3/4 rounded bg-muted/30 animate-pulse"></div>
                         <div className="h-6 w-1/2 rounded bg-muted/30 animate-pulse"></div>
                     </div>
                 ))}
             </div>
         ) : topProducts.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {topProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
