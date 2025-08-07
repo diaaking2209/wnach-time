@@ -70,7 +70,7 @@ export function ProductCard({ product }: { product: Product }) {
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint={product.aiHint}
               />

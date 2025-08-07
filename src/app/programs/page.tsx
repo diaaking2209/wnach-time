@@ -1,56 +1,41 @@
 
-"use client"
-import { useEffect, useState } from 'react';
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
-export default function ProgramsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+async function getProgramProducts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category', 'Computer Programs')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', 'Computer Programs')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+  if (error) {
+    console.error("Error fetching program products:", error);
+    return [];
+  }
+  
+  const formattedProducts: Product[] = data.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      originalPrice: item.original_price,
+      discount: item.discount,
+      platforms: item.platforms || [],
+      tags: item.tags || [],
+      imageUrl: item.image_url,
+      description: item.description,
+      category: item.category,
+      stockStatus: item.stock_status,
+      isActive: item.is_active,
+  }));
 
-      if (error) {
-        console.error("Error fetching program products:", error);
-        toast({
-          variant: "destructive",
-          title: "Error fetching products",
-          description: error.message,
-        });
-      } else {
-        const formattedProducts: Product[] = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          originalPrice: item.original_price,
-          discount: item.discount,
-          platforms: item.platforms || [],
-          tags: item.tags || [],
-          imageUrl: item.image_url,
-          description: item.description,
-          category: item.category,
-          stockStatus: item.stock_status,
-          isActive: item.is_active,
-        }));
-        setProducts(formattedProducts);
-      }
-      setLoading(false);
-    };
+  return formattedProducts;
+}
 
-    fetchProducts();
-  }, [toast]);
+export default async function ProgramsPage() {
+  const products = await getProgramProducts();
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -63,11 +48,7 @@ export default function ProgramsPage() {
           <p className="text-muted-foreground">Browse our selection of software</p>
         </div>
       </div>
-      {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      ) : products.length > 0 ? (
+      {products.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
