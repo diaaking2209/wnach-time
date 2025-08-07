@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/currency-context";
 import { convertPrice } from "@/lib/currency";
-import { Smartphone, Gamepad2 } from "lucide-react";
+import { Smartphone, Gamepad2, ShoppingCart } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
@@ -64,7 +64,7 @@ export function ProductCard({ product }: { product: Product }) {
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2 cursor-pointer"
       >
         <CardContent className="flex flex-grow flex-col p-0">
-          <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
+          <div className="relative flex w-full aspect-[16/9] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
             {product.imageUrl ? (
               <Image
                 src={product.imageUrl}
@@ -121,15 +121,16 @@ export function ProductCard({ product }: { product: Product }) {
                   </p>
               </div>
               <Button 
-                size="sm"
-                className="h-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
+                size="icon"
+                className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
                 disabled={isOutOfStock}
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent card click event
                   setIsDetailOpen(true);
                 }}
               >
-                  View Details
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="sr-only">View Details</span>
               </Button>
             </div>
           </div>
