@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsTab } from "@/components/admin/tabs/products-tab";
 import { HomePageTab } from "@/components/admin/tabs/homepage-tab";
 import { AdminsTab } from "@/components/admin/tabs/admins-tab";
+import { CouponsTab } from "@/components/admin/tabs/coupons-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -32,6 +33,14 @@ export default function AdminPage() {
   const isSuperOwner = userRole === 'super_owner';
   const isOwner = userRole === 'owner' || isSuperOwner;
 
+  const getGridColsClass = () => {
+    let count = 1; // Products
+    if (isOwner) count++; // Home Page
+    if (isOwner) count++; // Coupons
+    if (isSuperOwner) count++; // Admins
+    return `grid-cols-${count}`;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
@@ -40,9 +49,10 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="products">
-        <TabsList className={isSuperOwner ? "grid w-full grid-cols-3" : (isOwner ? "grid w-full grid-cols-2" : "grid w-full grid-cols-1")}>
+        <TabsList className={`grid w-full ${getGridColsClass()}`}>
           <TabsTrigger value="products">Products</TabsTrigger>
           {isOwner && <TabsTrigger value="homepage">Home Page</TabsTrigger>}
+          {isOwner && <TabsTrigger value="coupons">Coupons</TabsTrigger>}
           {isSuperOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}
         </TabsList>
         <TabsContent value="products" className="mt-6">
@@ -51,6 +61,11 @@ export default function AdminPage() {
         {isOwner && (
             <TabsContent value="homepage" className="mt-6">
                 <HomePageTab />
+            </TabsContent>
+        )}
+        {isOwner && (
+            <TabsContent value="coupons" className="mt-6">
+                <CouponsTab />
             </TabsContent>
         )}
         {isSuperOwner && (
