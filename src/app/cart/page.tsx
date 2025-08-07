@@ -1,24 +1,32 @@
 
 "use client"
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useCurrency } from "@/context/currency-context";
-import { useCart, CartItem } from "@/context/cart-context";
-import { ShoppingCart, Trash2 } from "lucide-react";
+import { useCart } from "@/context/cart-context";
+import { ShoppingCart, Trash2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export default function CartPage() {
     const { selectedCurrency } = useCurrency();
-    const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+    const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
+    const { toast } = useToast();
     
+    const [couponInput, setCouponInput] = useState("");
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
     const subTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const discount = 0; // Placeholder for coupon logic
+    const discountAmount = appliedCoupon ? subTotal * (appliedCoupon.discount / 100) : 0;
     const vat = 0; // Placeholder for VAT logic
-    const total = subTotal - discount + vat;
+    const total = subTotal - discountAmount + vat;
 
     const formatPrice = (price: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -34,6 +42,47 @@ export default function CartPage() {
             updateQuantity(productId, newQuantity);
         }
     };
+
+    const handleApplyCoupon = async () => {
+        if (!couponInput.trim()) return;
+        setIsApplyingCoupon(true);
+
+        try {
+            const { data, error } = await supabase
+                .from('coupons')
+                .select('*')
+                .eq('code', couponInput.trim().toUpperCase())
+                .single();
+
+            if (error || !data) {
+                toast({ variant: "destructive", title: "Invalid Coupon", description: "The coupon code you entered is not valid." });
+                removeCoupon();
+                return;
+            }
+
+            if (!data.is_active) {
+                toast({ variant: "destructive", title: "Inactive Coupon", description: "This coupon is currently not active." });
+                removeCoupon();
+                return;
+            }
+
+            if (data.max_uses !== null && data.times_used >= data.max_uses) {
+                toast({ variant: "destructive", title: "Coupon Limit Reached", description: "This coupon has reached its usage limit." });
+                removeCoupon();
+                return;
+            }
+
+            applyCoupon({ code: data.code, discount: data.discount_percentage });
+            toast({ title: "Coupon Applied", description: `You've got a ${data.discount_percentage}% discount!` });
+
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Error", description: "Could not apply coupon. Please try again." });
+            removeCoupon();
+        } finally {
+            setIsApplyingCoupon(false);
+            setCouponInput("");
+        }
+    }
 
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -101,8 +150,17 @@ export default function CartPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-2">
-                                <Input placeholder="Discount Code" className="bg-input border-border" />
-                                <Button className="bg-primary hover:bg-primary/90">Apply</Button>
+                                <Input 
+                                    placeholder="Discount Code" 
+                                    className="bg-input border-border"
+                                    value={couponInput}
+                                    onChange={(e) => setCouponInput(e.target.value)}
+                                    disabled={isApplyingCoupon || !!appliedCoupon}
+                                />
+                                <Button onClick={handleApplyCoupon} className="bg-primary hover:bg-primary/90" disabled={isApplyingCoupon || !!appliedCoupon}>
+                                    {isApplyingCoupon && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Apply
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
@@ -114,13 +172,21 @@ export default function CartPage() {
                                 <span>{formatPrice(subTotal)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-green-500">Discount:</span>
-                                <span className="text-green-500">- {formatPrice(discount)}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground">VAT:</span>
                                 <span>{formatPrice(vat)}</span>
                             </div>
+
+                            {appliedCoupon && (
+                                <div className="flex justify-between text-sm font-medium">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-green-500">Discount:</span>
+                                        <Badge variant="secondary">{appliedCoupon.code}</Badge>
+                                        <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive"><XCircle className="h-4 w-4"/></button>
+                                    </div>
+                                    <span className="text-green-500">- {formatPrice(discountAmount)}</span>
+                                </div>
+                            )}
+
                             <Separator className="bg-border/60" />
                             <div className="flex justify-between font-semibold">
                                 <span>Total ({selectedCurrency.code}):</span>

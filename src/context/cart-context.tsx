@@ -11,35 +11,57 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface AppliedCoupon {
+    code: string;
+    discount: number; // Percentage
+}
+
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
+  appliedCoupon: AppliedCoupon | null;
+  applyCoupon: (coupon: AppliedCoupon) => void;
+  removeCoupon: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
   useEffect(() => {
     // Load cart from local storage on initial render
     try {
-      const localCart = localStorage.getItem('cart');
+      const localCart = localStorage.getItem('nexus-vault-cart');
       if (localCart) {
         setCart(JSON.parse(localCart));
       }
+      const localCoupon = localStorage.getItem('nexus-vault-coupon');
+      if (localCoupon) {
+        setAppliedCoupon(JSON.parse(localCoupon));
+      }
     } catch (error) {
-      console.error("Failed to parse cart from localStorage", error);
+      console.error("Failed to parse cart/coupon from localStorage", error);
     }
   }, []);
 
   useEffect(() => {
     // Save cart to local storage whenever it changes
-    localStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem('nexus-vault-cart', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    if (appliedCoupon) {
+      localStorage.setItem('nexus-vault-coupon', JSON.stringify(appliedCoupon));
+    } else {
+      localStorage.removeItem('nexus-vault-coupon');
+    }
+  }, [appliedCoupon]);
+
 
   const addToCart = (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     setCart(prevCart => {
@@ -78,10 +100,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     setCart([]);
+    removeCoupon();
   };
 
+  const applyCoupon = (coupon: AppliedCoupon) => {
+    setAppliedCoupon(coupon);
+  }
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+  }
+
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, appliedCoupon, applyCoupon, removeCoupon }}>
       {children}
     </CartContext.Provider>
   );
