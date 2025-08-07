@@ -64,7 +64,7 @@ export function ProductCard({ product }: { product: Product }) {
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2 cursor-pointer"
       >
         <CardContent className="flex flex-grow flex-col p-0">
-          <div className="relative flex w-full aspect-[16/9] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
+          <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
             {product.imageUrl ? (
               <Image
                 src={product.imageUrl}
