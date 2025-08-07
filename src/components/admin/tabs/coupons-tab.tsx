@@ -36,20 +36,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { CouponDialog } from "../coupon-dialog";
 
 export type Coupon = {
-  id?: string;
+  id: string;
   code: string;
   discount_percentage: number;
   max_uses: number | null;
   times_used: number;
   is_active: boolean;
-  created_at?: string;
+  created_at: string;
 };
 
 
