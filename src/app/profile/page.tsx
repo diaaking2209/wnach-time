@@ -141,7 +141,26 @@ export default function ProfilePage() {
                                 </CardContent>
                             </Card>
                         </TabsContent>
-                        {/* Add other tab contents here */}
+                        <TabsContent value="submissions" className="mt-6">
+                            <Card>
+                                <CardHeader>
+                                <h3 className="text-lg font-semibold">Submissions</h3>
+                                </CardHeader>
+                                <CardContent>
+                                <p className="text-muted-foreground">No submissions yet.</p>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                        <TabsContent value="characters" className="mt-6">
+                            <Card>
+                                <CardHeader>
+                                <h3 className="text-lg font-semibold">Characters</h3>
+                                </CardHeader>
+                                <CardContent>
+                                <p className="text-muted-foreground">No characters yet.</p>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
                     </Tabs>
                 </main>
             </div>

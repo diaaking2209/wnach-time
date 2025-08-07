@@ -7,6 +7,8 @@ import { AdminsTab } from "@/components/admin/tabs/admins-tab";
 import { CouponsTab } from "@/components/admin/tabs/coupons-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function AdminPage() {
   const { isUserAdmin, userRole, isLoading } = useAuth();
@@ -26,6 +28,9 @@ export default function AdminPage() {
         <p className="text-muted-foreground">
           You do not have permission to view this page.
         </p>
+         <Button asChild className="mt-4">
+            <Link href="/">Go to Homepage</Link>
+        </Button>
       </div>
     );
   }
@@ -38,7 +43,10 @@ export default function AdminPage() {
     if (isOwner) count++; // Home Page
     if (isOwner) count++; // Coupons
     if (isSuperOwner) count++; // Admins
-    return `grid-cols-${count}`;
+    if(count === 3) return "grid-cols-3";
+    if(count === 4) return "grid-cols-4";
+    if(count === 2) return "grid-cols-2";
+    return `grid-cols-1`;
   }
 
   return (
