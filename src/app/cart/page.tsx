@@ -116,7 +116,7 @@ export default function CartPage() {
                             ) : (
                                 <div className="space-y-4">
                                     {cart.map(item => (
-                                        <div key={item.id} className="flex items-center gap-4 border-b border-border/40 pb-4">
+                                        <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border/40 pb-4">
                                             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
                                                 <Image src={item.imageUrl} alt={item.name} fill className="object-cover"/>
                                             </div>
@@ -129,7 +129,7 @@ export default function CartPage() {
                                                  <Input type="number" value={item.quantity} onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))} className="h-8 w-14 text-center" />
                                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity + 1)}>+</Button>
                                             </div>
-                                             <div className="text-right font-semibold">
+                                             <div className="text-right font-semibold w-full sm:w-auto mt-2 sm:mt-0">
                                                 {formatPrice(item.price * item.quantity)}
                                             </div>
                                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" onClick={() => removeFromCart(item.id)}>

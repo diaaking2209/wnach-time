@@ -133,87 +133,89 @@ export function CouponsTab() {
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Discount</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10">
-                      <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                      <p className="mt-2 text-muted-foreground">Loading coupons...</p>
-                  </TableCell>
+                <TableHead>Code</TableHead>
+                <TableHead>Discount</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ) : coupons.length > 0 ? (
-              coupons.map((coupon) => (
-                <TableRow key={coupon.id}>
-                  <TableCell className="font-medium">
-                      <Badge variant="outline">{coupon.code}</Badge>
-                  </TableCell>
-                   <TableCell>{coupon.discount_percentage}%</TableCell>
-                   <TableCell>{coupon.times_used} / {coupon.max_uses ?? '∞'}</TableCell>
-                  <TableCell>
-                       <Badge variant={coupon.is_active ? "default" : "secondary"} className={cn(coupon.is_active ? "bg-green-600" : "bg-gray-500")}>
-                          {coupon.is_active ? 'Active' : 'Inactive'}
-                       </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditCoupon(coupon)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
-                         <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                      This action cannot be undone. This will permanently delete this coupon.
-                                  </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteCoupon(coupon.id!)}>Continue</AlertDialogAction>
-                                  </AlertDialogFooter>
-                              </AlertDialogContent>
-                          </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10">
+                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                        <p className="mt-2 text-muted-foreground">Loading coupons...</p>
+                    </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                  <TableCell colSpan={5} className="text-center py-10">
-                      <p className="text-muted-foreground">No coupons found. Add your first one!</p>
-                  </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ) : coupons.length > 0 ? (
+                coupons.map((coupon) => (
+                  <TableRow key={coupon.id}>
+                    <TableCell className="font-medium whitespace-nowrap">
+                        <Badge variant="outline">{coupon.code}</Badge>
+                    </TableCell>
+                    <TableCell>{coupon.discount_percentage}%</TableCell>
+                    <TableCell>{coupon.times_used} / {coupon.max_uses ?? '∞'}</TableCell>
+                    <TableCell>
+                        <Badge variant={coupon.is_active ? "default" : "secondary"} className={cn(coupon.is_active ? "bg-green-600" : "bg-gray-500")}>
+                            {coupon.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditCoupon(coupon)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete this coupon.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteCoupon(coupon.id!)}>Continue</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10">
+                        <p className="text-muted-foreground">No coupons found. Add your first one!</p>
+                    </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
     </>
