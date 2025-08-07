@@ -154,7 +154,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => (
             <Link key={category.name} href={category.href}>
-              <div className="flex items-center gap-4 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50">
+              <div className="flex flex-col items-center justify-center gap-3 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50 text-center">
                 <div className="rounded-md bg-muted p-3 text-primary">
                   <category.icon className="h-6 w-6" />
                 </div>
