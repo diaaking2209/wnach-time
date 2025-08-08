@@ -190,7 +190,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     {t.productPage.about}
                 </h2>
             </div>
-            <div className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert">
+            <div className="prose prose-sm max-w-none rounded-lg bg-card p-6 text-muted-foreground dark:prose-invert">
                 <p className="whitespace-pre-wrap" dir="auto">{product.description || "No description available."}</p>
             </div>
         </div>
