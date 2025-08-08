@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo, Edit } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -58,18 +58,18 @@ export type Order = {
   created_at: string;
   total_amount: number;
   user_id: string;
-  user_metadata: {
-    full_name: string;
-    provider_id: string;
-  }
+  customer_username: string;
+  customer_provider_id: string;
   delivery_details: string | null;
   items: OrderItem[];
   last_modified_by_admin_id: string | null;
   last_modified_by_admin_username: string | null;
 };
 
-type OrderWithStatus = Order & { status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled' };
+type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
+type OrderWithStatus = Order & { status: OrderStatus };
 
+const ORDERS_PER_PAGE = 10;
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -85,12 +85,18 @@ export function OrdersTab() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
+    Pending: 1,
+    Processing: 1,
+    Completed: 1,
+    Cancelled: 1,
+  });
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
         const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
-        const statuses: ('Pending' | 'Processing' | 'Completed' | 'Cancelled')[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+        const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
         const promises = tableNames.map((table, index) =>
             supabase.from(table).select('*').order('created_at', { ascending: false })
@@ -141,7 +147,6 @@ export function OrdersTab() {
         const fullOrder = await getFullOrderDetails(orderId, fromTable);
         if(!fullOrder) throw new Error("Order not found");
         
-        // Add admin info to the order before inserting
         const orderDataWithAdmin = {
             ...fullOrder,
             last_modified_by_admin_id: user.id,
@@ -153,7 +158,6 @@ export function OrdersTab() {
         
         const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', orderId);
         if (deleteError) {
-            // Rollback if deletion fails
             await supabase.from(toTable).delete().eq('id', orderId);
             throw deleteError;
         };
@@ -181,9 +185,19 @@ export function OrdersTab() {
     setDeliveryDialogOpen(false);
     fetchOrders();
   }
+
+  const handlePageChange = (status: OrderStatus, direction: 'next' | 'prev') => {
+    setCurrentPages(prev => ({
+        ...prev,
+        [status]: direction === 'next' ? prev[status] + 1 : prev[status] - 1
+    }));
+  }
   
-  const renderOrdersTable = (status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled') => {
+  const renderOrdersTable = (status: OrderStatus) => {
     const filteredOrders = orders.filter(order => order.status === status);
+    const currentPage = currentPages[status];
+    const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE);
 
     return (
         <Card>
@@ -192,9 +206,9 @@ export function OrdersTab() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[250px]">Customer</TableHead>
+                        <TableHead className="w-[200px] sm:w-[250px]">Customer</TableHead>
                         <TableHead>Details</TableHead>
-                        <TableHead className="hidden md:table-cell">Date</TableHead>
+                        <TableHead className="hidden sm:table-cell">Date</TableHead>
                         {status !== 'Pending' && <TableHead className="hidden lg:table-cell">Modified By</TableHead>}
                         <TableHead>
                         <span className="sr-only">Actions</span>
@@ -208,25 +222,25 @@ export function OrdersTab() {
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                             </TableCell>
                         </TableRow>
-                    ) : filteredOrders.length > 0 ? (
-                        filteredOrders.map((order) => (
+                    ) : paginatedOrders.length > 0 ? (
+                        paginatedOrders.map((order) => (
                         <TableRow key={order.id}>
                             <TableCell>
-                                <div className="font-semibold">{order.user_metadata?.full_name || 'N/A'}</div>
-                                <div className="font-mono text-xs text-muted-foreground">{order.user_metadata?.provider_id}</div>
+                                <div className="font-semibold truncate">{order.customer_username || 'N/A'}</div>
+                                <div className="font-mono text-xs text-muted-foreground">{order.customer_provider_id}</div>
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col gap-1">
-                                    <div><Badge variant="outline">{order.id.substring(0, 8)}</Badge></div>
+                                    <div><Badge variant="outline" className="font-mono">{order.id.substring(0, 8)}</Badge></div>
                                     <div className="font-semibold">{formatPrice(order.total_amount)}</div>
                                 </div>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell">{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="hidden sm:table-cell">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                             {status !== 'Pending' && (
                                 <TableCell className="hidden lg:table-cell">
                                   {order.last_modified_by_admin_username ? (
                                     <div className="flex items-center gap-2 font-mono text-xs">
-                                        <Edit className="h-4 w-4 text-muted-foreground" />
+                                        <Edit className="h-3 w-3 text-muted-foreground" />
                                         <span>{order.last_modified_by_admin_username}</span>
                                     </div>
                                     ) : (
@@ -315,6 +329,29 @@ export function OrdersTab() {
                     </TableBody>
                 </Table>
                 </div>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePageChange(status, 'prev')}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                             variant="outline"
+                             size="sm"
+                            onClick={() => handlePageChange(status, 'next')}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
