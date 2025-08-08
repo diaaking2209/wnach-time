@@ -41,8 +41,9 @@ function CarouselSkeleton() {
     );
 }
 
-async function HeroCarousel() {
+function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
+    const { language } = useLanguage();
     
     useEffect(() => {
         const getCarouselDeals = async () => {
@@ -64,13 +65,14 @@ async function HeroCarousel() {
             })));
         }
         getCarouselDeals();
-    }, []);
+    }, [language]);
 
 
     return (
         <Carousel
             opts={{ align: "start", loop: true }}
             className="w-full"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
         >
             <CarouselContent>
             {bestDeals.length > 0 ? bestDeals.map((deal, index) => (
@@ -98,8 +100,8 @@ async function HeroCarousel() {
                 </CarouselItem>
             )}
             </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
+            <CarouselPrevious className="left-4 rtl:right-4 rtl:left-auto" />
+            <CarouselNext className="right-4 rtl:left-4 rtl:right-auto" />
         </Carousel>
     );
 }
@@ -118,7 +120,7 @@ function TopProductsSkeleton() {
     );
 }
 
-async function TopProducts() {
+function TopProducts() {
     const [topProducts, setTopProducts] = useState<Product[]>([]);
     const { language } = useLanguage();
     const t = translations[language];
@@ -154,7 +156,7 @@ async function TopProducts() {
                 })));
         }
         getTopProducts();
-    }, [])
+    }, [language])
 
     return topProducts.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
