@@ -76,20 +76,17 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     }
     setIsProcessing(true);
     try {
-        // Step 1: Prepare order data
-        const orderPayload = {
-            user_id: user.id,
-            sub_total: orderSummary.subTotal,
-            discount_amount: orderSummary.discountAmount,
-            total_amount: orderSummary.total,
-            applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            status: 'Pending' as const,
-        };
-
-        // Step 2: Insert the order and get the new order ID
+        // Step 1: Create the main order record
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
-            .insert(orderPayload)
+            .insert({
+                user_id: user.id,
+                sub_total: orderSummary.subTotal,
+                discount_amount: orderSummary.discountAmount,
+                total_amount: orderSummary.total,
+                applied_coupon_code: orderSummary.appliedCoupon?.code,
+                status: 'Pending',
+            })
             .select('id')
             .single();
 
@@ -97,44 +94,37 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         const orderId = orderData.id;
         setNewOrderId(orderId);
 
-        // Step 3: Prepare order items
+        // Step 2: Create the associated order items
         const orderItems = cart.map(item => ({
             order_id: orderId,
             product_id: item.id,
             quantity: item.quantity,
             price_at_purchase: item.price,
             product_name: item.name,
-            product_image_url: item.imageUrl || null
+            product_image_url: item.imageUrl,
         }));
-
-        // Step 4: Insert order items
+        
         const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
-
+        
         if (itemsError) {
-            // If items fail, attempt to delete the orphaned order for data consistency
+            // Attempt to clean up the orphaned order if items fail to insert
             await supabase.from('orders').delete().eq('id', orderId);
             throw itemsError;
         }
 
-        // Step 5: If a coupon was used, increment its usage count.
-        // This is now done in a separate block and checks for coupon existence first.
+        // Step 3: If a coupon was used, increment its usage count.
         if (orderSummary.appliedCoupon?.code) {
              const { error: couponError } = await supabase.rpc('increment_coupon_usage', {
                 p_code: orderSummary.appliedCoupon.code
             });
-
             if (couponError) {
-                // Log this error but don't fail the entire checkout process,
-                // as the order itself is already processed.
-                console.error("Coupon usage increment failed:", couponError);
+                // Log this but don't fail the checkout. The order is placed.
+                console.error("Failed to increment coupon usage:", couponError);
             }
         }
 
-
-        // Step 6: Clear the client-side cart (this also removes the coupon)
+        // Step 4: Clear the client-side cart and show success
         clearCart(); 
-
-        // Success!
         setIsSuccess(true);
 
     } catch (error: any) {
@@ -144,7 +134,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             title: t.toast.checkoutErrorTitle,
             description: error.message || t.toast.checkoutErrorDesc,
         });
-        // Even if there's an error, reset the success flag
         setIsSuccess(false);
     } finally {
         setIsProcessing(false);

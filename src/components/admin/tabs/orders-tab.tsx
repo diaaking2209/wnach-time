@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -35,8 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User } from "lucide-react";
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -55,13 +53,6 @@ export type Order = {
   total_amount: number;
   user_id: string;
   order_items: OrderItem[];
-  // The user data is now nested inside a 'users' object based on the explicit join
-  users: {
-      raw_user_meta_data?: {
-          full_name?: string;
-          avatar_url?: string;
-      }
-  } | null
 };
 
 
@@ -80,7 +71,9 @@ export function OrdersTab() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    // Corrected query with an explicit join to `auth.users`
+    // This query is now simplified to fetch orders and their items,
+    // which is allowed by the RLS policies.
+    // It no longer tries to join with auth.users, which was causing the permission error.
     const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -89,10 +82,7 @@ export function OrdersTab() {
             status,
             total_amount,
             user_id,
-            order_items (*),
-            users:user_id (
-                raw_user_meta_data
-            )
+            order_items (*)
         `)
         .order('created_at', { ascending: false });
 
@@ -100,11 +90,11 @@ export function OrdersTab() {
       toast({
         variant: "destructive",
         title: "Error fetching orders",
-        description: error.message,
+        description: error.message || "Could not retrieve the list of orders. Please check RLS policies.",
       });
       console.error("Fetch orders error:", error);
     } else {
-      setOrders(data as any[] as Order[]);
+      setOrders(data as Order[]);
     }
     setLoading(false);
   }, [toast]);
@@ -141,14 +131,6 @@ export function OrdersTab() {
     }).format(price);
   };
   
-  const getUserName = (order: Order) => {
-    return order.users?.raw_user_meta_data?.full_name || 'N/A';
-  }
-
-  const getAvatarUrl = (order: Order) => {
-    return order.users?.raw_user_meta_data?.avatar_url;
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -160,7 +142,7 @@ export function OrdersTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
+                <TableHead>Customer ID</TableHead>
                 <TableHead>Order ID</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Total</TableHead>
@@ -181,19 +163,9 @@ export function OrdersTab() {
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                        <div className="flex items-center gap-2">
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={getAvatarUrl(order) || undefined} />
-                                <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <div className="font-medium whitespace-nowrap">
-                                    {getUserName(order)}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                    {order.user_id}
-                                </div>
-                            </div>
+                        <div className="flex items-center gap-2 font-mono text-xs">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {order.user_id}
                         </div>
                     </TableCell>
                      <TableCell>
@@ -250,3 +222,4 @@ export function OrdersTab() {
     </Card>
   );
 }
+
