@@ -122,7 +122,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         {/* Left Column: Product Image */}
         <div className="lg:col-span-1">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-lg">
@@ -135,8 +135,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Middle Column: Product Details & Actions */}
-        <div className="lg:col-span-2">
+        {/* Right Column: Product Details & Actions */}
+        <div className="lg:col-span-1">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
             
             <div className="mt-3 flex items-center">
@@ -198,7 +198,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="mb-4 flex items-baseline gap-4">
                 <div className="h-8 w-1 bg-primary"></div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                    {language === 'ar' ? 'تعريف عن اللعبة' : 'About the Game'}
+                    {t.productPage.about}
                 </h2>
             </div>
             <div className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert">
@@ -208,4 +208,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
