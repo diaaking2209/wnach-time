@@ -114,26 +114,49 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     const addQuantity = item.quantity || 1;
-    
-    // Optimistic UI update
-    const existingItem = cart.find(cartItem => cartItem.id === item.id);
-    if(existingItem) {
-        // Just update quantity locally, DB function handles logic
-        setCart(prev => prev.map(cartItem => cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + addQuantity } : cartItem));
-    } else {
-        setCart(prev => [...prev, {...item, quantity: addQuantity}]);
-    }
 
-    const { error } = await supabase.rpc('add_to_cart', {
-        p_user_id: user.id,
-        p_product_id: item.id,
-        p_quantity: addQuantity
-    });
+    try {
+        // Check if item already exists in cart
+        const { data: existingItemData, error: selectError } = await supabase
+            .from('cart_items')
+            .select('id, quantity')
+            .eq('user_id', user.id)
+            .eq('product_id', item.id)
+            .single();
 
-    if (error) {
+        if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+            throw selectError;
+        }
+
+        if (existingItemData) {
+            // Item exists, so update quantity
+            const newQuantity = existingItemData.quantity + addQuantity;
+            const { error: updateError } = await supabase
+                .from('cart_items')
+                .update({ quantity: newQuantity })
+                .match({ id: existingItemData.id });
+            
+            if (updateError) throw updateError;
+             setCart(prev => prev.map(cartItem => cartItem.id === item.id ? { ...cartItem, quantity: newQuantity } : cartItem));
+
+        } else {
+            // Item does not exist, so insert new row
+            const { error: insertError } = await supabase
+                .from('cart_items')
+                .insert({
+                    user_id: user.id,
+                    product_id: item.id,
+                    quantity: addQuantity
+                });
+            
+            if (insertError) throw insertError;
+            setCart(prev => [...prev, {...item, quantity: addQuantity}]);
+        }
+        // No need for optimistic UI as we now handle it inside the success cases
+    } catch (error: any) {
         console.error('Error adding to cart:', error.message);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not add item to cart.' });
-        // Revert UI change on error by refetching from DB
+        // Optionally refetch cart to ensure UI is consistent after an error
         fetchCart();
     }
   };
