@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import type { Order } from "./tabs/orders-tab";
 
 interface DeliveryDialogProps {
@@ -28,15 +27,12 @@ interface DeliveryDialogProps {
 
 export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDialogProps) {
   const [deliveryDetails, setDeliveryDetails] = useState("");
-  const [sendOnDiscord, setSendOnDiscord] = useState(true); // Default to true for this action
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (order) {
         setDeliveryDetails(order.delivery_details || "");
-        // Set discord toggle to true by default for the delivery action
-        setSendOnDiscord(true);
     }
   }, [order, isOpen]);
 
@@ -46,10 +42,11 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
     setIsSaving(true);
     
     // Call the RPC function to move the order to the completed table
+    // The send_on_discord parameter is now hardcoded to true
     const { error } = await supabase.rpc('move_to_completed', {
       p_order_id: order.id,
       p_delivery_details: deliveryDetails,
-      p_send_on_discord: sendOnDiscord
+      p_send_on_discord: true 
     });
 
     setIsSaving(false);
@@ -97,14 +94,6 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
                 placeholder="Enter product key(s), links, or other delivery information here..." 
                 required 
               />
-            </div>
-             <div className="flex items-center space-x-2">
-                <Switch
-                    id="send-on-discord"
-                    checked={sendOnDiscord}
-                    onCheckedChange={setSendOnDiscord}
-                />
-                <Label htmlFor="send-on-discord">Send Discord Notification for this delivery</Label>
             </div>
           </div>
           <DialogFooter>
