@@ -118,7 +118,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Optimistic UI update
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     if(existingItem) {
-        updateQuantity(item.id, existingItem.quantity + addQuantity);
+        // Just update quantity locally, DB function handles logic
+        setCart(prev => prev.map(cartItem => cartItem.id === item.id ? { ...cartItem, quantity: cartItem.quantity + addQuantity } : cartItem));
     } else {
         setCart(prev => [...prev, {...item, quantity: addQuantity}]);
     }
@@ -132,7 +133,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (error) {
         console.error('Error adding to cart:', error.message);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not add item to cart.' });
-        // Revert UI change on error
+        // Revert UI change on error by refetching from DB
         fetchCart();
     }
   };
