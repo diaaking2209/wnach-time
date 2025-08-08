@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, Check, Hourglass, X, KeySquare, Bell, BadgeCheck } from "lucide-react";
+import { Loader2, BadgeCheck, Hourglass, X, KeySquare, PackageX } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -22,6 +22,9 @@ import {
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
+import { Button } from "../ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -54,6 +57,7 @@ export function OrdersTab() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isCancelling, setIsCancelling] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -61,7 +65,6 @@ export function OrdersTab() {
         const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
         const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
-        // Thanks to RLS, this will only fetch orders for the logged-in user from each table.
         const promises = tableNames.map((table, index) =>
             supabase.from(table).select('*')
                 .then(({ data, error }) => {
@@ -89,6 +92,18 @@ export function OrdersTab() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+  
+  const handleCancelOrder = async (orderId: string) => {
+    setIsCancelling(orderId);
+    const { error } = await supabase.rpc('cancel_order_by_user', { p_order_id: orderId });
+    if(error){
+        toast({ variant: "destructive", title: "Cancellation Failed", description: error.message });
+    } else {
+        toast({ title: "Order Cancelled", description: "Your order has been successfully cancelled." });
+        fetchOrders(); // Refresh the order list
+    }
+    setIsCancelling(null);
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -119,6 +134,7 @@ export function OrdersTab() {
                 {orders.map((order) => {
                     const StatusIcon = statusConfig[order.status].icon;
                     const statusColor = statusConfig[order.status].color;
+                    const isCancellable = order.status === 'Pending' || order.status === 'Processing';
 
                     return (
                         <AccordionItem value={order.id} key={order.id}>
@@ -172,6 +188,33 @@ export function OrdersTab() {
                                     </div>
                                     </>
                                 )}
+                                {isCancellable && (
+                                    <>
+                                        <Separator/>
+                                        <div className="flex justify-end">
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm" disabled={isCancelling === order.id}>
+                                                        {isCancelling === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PackageX className="mr-2 h-4 w-4" />}
+                                                        Cancel Order
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            This action cannot be undone. This will permanently cancel your order.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Close</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleCancelOrder(order.id)}>Confirm Cancellation</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </>
+                                )}
                                </div>
                             </AccordionContent>
                         </AccordionItem>
@@ -185,3 +228,5 @@ export function OrdersTab() {
     </Card>
   );
 }
+
+    
