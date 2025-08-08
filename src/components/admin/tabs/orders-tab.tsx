@@ -20,7 +20,6 @@ import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass } from "luci
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -54,7 +55,7 @@ export type Order = {
   total_amount: number;
   user_id: string;
   order_items: OrderItem[];
-  admins: { // From a join on users/admins
+  admins: {
       username: string;
       avatar_url: string;
   } | null
@@ -79,9 +80,13 @@ export function OrdersTab() {
     const { data, error } = await supabase
         .from('orders')
         .select(`
-            *,
+            id,
+            created_at,
+            status,
+            total_amount,
+            user_id,
             order_items (*),
-            admins (
+            admins:user_id (
                 username,
                 avatar_url
             )
@@ -164,11 +169,19 @@ export function OrdersTab() {
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
-                        <div className="font-medium whitespace-nowrap">
-                            {order.admins?.username || 'N/A'}
-                        </div>
-                         <div className="text-xs text-muted-foreground">
-                            {order.user_id}
+                        <div className="flex items-center gap-2">
+                            <Avatar className="h-8 w-8">
+                                <AvatarImage src={order.admins?.avatar_url || undefined} />
+                                <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <div className="font-medium whitespace-nowrap">
+                                    {order.admins?.username || 'N/A'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {order.user_id}
+                                </div>
+                            </div>
                         </div>
                     </TableCell>
                      <TableCell>
