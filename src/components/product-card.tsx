@@ -12,6 +12,7 @@ import { Badge } from "./ui/badge";
 import Link from "next/link";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export type Product = {
   id?: string;
@@ -42,6 +43,7 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -63,10 +65,13 @@ export function ProductCard({ product }: { product: Product }) {
             imageUrl: product.imageUrl,
             quantity: 1,
         });
-        toast({
-            title: "Added to Cart",
-            description: `1 x ${product.name} has been added to your cart.`,
-        });
+        
+        if (user) { // Only show success toast if user is logged in
+            toast({
+                title: "Added to Cart",
+                description: `1 x ${product.name} has been added to your cart.`,
+            });
+        }
     }
   };
   
@@ -93,11 +98,6 @@ export function ProductCard({ product }: { product: Product }) {
             ) : (
               <DiscordIcon className="w-16 h-16 text-muted-foreground" />
             )}
-            {isOutOfStock && (
-              <Badge variant="destructive" className="absolute top-2 left-2 z-10">
-                  Out of Stock
-              </Badge>
-            )}
             {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
           </div>
 
@@ -122,6 +122,11 @@ export function ProductCard({ product }: { product: Product }) {
 
             <div className="mt-auto flex items-end justify-between">
               <div className="flex flex-col items-start">
+                  {hasDiscount && (
+                    <Badge variant="destructive" className="text-xs mb-1">
+                        -{product.discount}%
+                    </Badge>
+                  )}
                   <div className="flex items-baseline gap-2">
                     <p className="text-base font-bold text-foreground">
                         {formatPrice(priceToDisplay)}
@@ -132,11 +137,6 @@ export function ProductCard({ product }: { product: Product }) {
                         </span>
                     )}
                   </div>
-                  {hasDiscount && (
-                    <Badge variant="destructive" className="text-xs mt-1">
-                        -{product.discount}%
-                    </Badge>
-                  )}
               </div>
               <Button 
                 size="icon"
@@ -148,6 +148,11 @@ export function ProductCard({ product }: { product: Product }) {
                   <span className="sr-only">Add to cart</span>
               </Button>
             </div>
+             {isOutOfStock && (
+              <Badge variant="destructive" className="absolute top-2 left-2 z-10">
+                  Out of Stock
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
