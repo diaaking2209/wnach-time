@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import type { Order, OrderStatus } from "./tabs/orders-tab";
+import type { Order } from "./tabs/orders-tab";
 
 interface DeliveryDialogProps {
   isOpen: boolean;
@@ -45,15 +45,12 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
     if (!order) return;
     setIsSaving(true);
     
-    // Update the order with delivery details, discord flag, and set status to "Completed"
-    const { error } = await supabase
-      .from('orders')
-      .update({ 
-        delivery_details: deliveryDetails,
-        send_on_discord: sendOnDiscord, // Use the state of the switch
-        status: 'Completed' as OrderStatus
-      })
-      .eq('id', order.id);
+    // Call the RPC function to move the order to the completed table
+    const { error } = await supabase.rpc('move_to_completed', {
+      p_order_id: order.id,
+      p_delivery_details: deliveryDetails,
+      p_send_on_discord: sendOnDiscord
+    });
 
     setIsSaving(false);
 
@@ -84,7 +81,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
           <DialogHeader>
             <DialogTitle>Deliver Order</DialogTitle>
             <DialogDescription>
-              Enter the delivery details below. Saving will mark the order as 'Completed'.
+              Enter the delivery details below. Saving will move the order to 'Completed'.
               <br />
               Order ID: <span className="font-mono text-primary">{order?.id.substring(0,8)}</span>
             </DialogDescription>

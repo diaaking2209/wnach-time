@@ -76,7 +76,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     }
     setIsProcessing(true);
     try {
-        const orderItemsToInsert = cart.map(item => ({
+        const orderItemsForJson = cart.map(item => ({
             product_id: item.id,
             quantity: item.quantity,
             price_at_purchase: item.price,
@@ -84,13 +84,13 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             product_image_url: item.imageUrl,
         }));
         
-        const { data: orderId, error } = await supabase.rpc('create_order_with_items', {
+        const { data: orderId, error } = await supabase.rpc('create_new_order', {
             p_user_id: user.id,
             p_sub_total: orderSummary.subTotal,
             p_discount_amount: orderSummary.discountAmount,
             p_total_amount: orderSummary.total,
             p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            p_items: orderItemsToInsert
+            p_items: orderItemsForJson
         });
 
         if (error) throw error;

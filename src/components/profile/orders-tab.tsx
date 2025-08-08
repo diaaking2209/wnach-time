@@ -26,7 +26,7 @@ import { Separator } from "../ui/separator";
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
 type OrderItem = {
-    id: string;
+    product_id: string;
     quantity: number;
     price_at_purchase: number;
     product_name: string;
@@ -36,11 +36,11 @@ type OrderItem = {
 type Order = {
   id: string;
   created_at: string;
-  status: OrderStatus;
   total_amount: number;
   delivery_details: string | null;
   send_on_discord: boolean;
-  order_items: OrderItem[];
+  items: OrderItem[];
+  status: OrderStatus; // Added status to each order object
 };
 
 const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: string } } = {
@@ -59,17 +59,23 @@ export function OrdersTab() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetches orders for the currently logged-in user thanks to RLS
-      const { data, error } = await supabase
-        .from("orders")
-        .select(`
-            *,
-            order_items (*)
-        `)
-        .order("created_at", { ascending: false });
+        const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
+        const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
-      if (error) throw error;
-      setOrders(data as Order[]);
+        // Thanks to RLS, this will only fetch orders for the logged-in user from each table.
+        const promises = tableNames.map((table, index) =>
+            supabase.from(table).select('*')
+                .then(({ data, error }) => {
+                    if (error) throw error;
+                    return data.map(order => ({ ...order, status: statuses[index] } as Order));
+                })
+        );
+        
+        const results = await Promise.all(promises);
+        const allOrders = results.flat().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        setOrders(allOrders);
+
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -136,8 +142,8 @@ export function OrdersTab() {
                             </AccordionTrigger>
                             <AccordionContent>
                                <div className="space-y-4">
-                                 {order.order_items.map(item => (
-                                     <div key={item.id} className="flex items-center gap-4 p-2 rounded-md bg-muted/50">
+                                 {order.items.map(item => (
+                                     <div key={item.product_id} className="flex items-center gap-4 p-2 rounded-md bg-muted/50">
                                          <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
                                             <Image src={item.product_image_url || 'https://placehold.co/100x100.png'} alt={item.product_name} fill className="object-cover" />
                                          </div>

@@ -1,8 +1,8 @@
+
 "use client"
 import { useEffect, useState, useCallback } from "react";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo, AlertTriangle, BadgeCheck } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -42,10 +42,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
-
 export type OrderItem = {
-    id: string;
+    product_id: string;
     quantity: number;
     price_at_purchase: number;
     product_name: string;
@@ -55,13 +53,14 @@ export type OrderItem = {
 export type Order = {
   id: string;
   created_at: string;
-  status: OrderStatus;
   total_amount: number;
   user_id: string;
   delivery_details: string | null;
   send_on_discord: boolean;
-  order_items: OrderItem[];
+  items: OrderItem[];
 };
+
+type OrderWithStatus = Order & { status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled' };
 
 
 const formatPrice = (price: number) => {
@@ -72,7 +71,7 @@ const formatPrice = (price: number) => {
 };
 
 export function OrdersTab() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -80,29 +79,29 @@ export function OrdersTab() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-        .from('orders')
-        .select(`
-            id,
-            created_at,
-            status,
-            total_amount,
-            user_id,
-            delivery_details,
-            send_on_discord,
-            order_items (*)
-        `)
-        .order('created_at', { ascending: false });
+    try {
+        const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
+        const statuses: ('Pending' | 'Processing' | 'Completed' | 'Cancelled')[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error fetching orders",
-        description: error.message || "Could not retrieve the list of orders.",
-      });
-      console.error("Fetch orders error:", error);
-    } else {
-      setOrders(data as Order[]);
+        const promises = tableNames.map((table, index) =>
+            supabase.from(table).select('*').order('created_at', { ascending: false })
+                .then(({ data, error }) => {
+                    if (error) throw error;
+                    return data.map(order => ({ ...order, status: statuses[index] } as OrderWithStatus));
+                })
+        );
+        
+        const results = await Promise.all(promises);
+        const allOrders = results.flat();
+
+        setOrders(allOrders);
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error fetching orders",
+            description: error.message || "Could not retrieve the list of orders.",
+        });
+        console.error("Fetch orders error:", error);
     }
     setLoading(false);
   }, [toast]);
@@ -111,25 +110,25 @@ export function OrdersTab() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: newStatus, send_on_discord: false })
-      .eq('id', orderId);
 
+  const handleMoveToProcessing = async (orderId: string) => {
+    const { error } = await supabase.rpc('move_to_processing', { p_order_id: orderId });
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to update status",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Failed to update status", description: error.message });
     } else {
-      toast({
-        title: "Order Status Updated",
-        description: `Order has been marked as ${newStatus}.`,
-      });
+      toast({ title: "Order Status Updated", description: "Order has been marked as Processing." });
       fetchOrders();
     }
+  };
+  
+  const handleCancelOrder = async (orderId: string, from: 'pending' | 'processing') => {
+      const { error } = await supabase.rpc('move_to_cancelled', { p_order_id: orderId, p_from_table: from });
+      if (error) {
+          toast({ variant: "destructive", title: "Failed to cancel order", description: error.message });
+      } else {
+          toast({ title: "Order Cancelled" });
+          fetchOrders();
+      }
   };
 
   const handleOpenDeliveryDialog = (order: Order) => {
@@ -141,8 +140,8 @@ export function OrdersTab() {
     setDeliveryDialogOpen(false);
     fetchOrders();
   }
-
-  const renderOrdersTable = (status: OrderStatus) => {
+  
+  const renderOrdersTable = (status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled') => {
     const filteredOrders = orders.filter(order => order.status === status);
 
     return (
@@ -192,8 +191,8 @@ export function OrdersTab() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Order Details</DropdownMenuLabel>
-                                {order.order_items.map(item => (
-                                        <DropdownMenuItem key={item.id} disabled>
+                                {order.items.map(item => (
+                                        <DropdownMenuItem key={item.product_id} disabled>
                                             <div className="flex justify-between w-full">
                                                 <span>{item.product_name} (x{item.quantity})</span>
                                                 <span>{formatPrice(item.price_at_purchase * item.quantity)}</span>
@@ -204,7 +203,7 @@ export function OrdersTab() {
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 
                                 {order.status === 'Pending' && (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
+                                        <DropdownMenuItem onClick={() => handleMoveToProcessing(order.id)}>
                                             <Play className="mr-2 h-4 w-4" />
                                             <span>Start Processing</span>
                                         </DropdownMenuItem>
@@ -214,13 +213,6 @@ export function OrdersTab() {
                                         <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
                                             <Send className="mr-2 h-4 w-4" />
                                             <span>Deliver Order</span>
-                                        </DropdownMenuItem>
-                                )}
-
-                                {order.status === 'Completed' && (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
-                                            <Undo className="mr-2 h-4 w-4" />
-                                            <span>Return to Processing</span>
                                         </DropdownMenuItem>
                                 )}
 
@@ -239,12 +231,12 @@ export function OrdersTab() {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This action will mark the order as cancelled. This cannot be undone.
+                                                        This action will move the order to 'Cancelled'. This cannot be undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Close</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleStatusChange(order.id, 'Cancelled')}>
+                                                    <AlertDialogAction onClick={() => handleCancelOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing')}>
                                                         Confirm Cancellation
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
