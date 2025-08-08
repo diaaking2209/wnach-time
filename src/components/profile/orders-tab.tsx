@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
@@ -55,18 +56,25 @@ const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: st
 
 export function OrdersTab() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
+    if (!user) {
+        setLoading(false);
+        setOrders([]);
+        return;
+    };
+
     setLoading(true);
     try {
         const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
         const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
         const promises = tableNames.map((table, index) =>
-            supabase.from(table).select('*')
+            supabase.from(table).select('*').eq('user_id', user.id) // FIX: Filter by user_id
                 .then(({ data, error }) => {
                     if (error) throw error;
                     return data.map(order => ({ ...order, status: statuses[index] } as Order));
@@ -87,7 +95,7 @@ export function OrdersTab() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]);
 
   useEffect(() => {
     fetchOrders();
@@ -228,5 +236,3 @@ export function OrdersTab() {
     </Card>
   );
 }
-
-    
