@@ -197,8 +197,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         subscription.unsubscribe();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, showGuildModal]);
+  }, [session, showGuildModal, checkGuildMembership, checkAdminStatus, isLoading]);
 
 
   return (
