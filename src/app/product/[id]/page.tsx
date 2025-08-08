@@ -148,9 +148,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Banner Image */}
-      {product.bannerUrl && (
-        <div className="relative mb-8 h-48 w-full overflow-hidden rounded-lg md:h-64">
+      {/* Hero Section */}
+      <div className="relative mb-8 h-48 w-full overflow-hidden rounded-lg md:h-64">
+        {product.bannerUrl && (
           <Image
             src={product.bannerUrl}
             alt={`${product.name} banner`}
@@ -158,65 +158,63 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             className="object-cover"
             priority
           />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {/* Left Column: Product Image */}
-        <div className="md:col-span-1 lg:col-span-1">
-          <div className="relative aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="relative aspect-square w-3/5 max-w-[200px] overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-105 sm:w-2/5 sm:max-w-[250px] md:w-1/3">
              <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
                 className="object-cover"
+                priority
               />
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Product Details & Actions */}
-        <div className="flex flex-col md:col-span-1 lg:col-span-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
-            
-            <Separator className="my-6" />
+      {/* Product Details & Actions */}
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
+        
+        <Separator className="my-6" />
 
-            <div className="flex items-baseline gap-3">
-                {product.originalPrice && product.discount && product.discount > 0 ? (
-                    <>
-                        <Badge variant="destructive" className="text-base">
-                            -{product.discount}%
-                        </Badge>
-                         <span className="text-xl text-muted-foreground line-through">
-                            {formatPrice(product.originalPrice)}
-                        </span>
-                        <span className="text-3xl font-bold text-primary">
-                            {formatPrice(product.price)}
-                        </span>
-                     </>
-                ) : (
-                    <p className="text-3xl font-bold text-primary">
+        <div className="flex items-baseline justify-center gap-3">
+            {product.originalPrice && product.discount && product.discount > 0 ? (
+                <>
+                    <Badge variant="destructive" className="text-base">
+                        -{product.discount}%
+                    </Badge>
+                     <span className="text-xl text-muted-foreground line-through">
+                        {formatPrice(product.originalPrice)}
+                    </span>
+                    <span className="text-3xl font-bold text-primary">
                         {formatPrice(product.price)}
-                    </p>
-                )}
-            </div>
-            
-            <div className="mt-auto pt-6">
-                {isOutOfStock ? (
-                    <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
-                ) : (
-                    <div className="flex flex-col gap-4 sm:flex-row">
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
-                            <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
-                            <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
-                        </div>
-                        <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
-                            <ShoppingCart className="mr-2 h-5 w-5" />
-                            {t.cart.addToCart}
-                        </Button>
+                    </span>
+                 </>
+            ) : (
+                <p className="text-3xl font-bold text-primary">
+                    {formatPrice(product.price)}
+                </p>
+            )}
+        </div>
+        
+        <div className="mt-6">
+            {isOutOfStock ? (
+                <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
+            ) : (
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
+                        <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
+                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
                     </div>
-                )}
-            </div>
+                    <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
+                        <ShoppingCart className="mr-2 h-5 w-5" />
+                        {t.cart.addToCart}
+                    </Button>
+                </div>
+            )}
         </div>
       </div>
       
@@ -244,7 +242,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     </h2>
                 </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <ProductCard key={relatedProduct.id} product={relatedProduct} />
               ))}
