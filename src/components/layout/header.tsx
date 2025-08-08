@@ -36,10 +36,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
-      <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-3">
           <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time Logo" width={40} height={40} />
-          <span className="text-xl font-bold tracking-tight text-foreground hidden sm:inline-block">Wnash time</span>
+          <span className="hidden text-xl font-bold tracking-tight text-foreground sm:inline-block">Wnash time</span>
         </Link>
         
         <div className="flex-1 flex justify-center items-center px-4 sm:px-8">
@@ -65,7 +65,7 @@ export function Header() {
 
           <Link href="/cart">
             <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
-              <ShoppingCart className="h-5 w-5 text-accent" />
+              <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">{totalItems}</span>
               )}

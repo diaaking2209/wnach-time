@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     searchPlaceholder: 'Search...',
@@ -76,6 +75,8 @@ export const translations = {
         discount: 'Discount',
         total: 'Total',
         checkout: 'Proceed to Checkout',
+        quantity: 'Quantity',
+        addToCart: 'Add to Cart',
     },
     toast: {
         invalidCoupon: 'Invalid Coupon',
@@ -185,6 +186,8 @@ export const translations = {
         discount: 'الخصم',
         total: 'الإجمالي',
         checkout: 'إتمام الشراء',
+        quantity: 'الكمية',
+        addToCart: 'أضف إلى السلة',
     },
     toast: {
         invalidCoupon: 'كوبون غير صالح',
