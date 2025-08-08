@@ -3,13 +3,8 @@
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package } from "lucide-react"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
@@ -59,7 +54,7 @@ export default function ProfilePage() {
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 gap-8 md:grid-cols-4 lg:grid-cols-3">
                 {/* Left Column */}
-                <aside className="md:col-span-1 lg:col-span-1">
+                <aside className="md:col-span-1 lg:col-span-1 space-y-6">
                     <Card>
                         <CardContent className="flex flex-col items-center p-6 text-center">
                             <Avatar className="h-24 w-24 mb-4">
@@ -71,44 +66,47 @@ export default function ProfilePage() {
                             <h2 className="text-xl font-bold">{user_metadata.full_name}</h2>
                             <p className="text-sm text-muted-foreground">{t.profile.memberSince} {memberSince}</p>
                         </CardContent>
-                        <Separator />
-                        <CardContent className="p-4">
-                             <Collapsible defaultOpen>
-                                <CollapsibleTrigger className="flex w-full justify-between items-center py-2 text-sm font-semibold">
-                                    {t.profile.details}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-3 text-sm text-left rtl:text-right">
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <User className="h-4 w-4"/>
-                                        <span>{user_metadata.full_name}</span>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">{t.profile.details}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                            <div className="flex items-center gap-3 text-muted-foreground">
+                                <User className="h-4 w-4 flex-shrink-0"/>
+                                <span className="truncate">{user_metadata.full_name}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-muted-foreground">
+                                <Mail className="h-4 w-4 flex-shrink-0"/>
+                                <span className="truncate">{email}</span>
+                            </div>
+                            {providerId && (
+                                <div 
+                                    className="flex items-center justify-between gap-3 text-muted-foreground cursor-pointer hover:text-foreground group"
+                                    onClick={() => copyToClipboard(providerId)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Shield className="h-4 w-4 flex-shrink-0"/>
+                                        <span className="truncate">{providerId}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Mail className="h-4 w-4"/>
-                                        <span>{email}</span>
-                                    </div>
-                                    {providerId && (
-                                        <div 
-                                            className="flex items-center justify-between gap-2 text-muted-foreground cursor-pointer hover:text-foreground"
-                                            onClick={() => copyToClipboard(providerId)}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Shield className="h-4 w-4"/>
-                                                <span className="truncate">{providerId}</span>
-                                            </div>
-                                            <Copy className="h-4 w-4 flex-shrink-0"/>
-                                        </div>
-                                    )}
-                                </CollapsibleContent>
-                            </Collapsible>
+                                    <Copy className="h-4 w-4 flex-shrink-0 opacity-50 group-hover:opacity-100"/>
+                                </div>
+                            )}
                         </CardContent>
-                         <Separator />
+                    </Card>
+
+                     <Card>
                          <CardContent className="p-2">
                             {isUserAdmin && (
+                                <>
                                 <Link href="/admin">
                                     <Button variant="ghost" className="w-full justify-start">
                                         <LayoutDashboard className="mr-2 h-4 w-4" /> {t.profile.adminPanel}
                                     </Button>
                                 </Link>
+                                <Separator />
+                                </>
                             )}
                              <Button onClick={() => handleSignOut()} variant="ghost" className="w-full justify-start text-destructive hover:text-destructive">
                                 <LogOut className="mr-2 h-4 w-4"/> {t.profile.signOut}
@@ -165,5 +163,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-    

@@ -46,15 +46,6 @@ export default function AdminPage() {
     { value: "coupons", label: "Coupons", visible: isOwner },
     { value: "admins", label: "Admins", visible: isSuperOwner },
   ].filter(tab => tab.visible);
-  
-  const getGridColsClass = () => {
-    const count = tabs.length;
-    if (count <= 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-2';
-    if (count === 3) return 'grid-cols-3';
-    if (count === 4) return 'grid-cols-4';
-    return 'grid-cols-2 sm:grid-cols-5'; // Default for 5 or more
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -64,7 +55,7 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className={`grid w-full h-auto ${getGridColsClass()}`}>
+        <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           {tabs.map(tab => (
              <TabsTrigger key={tab.value} value={tab.value} className="py-2">{tab.label}</TabsTrigger>
           ))}
