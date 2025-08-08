@@ -18,6 +18,8 @@ import { Suspense, useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import Autoplay from "embla-carousel-autoplay"
+import { DiscordIcon } from "@/components/icons/discord-icon";
+import { Button } from "@/components/ui/button";
 
 type CarouselDeal = {
     title: string;
@@ -218,7 +220,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section>
+      <section className="mb-12">
         <div className="mb-8 flex items-baseline gap-4">
             <div className="w-1 bg-primary h-8"></div>
             <div>
@@ -231,6 +233,34 @@ export default function HomePage() {
         <Suspense fallback={<TopProductsSkeleton />}>
             <TopProducts />
         </Suspense>
+      </section>
+      
+      <section className="mb-12">
+        <div className="relative overflow-hidden rounded-lg bg-card p-8 sm:p-12">
+          <div 
+            className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent"
+            style={{ clipPath: 'polygon(0 0, 100% 0, 100% 80%, 0% 100%)' }}
+          />
+           <div 
+            className="absolute top-0 right-0 h-48 w-48 text-primary/10"
+          >
+            <DiscordIcon className="h-full w-full" />
+          </div>
+          <div className="relative z-10 text-center sm:text-start">
+             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {t.home.discordTitle}
+            </h2>
+            <p className="mt-2 max-w-lg text-muted-foreground mx-auto sm:mx-0">
+               {t.home.discordDescription}
+            </p>
+             <Button asChild size="lg" className="mt-6 bg-[#5865F2] hover:bg-[#4752C4] text-white">
+              <a href="https://discord.gg/7up" target="_blank" rel="noopener noreferrer">
+                <DiscordIcon className="mr-2 h-5 w-5" />
+                {t.home.joinDiscord}
+              </a>
+            </Button>
+          </div>
+        </div>
       </section>
 
       <ScrollToTop />

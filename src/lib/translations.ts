@@ -16,6 +16,9 @@ export const translations = {
         topProducts: 'Top Products',
         topProductsDescription: 'Check out our best-selling items',
         noTopProducts: 'No top products featured at the moment. Add some from the admin panel!',
+        discordTitle: 'Join Our Community!',
+        discordDescription: 'Be part of our Discord server to get exclusive deals, support, and connect with other gamers.',
+        joinDiscord: 'Join Discord',
     },
     categories: {
         games: 'Games',
@@ -145,6 +148,9 @@ export const translations = {
         topProducts: 'أبرز المنتجات',
         topProductsDescription: 'اطلع على أفضل المنتجات مبيعًا',
         noTopProducts: 'لا توجد منتجات مميزة في الوقت الحالي. أضف بعضها من لوحة التحكم!',
+        discordTitle: 'انضم إلى مجتمعنا!',
+        discordDescription: 'كن جزءًا من سيرفر ديسكورد الخاص بنا للحصول على عروض حصرية ودعم والتواصل مع لاعبين آخرين.',
+        joinDiscord: 'انضم إلى ديسكورد',
     },
     categories: {
         games: 'الألعاب',
