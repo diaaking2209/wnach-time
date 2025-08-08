@@ -47,6 +47,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [discount, setDiscount] = useState<number | string | undefined>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
@@ -63,6 +64,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setDiscount(product.discount);
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
+      setBannerUrl(product.bannerUrl || "");
       setCategory(product.category || "");
       setTags(product.tags || []);
       setStockStatus(product.stockStatus || "In Stock");
@@ -75,6 +77,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setDiscount("");
       setPlatforms([]);
       setImageUrl("");
+      setBannerUrl("");
       setCategory("");
       setTags([]);
       setStockStatus("In Stock");
@@ -119,6 +122,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       discount: discountNum > 0 ? discountNum : null,
       platforms,
       image_url: imageUrl,
+      banner_url: bannerUrl,
       category,
       tags,
       stock_status: stockStatus,
@@ -256,6 +260,10 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
               <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bannerUrl" className="text-right">Banner URL</Label>
+              <Input id="bannerUrl" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} className="col-span-3" />
             </div>
           </div>
           <DialogFooter>

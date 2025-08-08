@@ -1,7 +1,6 @@
 
 "use client"
 import Image from "next/image";
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Gamepad2, ShoppingCart } from "lucide-react";
@@ -10,7 +9,9 @@ import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
 import { DiscordIcon } from "./icons/discord-icon";
 import { Badge } from "./ui/badge";
-import { ProductDetailDialog } from "./product-detail-dialog";
+import Link from "next/link";
+import { useCart } from "@/context/cart-context";
+import { useToast } from "@/hooks/use-toast";
 
 export type Product = {
   id?: string;
@@ -21,6 +22,7 @@ export type Product = {
   platforms?: ("PC" | "Xbox" | "Playstation" | "Mobile")[];
   tags?: string[];
   imageUrl: string;
+  bannerUrl?: string;
   description?: string;
   aiHint?: string;
   category?: string;
@@ -38,8 +40,9 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -48,15 +51,31 @@ export function ProductCard({ product }: { product: Product }) {
       maximumFractionDigits: 2,
     }).format(price);
   };
+
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault(); // Prevent Link navigation
+    e.stopPropagation(); // Stop event bubbling
+    if (product.id) {
+        addToCart({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            quantity: 1,
+        });
+        toast({
+            title: "Added to Cart",
+            description: `1 x ${product.name} has been added to your cart.`,
+        });
+    }
+  };
   
   const priceToDisplay = product.price;
   const isOutOfStock = product.stockStatus === 'Out of Stock';
 
   return (
-    <>
-      <ProductDetailDialog isOpen={isDetailOpen} setIsOpen={setIsDetailOpen} product={product} />
+    <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg">
       <Card 
-        onClick={() => !isOutOfStock && setIsDetailOpen(true)}
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2 cursor-pointer"
       >
         <CardContent className="flex flex-grow flex-col p-0">
@@ -120,18 +139,15 @@ export function ProductCard({ product }: { product: Product }) {
                 size="icon"
                 className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
                 disabled={isOutOfStock}
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent card click event
-                  setIsDetailOpen(true);
-                }}
+                onClick={handleAddToCart}
               >
                   <ShoppingCart className="h-4 w-4" />
-                  <span className="sr-only">View Details</span>
+                  <span className="sr-only">Add to cart</span>
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
-    </>
+    </Link>
   );
 }

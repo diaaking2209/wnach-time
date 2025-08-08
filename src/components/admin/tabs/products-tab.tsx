@@ -70,6 +70,7 @@ export function ProductsTab() {
         discount: item.discount,
         platforms: item.platforms || [],
         imageUrl: item.image_url,
+        bannerUrl: item.banner_url,
         description: item.description,
         category: item.category,
         tags: item.tags || [],
