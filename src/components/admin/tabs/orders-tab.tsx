@@ -71,9 +71,6 @@ export function OrdersTab() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
-    // This query is now simplified to fetch orders and their items,
-    // which is allowed by the RLS policies.
-    // It no longer tries to join with auth.users, which was causing the permission error.
     const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -90,7 +87,7 @@ export function OrdersTab() {
       toast({
         variant: "destructive",
         title: "Error fetching orders",
-        description: error.message || "Could not retrieve the list of orders. Please check RLS policies.",
+        description: error.message || "Could not retrieve the list of orders.",
       });
       console.error("Fetch orders error:", error);
     } else {
@@ -222,4 +219,5 @@ export function OrdersTab() {
     </Card>
   );
 }
+
 
