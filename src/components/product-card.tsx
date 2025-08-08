@@ -72,6 +72,7 @@ export function ProductCard({ product }: { product: Product }) {
   
   const priceToDisplay = product.price;
   const isOutOfStock = product.stockStatus === 'Out of Stock';
+  const hasDiscount = product.discount && product.discount > 0 && !isOutOfStock;
 
   return (
     <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg h-full">
@@ -97,11 +98,6 @@ export function ProductCard({ product }: { product: Product }) {
                   Out of Stock
               </Badge>
             )}
-            {product.discount && product.discount > 0 && !isOutOfStock && (
-                 <Badge variant="destructive" className="absolute top-2 right-2 z-10">
-                    -{product.discount}%
-                </Badge>
-            )}
             {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
           </div>
 
@@ -126,17 +122,21 @@ export function ProductCard({ product }: { product: Product }) {
 
             <div className="mt-auto flex items-end justify-between">
               <div className="flex flex-col items-start">
-                  {product.originalPrice && product.discount && product.discount > 0 ? (
-                      <span className="text-xs text-muted-foreground line-through sm:text-sm">
-                          {formatPrice(product.originalPrice)}
-                      </span>
-                  ) : (
-                    // Add a placeholder to maintain height consistency
-                    <span className="text-xs text-transparent sm:text-sm">.</span>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-base font-bold text-foreground">
+                        {formatPrice(priceToDisplay)}
+                    </p>
+                    {product.originalPrice && hasDiscount && (
+                        <span className="text-xs text-muted-foreground line-through sm:text-sm">
+                            {formatPrice(product.originalPrice)}
+                        </span>
+                    )}
+                  </div>
+                  {hasDiscount && (
+                    <Badge variant="destructive" className="text-xs mt-1">
+                        -{product.discount}%
+                    </Badge>
                   )}
-                  <p className="text-base font-bold text-foreground">
-                      {formatPrice(priceToDisplay)}
-                  </p>
               </div>
               <Button 
                 size="icon"
