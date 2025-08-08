@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo, AlertTriangle, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -24,17 +24,22 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { DeliveryDialog } from "../delivery-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -109,7 +114,7 @@ export function OrdersTab() {
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const { error } = await supabase
       .from('orders')
-      .update({ status: newStatus })
+      .update({ status: newStatus, send_on_discord: false })
       .eq('id', orderId);
 
     if (error) {
@@ -193,16 +198,15 @@ export function OrdersTab() {
                         <Badge variant="outline">{order.id.substring(0, 8)}</Badge>
                      </TableCell>
                     <TableCell>
-                        <Select value={order.status} onValueChange={(value: OrderStatus) => handleStatusChange(order.id, value)}>
-                            <SelectTrigger className="w-[150px] h-8 text-xs">
-                                <SelectValue placeholder="Change status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.keys(statusConfig).map(s => (
-                                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                      <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'} className="whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                           {order.status === 'Pending' && <Hourglass className="h-3 w-3 text-yellow-400" />}
+                           {order.status === 'Processing' && <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />}
+                           {order.status === 'Completed' && <BadgeCheck className="h-3 w-3 text-green-400" />}
+                           {order.status === 'Cancelled' && <PackageX className="h-3 w-3 text-red-400" />}
+                          <span>{order.status}</span>
+                        </div>
+                      </Badge>
                     </TableCell>
                      <TableCell>{formatPrice(order.total_amount)}</TableCell>
                     <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
@@ -224,10 +228,58 @@ export function OrdersTab() {
                                     </div>
                                 </DropdownMenuItem>
                            ))}
-                           <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
-                                <Send className="mr-2 h-4 w-4" />
-                                <span>Deliver Order</span>
-                           </DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           
+                           {order.status === 'Pending' && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
+                                    <Play className="mr-2 h-4 w-4" />
+                                    <span>Start Processing</span>
+                                </DropdownMenuItem>
+                           )}
+
+                           {order.status === 'Processing' && (
+                                <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    <span>Deliver Order</span>
+                                </DropdownMenuItem>
+                           )}
+
+                           {order.status === 'Completed' && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
+                                    <Undo className="mr-2 h-4 w-4" />
+                                    <span>Return to Processing</span>
+                                </DropdownMenuItem>
+                           )}
+
+                           {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                               <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem
+                                            className="text-destructive"
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            <PackageX className="mr-2 h-4 w-4" />
+                                            <span>Cancel Order</span>
+                                        </DropdownMenuItem>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action will mark the order as cancelled. This cannot be undone.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Close</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleStatusChange(order.id, 'Cancelled')}>
+                                                Confirm Cancellation
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                           )}
+
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

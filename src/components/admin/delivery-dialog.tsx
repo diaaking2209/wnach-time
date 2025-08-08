@@ -35,7 +35,8 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
   useEffect(() => {
     if (order) {
         setDeliveryDetails(order.delivery_details || "");
-        setSendOnDiscord(order.send_on_discord || false);
+        // Set discord toggle to false by default each time dialog opens
+        setSendOnDiscord(false);
     }
   }, [order, isOpen]);
 
@@ -106,7 +107,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
                     checked={sendOnDiscord}
                     onCheckedChange={setSendOnDiscord}
                 />
-                <Label htmlFor="send-on-discord">Send notification on Discord</Label>
+                <Label htmlFor="send-on-discord">Set 'send_on_discord' to true for this update</Label>
             </div>
           </div>
           <DialogFooter>

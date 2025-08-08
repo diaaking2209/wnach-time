@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, Check, Hourglass, X, KeySquare, Bell } from "lucide-react";
+import { Loader2, Package, Check, Hourglass, X, KeySquare, Bell, BadgeCheck } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -44,10 +44,10 @@ type Order = {
 };
 
 const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: string } } = {
-    Pending: { icon: Hourglass, color: "text-yellow-500" },
-    Processing: { icon: Loader2, color: "text-blue-500" },
-    Completed: { icon: Check, color: "text-green-500" },
-    Cancelled: { icon: X, color: "text-red-500" },
+    Pending: { icon: Hourglass, color: "text-yellow-400" },
+    Processing: { icon: Loader2, color: "text-blue-400" },
+    Completed: { icon: BadgeCheck, color: "text-green-400" },
+    Cancelled: { icon: X, color: "text-red-400" },
 }
 
 
@@ -124,8 +124,12 @@ export function OrdersTab() {
                                         <span className="text-sm">{new Date(order.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'}>{order.status}</Badge>
-                                        <StatusIcon className={cn("h-5 w-5", statusColor, order.status === 'Processing' && 'animate-spin')} />
+                                        <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'} className="whitespace-nowrap">
+                                          <div className="flex items-center gap-1.5">
+                                            <StatusIcon className={cn("h-4 w-4", statusColor, order.status === 'Processing' && 'animate-spin')} />
+                                            <span>{order.status}</span>
+                                          </div>
+                                        </Badge>
                                     </div>
                                     <span className="font-semibold text-base">{formatPrice(order.total_amount)}</span>
                                 </div>
