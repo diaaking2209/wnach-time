@@ -55,6 +55,7 @@ export type Order = {
   total_amount: number;
   user_id: string;
   order_items: OrderItem[];
+  // The user data is now nested inside a 'users' object based on the explicit join
   users: {
       raw_user_meta_data: {
           full_name: string;
@@ -79,6 +80,7 @@ export function OrdersTab() {
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    // Corrected query with an explicit join to `auth.users`
     const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -88,7 +90,7 @@ export function OrdersTab() {
             total_amount,
             user_id,
             order_items (*),
-            users (
+            users:user_id (
                 raw_user_meta_data
             )
         `)
@@ -100,6 +102,7 @@ export function OrdersTab() {
         title: "Error fetching orders",
         description: error.message,
       });
+      console.error("Fetch orders error:", error);
     } else {
       setOrders(data as any[] as Order[]);
     }

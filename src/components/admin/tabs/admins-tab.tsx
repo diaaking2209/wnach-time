@@ -86,11 +86,13 @@ export function AdminsTab() {
 
     setIsSaving(true);
     try {
+      // We only insert the provider_id and role.
+      // The user_id, username, and avatar_url will be populated automatically
+      // when the user signs in for the first time, via the logic in useAuth.
       const { data, error } = await supabase
         .from("admins")
         .insert([{ 
-            provider_id: newAdminId.trim(), 
-            username: `User ${newAdminId.trim()}`, // Placeholder username
+            provider_id: newAdminId.trim(),
             role: 'product_adder' 
         }])
         .select()
@@ -100,7 +102,7 @@ export function AdminsTab() {
       
       setAdmins(prev => [...prev, data as AdminUser]);
       setNewAdminId("");
-      toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added as a product adder.` });
+      toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added. They need to sign in to activate their permissions.` });
 
     } catch (error: any) {
       toast({
@@ -133,7 +135,7 @@ export function AdminsTab() {
     }
   }
 
-  const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder') => {
+  const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder' | 'super_owner') => {
     setIsSaving(true);
     try {
       const { data, error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
@@ -202,14 +204,14 @@ export function AdminsTab() {
                                 <AvatarFallback><User /></AvatarFallback>
                             </Avatar>
                             <div>
-                                <p className="font-semibold">{admin.username || `User`}</p>
+                                <p className="font-semibold">{admin.username || `User (Pending Sign-in)`}</p>
                                 <p className="text-sm text-muted-foreground">ID: {admin.provider_id}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Select 
                                 value={admin.role}
-                                onValueChange={(value: 'owner' | 'product_adder') => handleRoleChange(admin.id, value)}
+                                onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
                                 disabled={isSaving || admin.provider_id === currentUserProviderId}
                             >
                                 <SelectTrigger className="w-full sm:w-[180px]">

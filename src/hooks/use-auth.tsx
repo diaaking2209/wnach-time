@@ -45,17 +45,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
 
-    const providerId = user.user_metadata?.provider_id;
-    if (!providerId) {
-        setIsUserAdmin(false);
-        setUserRole(null);
-        return;
-    }
-    
+    // Check against the 'admins' table using the user's ID
     const { data, error } = await supabase
         .from('admins')
         .select('role')
-        .eq('provider_id', providerId)
+        .eq('user_id', user.id)
         .single();
     
     if (error && error.code !== 'PGRST116') { // PGRST116: "No rows found"
@@ -76,7 +70,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         scopes: 'identify email guilds',
       },
     });
-    // The onAuthStateChange listener will handle the result.
     setIsSigningIn(false);
   };
 
@@ -96,6 +89,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await handleSignOut(false);
   }
   
+  // This function now also links the user's auth account to their admin record
+  const syncAdminUserInfo = async (user: User) => {
+    if (!user?.user_metadata) return;
+
+    const { provider_id, full_name, avatar_url } = user.user_metadata;
+    
+    if (!provider_id) return;
+    
+    // Find an admin record with this provider_id that doesn't have a user_id yet
+    const { data: adminRecord, error: findError } = await supabase
+        .from('admins')
+        .select('id, user_id')
+        .eq('provider_id', provider_id)
+        .single();
+
+    if (findError && findError.code !== 'PGRST116') {
+        console.error("Error finding admin record for sync:", findError);
+        return;
+    }
+
+    if (adminRecord) {
+        // If the record exists and the user_id is not set or doesn't match, update it.
+        if (adminRecord.user_id !== user.id) {
+            const { error: updateError } = await supabase
+                .from('admins')
+                .update({ 
+                    user_id: user.id, // This is the crucial link
+                    username: full_name, 
+                    avatar_url: avatar_url 
+                })
+                .eq('provider_id', provider_id);
+
+            if (updateError) {
+                console.error("Error updating admin profile with user_id:", updateError.message);
+            }
+        }
+    }
+  };
+
   const checkGuildMembership = useCallback(async (session: Session | null) => {
     if (!session?.provider_token || isVerifying) {
         return;
@@ -109,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
         });
 
-        if (response.status === 401) { // Unauthorized, likely expired token
+        if (response.status === 401) { 
             await handleSignOut(false);
             toast({
                 title: "Authentication Expired",
@@ -118,14 +150,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        if (response.status === 429) { // Rate limited
+        if (response.status === 429) { 
             console.error('Too many requests to Discord API.');
             toast({
                 variant: "destructive",
                 title: "Verification Overloaded",
                 description: "We're checking memberships too quickly. Please wait a moment and try again.",
             });
-             await handleSignOut(false); // Sign out to prevent loop
+             await handleSignOut(false);
             return;
         }
         
@@ -137,27 +169,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isMember = guilds.some((guild: any) => guild.id === DISCORD_SERVER_ID);
 
         if (!isMember) {
-            setShowGuildModal(true); // This will prompt the user to join
+            setShowGuildModal(true);
         } else {
-             // If user is member, update their profile info in admins table if they are an admin
-            const user = session.user;
-            if (user && user.user_metadata) {
-                const { provider_id, full_name, avatar_url } = user.user_metadata;
-                
-                if (provider_id) {
-                    const { data: adminExists } = await supabase.from('admins').select('id').eq('provider_id', provider_id).single();
-
-                    if(adminExists) {
-                        const { error: updateError } = await supabase
-                            .from('admins')
-                            .update({ username: full_name, avatar_url: avatar_url })
-                            .eq('provider_id', provider_id);
-
-                        if (updateError) {
-                            console.error("Error updating admin profile:", updateError.message);
-                        }
-                    }
-                }
+            // If user is a member, sync their info (especially user_id) to the admins table
+            if (session.user) {
+                await syncAdminUserInfo(session.user);
             }
         }
     } catch (error) {
@@ -178,27 +194,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
-      setUser(session?.user ?? null);
-      await checkAdminStatus(session?.user ?? null);
-      if(session) {
-         await checkGuildMembership(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if(currentUser) {
+        await checkGuildMembership(session);
+        await checkAdminStatus(currentUser);
       }
       setIsLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoading(true);
+      const currentUser = session?.user ?? null;
       setSession(session);
-      setUser(session?.user ?? null);
-      await checkAdminStatus(session?.user ?? null);
-
+      setUser(currentUser);
+      
       if (_event === 'SIGNED_IN' && session) {
         await checkGuildMembership(session);
       }
-      if (_event === 'SIGNED_OUT') {
+      if(currentUser) {
+        await checkAdminStatus(currentUser);
+      } else {
         setIsUserAdmin(false);
         setUserRole(null);
       }
+
       setIsLoading(false);
     });
 
