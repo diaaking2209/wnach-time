@@ -112,8 +112,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             throw itemsError;
         }
 
-        // Step 3: If a coupon was used, we will manually update its usage count in a separate, more robust step if needed.
-        // For now, we remove the problematic RPC call to ensure checkout completes successfully.
+        // Step 3: If a coupon was used, increment its usage count.
         if (orderSummary.appliedCoupon?.code) {
              const { data: coupon, error: couponError } = await supabase
                 .from('coupons')
@@ -128,6 +127,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                     .eq('code', orderSummary.appliedCoupon.code);
 
                 if (updateError) {
+                     // Log the error but don't block the checkout process
                      console.error("Failed to increment coupon usage:", updateError);
                 }
             }
@@ -139,7 +139,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         setIsSuccess(true);
 
     } catch (error: any) {
-        console.error("Checkout error:", error);
+        console.error("Checkout error:", error.message || error);
         toast({
             variant: "destructive",
             title: t.toast.checkoutErrorTitle,
