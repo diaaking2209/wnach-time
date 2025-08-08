@@ -134,6 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!isMember) {
             setShowGuildModal(true);
             return false;
+        } else {
+            setShowGuildModal(false); // User is a member, close modal if it was open
         }
         
         return true;
@@ -183,11 +185,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         processAuthStateChange(session);
     });
 
-    return () => subscription.unsubscribe();
-    // We remove dependencies so this effect runs only once on mount.
-    // The onAuthStateChange listener will handle all subsequent updates.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && session && showGuildModal) {
+          checkGuildMembership(session);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+        subscription.unsubscribe();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session, showGuildModal]);
 
 
   return (
