@@ -49,7 +49,8 @@ export const translations = {
         noProducts: 'No computer programs found at the moment.',
     },
     productPage: {
-        about: 'About the Product'
+        about: 'About the Product',
+        relatedProducts: 'Related Products'
     },
     footer: {
         description: 'A digital store that provides games, cards, subscriptions, and digital software.',
@@ -163,7 +164,8 @@ export const translations = {
         noProducts: 'لا توجد برامج كمبيوتر متاحة في الوقت الحالي.',
     },
     productPage: {
-        about: 'عن المنتج'
+        about: 'عن المنتج',
+        relatedProducts: 'منتجات ذات صلة'
     },
     footer: {
         description: 'متجر رقمي يوفر الألعاب والبطاقات والاشتراكات والبرامج الرقمية.',

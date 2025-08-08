@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { type Product } from "@/components/product-card";
+import { ProductCard, type Product } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-context";
@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   
@@ -62,6 +63,42 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       fetchProduct();
     }
   }, [params.id]);
+
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+        if (!product) return;
+
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .or(`category.eq.${product.category},tags.cs.{${product.tags?.join(',')}}`)
+            .neq('id', product.id)
+            .eq('is_active', true)
+            .limit(4)
+
+        if (error) {
+            console.error("Error fetching related products:", error);
+            return;
+        }
+
+        const formattedProducts: Product[] = data.map((item: any) => ({
+             id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            tags: item.tags || [],
+            imageUrl: item.image_url,
+            description: item.description,
+            category: item.category,
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+        setRelatedProducts(formattedProducts);
+    }
+    fetchRelatedProducts();
+  }, [product])
 
   if (loading) {
     return (
@@ -194,6 +231,25 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <p className="whitespace-pre-wrap" dir="auto">{product.description || "No description available."}</p>
             </div>
         </div>
+
+      {/* Related Products Section */}
+      {relatedProducts.length > 0 && (
+          <section className="mt-12">
+            <div className="mb-8 flex items-baseline gap-4">
+                <div className="h-8 w-1 bg-primary"></div>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                        {t.productPage.relatedProducts}
+                    </h2>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {relatedProducts.map((relatedProduct) => (
+                <ProductCard key={relatedProduct.id} product={relatedProduct} />
+              ))}
+            </div>
+        </section>
+      )}
     </div>
   );
 }
