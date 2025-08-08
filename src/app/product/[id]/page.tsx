@@ -12,7 +12,8 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star } from "lucide-react";
+import { Loader2, ShoppingCart } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -122,10 +123,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Left Column: Product Image */}
-        <div className="lg:col-span-1">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-lg">
+        <div className="md:col-span-1">
+          <div className="relative aspect-[4/3] w-full max-w-sm overflow-hidden rounded-lg shadow-lg">
              <Image
                 src={product.imageUrl}
                 alt={product.name}
@@ -136,60 +137,48 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Right Column: Product Details & Actions */}
-        <div className="lg:col-span-1">
+        <div className="flex flex-col md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
             
-            <div className="mt-3 flex items-center">
-                <div className="flex items-center">
-                    {[0, 1, 2, 3, 4].map((rating) => (
-                        <Star
-                        key={rating}
-                        className="h-5 w-5 flex-shrink-0 text-yellow-400"
-                        />
-                    ))}
-                </div>
-                <p className="ml-2 text-sm text-muted-foreground">(0 Reviews)</p>
-            </div>
+            <Separator className="my-6" />
 
-            <div className="mt-6">
+            <div className="flex items-baseline gap-3">
                 {product.originalPrice && product.discount && product.discount > 0 ? (
-                    <div className="flex items-baseline gap-3">
-                        <span className="text-2xl text-muted-foreground line-through">
+                    <>
+                        <Badge variant="destructive" className="text-base">
+                            -{product.discount}%
+                        </Badge>
+                         <span className="text-xl text-muted-foreground line-through">
                             {formatPrice(product.originalPrice)}
                         </span>
-                        <span className="text-4xl font-bold text-primary">
+                        <span className="text-3xl font-bold text-primary">
                             {formatPrice(product.price)}
                         </span>
-                         <Badge variant="destructive" className="text-base">
-                            -{product.discount}%
-                         </Badge>
-                     </div>
+                     </>
                 ) : (
-                    <p className="text-4xl font-bold text-primary">
+                    <p className="text-3xl font-bold text-primary">
                         {formatPrice(product.price)}
                     </p>
                 )}
             </div>
-
-            {isOutOfStock && (
-                <div className="mt-6">
-                    <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
-                </div>
-            )}
             
-            {!isOutOfStock && (
-                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
-                        <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
-                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
+            <div className="mt-auto pt-6">
+                {isOutOfStock ? (
+                    <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
+                ) : (
+                    <div className="flex flex-col gap-4 sm:flex-row">
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
+                            <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
+                            <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
+                        </div>
+                        <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
+                            <ShoppingCart className="mr-2 h-5 w-5" />
+                            {t.cart.addToCart}
+                        </Button>
                     </div>
-                    <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
-                        <ShoppingCart className="mr-2 h-5 w-5" />
-                        {t.cart.addToCart}
-                    </Button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
       </div>
       
@@ -208,5 +197,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
