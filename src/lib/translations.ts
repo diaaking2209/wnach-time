@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     searchPlaceholder: 'Search...',
@@ -96,6 +97,8 @@ export const translations = {
         applyCouponError: 'Could not apply coupon. Please try again.',
         copied: 'Copied!',
         copiedDesc: 'The ID has been copied to your clipboard.',
+        checkoutErrorTitle: 'Checkout Failed',
+        checkoutErrorDesc: 'There was an unexpected error placing your order. Please try again.'
     },
     profile: {
         memberSince: 'Member since',
@@ -103,6 +106,7 @@ export const translations = {
         adminPanel: 'Admin Panel',
         signOut: 'Sign Out',
         tabs: {
+            orders: 'Orders',
             notifications: 'Notifications',
             submissions: 'Submissions',
             accountLog: 'Account Log',
@@ -112,6 +116,17 @@ export const translations = {
         noNotifications: 'No notifications yet.',
         noSubmissions: 'No submissions yet.',
         noCharacters: 'No characters yet.',
+    },
+    checkout: {
+        confirmTitle: 'Confirm Your Order',
+        confirmDesc: 'You are about to place your order. Please review the details below.',
+        cancel: 'Cancel',
+        confirm: 'Confirm & Place Order',
+        successTitle: 'Order Placed!',
+        successDesc: 'Your order has been successfully submitted. Please create a ticket in Discord to receive your items.',
+        orderIdLabel: 'Your Order ID:',
+        close: 'Close',
+        goToTicket: 'Create a Ticket'
     }
   },
   ar: {
@@ -211,6 +226,8 @@ export const translations = {
         applyCouponError: 'لا يمكن تطبيق الكوبون. الرجاء المحاولة مرة أخرى.',
         copied: 'تم النسخ!',
         copiedDesc: 'تم نسخ المعرف إلى الحافظة الخاصة بك.',
+        checkoutErrorTitle: 'فشل إتمام الطلب',
+        checkoutErrorDesc: 'حدث خطأ غير متوقع أثناء تقديم طلبك. حاول مرة اخرى.'
     },
     profile: {
         memberSince: 'عضو منذ',
@@ -218,6 +235,7 @@ export const translations = {
         adminPanel: 'لوحة التحكم',
         signOut: 'تسجيل الخروج',
         tabs: {
+            orders: 'الطلبات',
             notifications: 'الإشعارات',
             submissions: 'المشاركات',
             accountLog: 'سجل الحساب',
@@ -227,6 +245,17 @@ export const translations = {
         noNotifications: 'لا توجد إشعارات بعد.',
         noSubmissions: 'لا توجد مشاركات بعد.',
         noCharacters: 'لا توجد شخصيات بعد.',
+    },
+    checkout: {
+        confirmTitle: 'تأكيد طلبك',
+        confirmDesc: 'أنت على وشك إتمام طلبك. يرجى مراجعة التفاصيل أدناه.',
+        cancel: 'إلغاء',
+        confirm: 'تأكيد وإتمام الطلب',
+        successTitle: 'تم استلام الطلب!',
+        successDesc: 'لقد تم إرسال طلبك بنجاح. يرجى فتح تذكرة في ديسكورد لاستلام طلبك.',
+        orderIdLabel: 'رقم طلبك:',
+        close: 'إغلاق',
+        goToTicket: 'افتح تذكرة'
     }
   },
 };

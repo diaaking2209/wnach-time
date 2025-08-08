@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -14,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { CheckoutDialog } from "@/components/checkout-dialog";
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
@@ -23,6 +25,7 @@ export default function CartPage() {
     
     const [couponInput, setCouponInput] = useState("");
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [isCheckoutDialogOpen, setCheckoutDialogOpen] = useState(false);
 
     const subTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const discountAmount = appliedCoupon ? subTotal * (appliedCoupon.discount / 100) : 0;
@@ -86,6 +89,12 @@ export default function CartPage() {
     }
 
     return (
+        <>
+        <CheckoutDialog 
+            isOpen={isCheckoutDialogOpen}
+            setIsOpen={setCheckoutDialogOpen}
+            orderSummary={{ subTotal, discountAmount, total, appliedCoupon }}
+        />
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <div className="mb-6">
                 <p className="text-sm text-muted-foreground">
@@ -122,7 +131,7 @@ export default function CartPage() {
                                                 <Image src={item.imageUrl} alt={item.name} fill className="object-cover"/>
                                             </div>
                                             <div className="flex-grow">
-                                                <Link href="#" className="font-semibold hover:text-primary">{item.name}</Link>
+                                                <Link href={`/product/${item.id}`} className="font-semibold hover:text-primary">{item.name}</Link>
                                                 <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -193,7 +202,11 @@ export default function CartPage() {
                                 <span>{t.cart.total} (USD):</span>
                                 <span>{formatPrice(total)}</span>
                             </div>
-                            <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground" disabled={cart.length === 0}>
+                            <Button 
+                                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground" 
+                                disabled={cart.length === 0}
+                                onClick={() => setCheckoutDialogOpen(true)}
+                            >
                                 {t.cart.checkout}
                             </Button>
                         </CardContent>
@@ -201,5 +214,6 @@ export default function CartPage() {
                 </div>
             </div>
         </div>
+        </>
     );
 }

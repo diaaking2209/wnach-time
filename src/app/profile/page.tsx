@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy } from "lucide-react"
+import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { useLanguage } from "@/context/language-context"
 import { translations } from "@/lib/translations"
+import { OrdersTab } from "@/components/profile/orders-tab"
 
 export default function ProfilePage() {
     const { user, session, isLoading, handleSignOut, isUserAdmin } = useAuth();
@@ -118,13 +119,17 @@ export default function ProfilePage() {
                 
                 {/* Right Column */}
                 <main className="md:col-span-3">
-                     <Tabs defaultValue="account-log" className="w-full">
+                     <Tabs defaultValue="orders" className="w-full">
                         <TabsList>
+                            <TabsTrigger value="orders"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
                             <TabsTrigger value="notifications">{t.profile.tabs.notifications}</TabsTrigger>
                             <TabsTrigger value="submissions">{t.profile.tabs.submissions}</TabsTrigger>
                             <TabsTrigger value="account-log">{t.profile.tabs.accountLog}</TabsTrigger>
                             <TabsTrigger value="characters">{t.profile.tabs.characters}</TabsTrigger>
                         </TabsList>
+                         <TabsContent value="orders" className="mt-6">
+                            <OrdersTab />
+                        </TabsContent>
                         <TabsContent value="account-log" className="mt-6">
                             <Card>
                                 <CardHeader>

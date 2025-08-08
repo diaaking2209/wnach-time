@@ -5,6 +5,7 @@ import { ProductsTab } from "@/components/admin/tabs/products-tab";
 import { HomePageTab } from "@/components/admin/tabs/homepage-tab";
 import { AdminsTab } from "@/components/admin/tabs/admins-tab";
 import { CouponsTab } from "@/components/admin/tabs/coupons-tab";
+import { OrdersTab } from "@/components/admin/tabs/orders-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -40,11 +41,13 @@ export default function AdminPage() {
 
   const getGridColsClass = () => {
     let count = 1; // Products
+    if (isOwner) count++; // Orders
     if (isOwner) count++; // Home Page
     if (isOwner) count++; // Coupons
     if (isSuperOwner) count++; // Admins
     if(count === 3) return "grid-cols-3";
     if(count === 4) return "grid-cols-4";
+    if(count === 5) return "grid-cols-5";
     if(count === 2) return "grid-cols-2";
     return `grid-cols-1`;
   }
@@ -59,6 +62,7 @@ export default function AdminPage() {
       <Tabs defaultValue="products">
         <TabsList className={`grid w-full ${getGridColsClass()}`}>
           <TabsTrigger value="products">Products</TabsTrigger>
+          {isOwner && <TabsTrigger value="orders">Orders</TabsTrigger>}
           {isOwner && <TabsTrigger value="homepage">Home Page</TabsTrigger>}
           {isOwner && <TabsTrigger value="coupons">Coupons</TabsTrigger>}
           {isSuperOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}
@@ -66,6 +70,11 @@ export default function AdminPage() {
         <TabsContent value="products" className="mt-6">
           <ProductsTab />
         </TabsContent>
+        {isOwner && (
+            <TabsContent value="orders" className="mt-6">
+                <OrdersTab />
+            </TabsContent>
+        )}
         {isOwner && (
             <TabsContent value="homepage" className="mt-6">
                 <HomePageTab />
