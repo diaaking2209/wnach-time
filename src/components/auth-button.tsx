@@ -16,7 +16,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from './ui/skeleton';
 
-const DISCORD_SERVER_INVITE = 'https://discord.gg/invite-code'; // Replace with your actual invite link
+const DISCORD_SERVER_INVITE = 'https://discord.gg/7up'; 
 
 export function AuthButton() {
   const { 
