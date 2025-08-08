@@ -18,6 +18,7 @@ import { useCart, type AppliedCoupon } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Separator } from "./ui/separator";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CheckoutDialogProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const { toast } = useToast();
   const { clearCart, cart } = useCart();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language];
 
   useEffect(() => {
@@ -68,12 +70,17 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   };
   
   const handleConfirmCheckout = async () => {
+    if (!user) {
+        toast({ variant: "destructive", title: "You must be signed in to checkout." });
+        return;
+    }
     setIsProcessing(true);
     try {
         // Step 1: Create the order record
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert({
+                user_id: user.id, // This was the missing piece
                 sub_total: orderSummary.subTotal,
                 discount_amount: orderSummary.discountAmount,
                 total_amount: orderSummary.total,
@@ -104,7 +111,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         }
 
         // Step 3: Clear the client-side cart
-        await clearCart();
+        clearCart(); // Note: This already calls removeCoupon
 
         // Success!
         setNewOrderId(orderId);
@@ -117,7 +124,8 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             title: t.toast.checkoutErrorTitle,
             description: error.message || t.toast.checkoutErrorDesc,
         });
-        setIsOpen(false);
+        // Do not close the dialog on error, let the user retry
+        // setIsOpen(false); 
     } finally {
         setIsProcessing(false);
     }
