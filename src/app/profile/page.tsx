@@ -52,9 +52,9 @@ export default function ProfilePage() {
 
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 {/* Left Column */}
-                <aside className="md:col-span-1 lg:col-span-1 space-y-6">
+                <aside className="lg:col-span-1 space-y-6">
                     <Card>
                         <CardContent className="flex flex-col items-center p-6 text-center">
                             <Avatar className="h-24 w-24 mb-4">
@@ -116,14 +116,16 @@ export default function ProfilePage() {
                 </aside>
                 
                 {/* Right Column */}
-                <main className="md:col-span-3 lg:col-span-2">
+                <main className="lg:col-span-2">
                      <Tabs defaultValue="orders" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                            <TabsTrigger value="orders"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
-                            <TabsTrigger value="submissions">{t.profile.tabs.submissions}</TabsTrigger>
-                            <TabsTrigger value="account-log">{t.profile.tabs.accountLog}</TabsTrigger>
-                            <TabsTrigger value="characters">{t.profile.tabs.characters}</TabsTrigger>
-                        </TabsList>
+                        <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            <TabsList className="inline-flex h-auto">
+                                <TabsTrigger value="orders" className="whitespace-nowrap"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
+                                <TabsTrigger value="submissions" className="whitespace-nowrap">{t.profile.tabs.submissions}</TabsTrigger>
+                                <TabsTrigger value="account-log" className="whitespace-nowrap">{t.profile.tabs.accountLog}</TabsTrigger>
+                                <TabsTrigger value="characters" className="whitespace-nowrap">{t.profile.tabs.characters}</TabsTrigger>
+                            </TabsList>
+                        </div>
                          <TabsContent value="orders" className="mt-6">
                             <OrdersTab />
                         </TabsContent>

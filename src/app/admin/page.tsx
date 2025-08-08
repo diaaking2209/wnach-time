@@ -55,11 +55,13 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="products" className="w-full">
-        <TabsList className="grid w-full h-auto grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          {tabs.map(tab => (
-             <TabsTrigger key={tab.value} value={tab.value} className="py-2">{tab.label}</TabsTrigger>
-          ))}
-        </TabsList>
+        <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="inline-flex h-auto">
+              {tabs.map(tab => (
+                 <TabsTrigger key={tab.value} value={tab.value} className="px-4 py-2 whitespace-nowrap">{tab.label}</TabsTrigger>
+              ))}
+            </TabsList>
+        </div>
 
         <TabsContent value="products" className="mt-6">
           <ProductsTab />
