@@ -95,6 +95,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
 
         if (orderError) throw orderError;
         const orderId = orderData.id;
+        setNewOrderId(orderId);
 
         // Step 3: Prepare order items
         const orderItems = cart.map(item => ({
@@ -115,11 +116,25 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             throw itemsError;
         }
 
-        // Step 5: Clear the client-side cart (this also removes the coupon)
+        // Step 5: If a coupon was used, increment its usage count.
+        // This is now done in a separate block and checks for coupon existence first.
+        if (orderSummary.appliedCoupon?.code) {
+             const { error: couponError } = await supabase.rpc('increment_coupon_usage', {
+                p_code: orderSummary.appliedCoupon.code
+            });
+
+            if (couponError) {
+                // Log this error but don't fail the entire checkout process,
+                // as the order itself is already processed.
+                console.error("Coupon usage increment failed:", couponError);
+            }
+        }
+
+
+        // Step 6: Clear the client-side cart (this also removes the coupon)
         clearCart(); 
 
         // Success!
-        setNewOrderId(orderId);
         setIsSuccess(true);
 
     } catch (error: any) {
@@ -129,6 +144,8 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             title: t.toast.checkoutErrorTitle,
             description: error.message || t.toast.checkoutErrorDesc,
         });
+        // Even if there's an error, reset the success flag
+        setIsSuccess(false);
     } finally {
         setIsProcessing(false);
     }

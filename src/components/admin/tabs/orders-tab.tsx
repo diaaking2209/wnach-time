@@ -141,6 +141,14 @@ export function OrdersTab() {
     }).format(price);
   };
   
+  const getUserName = (order: Order) => {
+    return order.users?.raw_user_meta_data?.full_name || 'N/A';
+  }
+
+  const getAvatarUrl = (order: Order) => {
+    return order.users?.raw_user_meta_data?.avatar_url;
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -175,12 +183,12 @@ export function OrdersTab() {
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={order.users?.raw_user_meta_data?.avatar_url || undefined} />
+                                <AvatarImage src={getAvatarUrl(order) || undefined} />
                                 <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                             </Avatar>
                             <div>
                                 <div className="font-medium whitespace-nowrap">
-                                    {order.users?.raw_user_meta_data?.full_name || 'N/A'}
+                                    {getUserName(order)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     {order.user_id}
