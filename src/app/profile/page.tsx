@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, Bell } from "lucide-react"
+import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package } from "lucide-react"
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,13 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useLanguage } from "@/context/language-context"
 import { translations } from "@/lib/translations"
 import { OrdersTab } from "@/components/profile/orders-tab"
-import { NotificationsTab } from "@/components/profile/notifications-tab"
-import { supabase } from "@/lib/supabase"
-import { Badge } from "@/components/ui/badge"
 
 export default function ProfilePage() {
     const { user, session, isLoading, handleSignOut, isUserAdmin } = useAuth();
@@ -29,45 +26,12 @@ export default function ProfilePage() {
     const router = useRouter();
     const { language } = useLanguage();
     const t = translations[language];
-    const [unreadNotifications, setUnreadNotifications] = useState(0);
 
     useEffect(() => {
         if (!isLoading && !session) {
             router.push('/');
         }
     }, [isLoading, session, router]);
-
-     useEffect(() => {
-        if (!user) return;
-
-        const fetchUnreadCount = async () => {
-            const { count, error } = await supabase
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('is_read', false);
-            
-            if (error) {
-                console.error("Error fetching unread notification count:", error);
-            } else {
-                setUnreadNotifications(count ?? 0);
-            }
-        };
-
-        fetchUnreadCount();
-
-        const channel = supabase.channel(`notifications:user_id=eq.${user.id}`)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, 
-            (payload) => {
-                fetchUnreadCount();
-            }
-          )
-          .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user]);
     
     if (isLoading || !session) {
         return (
@@ -158,21 +122,12 @@ export default function ProfilePage() {
                      <Tabs defaultValue="orders" className="w-full">
                         <TabsList>
                             <TabsTrigger value="orders"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
-                            <TabsTrigger value="notifications" className="relative">
-                                <Bell className="mr-2 h-4 w-4" />{t.profile.tabs.notifications}
-                                {unreadNotifications > 0 && (
-                                    <Badge className="absolute -top-2 -right-2 h-5 w-5 justify-center p-0">{unreadNotifications}</Badge>
-                                )}
-                            </TabsTrigger>
                             <TabsTrigger value="submissions">{t.profile.tabs.submissions}</TabsTrigger>
                             <TabsTrigger value="account-log">{t.profile.tabs.accountLog}</TabsTrigger>
                             <TabsTrigger value="characters">{t.profile.tabs.characters}</TabsTrigger>
                         </TabsList>
                          <TabsContent value="orders" className="mt-6">
                             <OrdersTab />
-                        </TabsContent>
-                         <TabsContent value="notifications" className="mt-6">
-                            <NotificationsTab setUnreadCount={setUnreadNotifications} />
                         </TabsContent>
                         <TabsContent value="account-log" className="mt-6">
                             <Card>

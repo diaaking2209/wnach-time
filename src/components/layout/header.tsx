@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/context/cart-context";
 import { useLanguage, Language } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { NotificationsPopover } from "../notifications-popover";
 
 export function Header() {
   const { cart } = useCart();
@@ -62,6 +63,8 @@ export function Header() {
                   <DropdownMenuItem onClick={() => setLanguage('ar' as Language)}>العربية</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <NotificationsPopover />
 
           <Link href="/cart">
             <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
