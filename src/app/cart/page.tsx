@@ -128,7 +128,7 @@ export default function CartPage() {
                                     {cart.map(item => (
                                         <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border/40 pb-4">
                                             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
-                                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover"/>
+                                                <Image src={item.imageUrl || 'https://placehold.co/100x100.png'} alt={item.name} fill className="object-cover"/>
                                             </div>
                                             <div className="flex-grow">
                                                 <Link href={`/product/${item.id}`} className="font-semibold hover:text-primary">{item.name}</Link>
