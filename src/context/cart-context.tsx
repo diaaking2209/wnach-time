@@ -125,8 +125,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const { error } = await supabase.rpc('add_to_cart', {
-        p_product_id: item.id,
         p_user_id: user.id,
+        p_product_id: item.id,
         p_quantity: addQuantity
     });
 
