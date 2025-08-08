@@ -38,10 +38,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, session, handleSignIn } = useAuth();
+  const { user, session, isLoading: isAuthLoading, handleSignIn } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
+    if (isAuthLoading) return; // Don't fetch if auth is still loading
     if (!session || !user) {
         setCart([]);
         setLoading(false);
@@ -83,7 +84,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } finally {
         setLoading(false);
     }
-  }, [user, session, toast]);
+  }, [user, session, toast, isAuthLoading]);
 
   useEffect(() => {
     fetchCart();
