@@ -224,7 +224,6 @@ export function OrdersTab() {
                                     </div>
                                 </DropdownMenuItem>
                            ))}
-                           <DropdownMenuSeparator />
                            <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
                                 <Send className="mr-2 h-4 w-4" />
                                 <span>Deliver Order</span>
