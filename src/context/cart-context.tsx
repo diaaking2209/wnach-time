@@ -154,6 +154,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         } else {
             setCart(prevCart => [...prevCart, { ...item, quantity: addQuantity }]);
         }
+        
+        toast({
+            title: "Added to Cart",
+            description: `1 x ${item.name} has been added to your cart.`,
+        });
+
 
     } catch (error: any) {
         console.error('Error adding to cart:', error.message);
