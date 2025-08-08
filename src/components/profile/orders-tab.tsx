@@ -89,7 +89,7 @@ export function OrdersTab() {
         const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
         const promises = tableNames.map((table, index) =>
-            supabase.from(table).select('*').eq('user_id', user.id) // FIX: Filter by user_id
+            supabase.from(table).select('*').eq('user_id', user.id)
                 .then(({ data, error }) => {
                     if (error) throw error;
                     return data.map(order => ({ ...order, status: statuses[index] } as Order));
