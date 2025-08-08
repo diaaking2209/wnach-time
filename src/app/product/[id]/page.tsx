@@ -123,10 +123,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
         {/* Left Column: Product Image */}
-        <div className="md:col-span-1">
-          <div className="relative aspect-[4/3] w-full max-w-sm overflow-hidden rounded-lg shadow-lg">
+        <div className="md:col-span-1 lg:col-span-1">
+          <div className="relative aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-lg shadow-lg">
              <Image
                 src={product.imageUrl}
                 alt={product.name}
@@ -137,7 +137,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Right Column: Product Details & Actions */}
-        <div className="flex flex-col md:col-span-2">
+        <div className="flex flex-col md:col-span-1 lg:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
             
             <Separator className="my-6" />
@@ -191,7 +191,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 </h2>
             </div>
             <div className="prose prose-sm max-w-none text-muted-foreground dark:prose-invert">
-                <p>{product.description || "No description available."}</p>
+                <p className="whitespace-pre-wrap">{product.description || "No description available."}</p>
             </div>
         </div>
     </div>
