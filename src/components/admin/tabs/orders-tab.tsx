@@ -88,7 +88,7 @@ export function OrdersTab() {
             total_amount,
             user_id,
             order_items (*),
-            users (
+            users:user_id (
                 raw_user_meta_data
             )
         `)
