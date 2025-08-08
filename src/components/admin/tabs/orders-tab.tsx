@@ -192,7 +192,7 @@ export function OrdersTab() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead className="hidden sm:table-cell">Customer</TableHead>
+                        <TableHead className="w-[250px]">Customer</TableHead>
                         <TableHead>Details</TableHead>
                         <TableHead className="hidden md:table-cell">Date</TableHead>
                         {status !== 'Pending' && <TableHead className="hidden lg:table-cell">Modified By</TableHead>}
@@ -211,7 +211,7 @@ export function OrdersTab() {
                     ) : filteredOrders.length > 0 ? (
                         filteredOrders.map((order) => (
                         <TableRow key={order.id}>
-                            <TableCell className="hidden sm:table-cell">
+                            <TableCell>
                                 <div className="font-semibold">{order.user_metadata?.full_name || 'N/A'}</div>
                                 <div className="font-mono text-xs text-muted-foreground">{order.user_metadata?.provider_id}</div>
                             </TableCell>
@@ -219,7 +219,6 @@ export function OrdersTab() {
                                 <div className="flex flex-col gap-1">
                                     <div><Badge variant="outline">{order.id.substring(0, 8)}</Badge></div>
                                     <div className="font-semibold">{formatPrice(order.total_amount)}</div>
-                                    <div className="font-medium text-muted-foreground sm:hidden">{order.user_metadata?.full_name || 'N/A'}</div>
                                 </div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{new Date(order.created_at).toLocaleDateString()}</TableCell>
@@ -336,24 +335,26 @@ export function OrdersTab() {
       </CardHeader>
       <CardContent>
          <Tabs defaultValue="Pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                <TabsTrigger value="Pending">
-                    <Hourglass className="mr-0 md:mr-2 h-4 w-4" />
-                    <span className="hidden md:inline">Pending</span>
-                </TabsTrigger>
-                <TabsTrigger value="Processing">
-                    <Loader2 className="mr-0 md:mr-2 h-4 w-4" />
-                     <span className="hidden md:inline">Processing</span>
-                </TabsTrigger>
-                <TabsTrigger value="Completed">
-                    <PackageCheck className="mr-0 md:mr-2 h-4 w-4" />
-                     <span className="hidden md:inline">Completed</span>
-                </TabsTrigger>
-                <TabsTrigger value="Cancelled">
-                    <PackageX className="mr-0 md:mr-2 h-4 w-4" />
-                     <span className="hidden md:inline">Cancelled</span>
-                </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <TabsList className="inline-flex h-auto">
+                    <TabsTrigger value="Pending">
+                        <Hourglass className="mr-2 h-4 w-4" />
+                        <span>Pending</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="Processing">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Processing</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="Completed">
+                        <PackageCheck className="mr-2 h-4 w-4" />
+                        <span>Completed</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="Cancelled">
+                        <PackageX className="mr-2 h-4 w-4" />
+                        <span>Cancelled</span>
+                    </TabsTrigger>
+                </TabsList>
+            </div>
             <TabsContent value="Pending" className="mt-4">
                 {renderOrdersTable('Pending')}
             </TabsContent>
