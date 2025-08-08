@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useCallback } from "react";
@@ -65,10 +66,16 @@ export function NotificationsPopover() {
     fetchNotifications();
 
     if(user) {
-        const channel = supabase.channel(`notifications:user_id=eq.${user.id}`)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, 
+        const channel = supabase.channel('public:notifications')
+          .on(
+            'postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'notifications', 
+              filter: `user_id=eq.${user.id}` 
+            }, 
             (payload) => {
-                // Invalidate and refetch
                 fetchNotifications();
             }
           )
