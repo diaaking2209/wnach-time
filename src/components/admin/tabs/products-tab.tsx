@@ -129,15 +129,30 @@ export function ProductsTab() {
     />
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
             <div>
                 <CardTitle>All Products</CardTitle>
                 <CardDescription>View, add, edit, or delete products in your store.</CardDescription>
             </div>
-            <Button onClick={handleAddProduct} className="w-full sm:w-auto">
+            <Button onClick={handleAddProduct} className="hidden sm:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Product
             </Button>
+            <div className="sm:hidden">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                         <DropdownMenuItem onClick={handleAddProduct}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            <span>Add Product</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">

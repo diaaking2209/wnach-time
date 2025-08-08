@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package } from "lucide-react"
+import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, MoreVertical } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
@@ -14,6 +14,7 @@ import { useEffect } from "react"
 import { useLanguage } from "@/context/language-context"
 import { translations } from "@/lib/translations"
 import { OrdersTab } from "@/components/profile/orders-tab"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 export default function ProfilePage() {
     const { user, session, isLoading, handleSignOut, isUserAdmin } = useAuth();
@@ -56,7 +57,33 @@ export default function ProfilePage() {
                 {/* Left Column */}
                 <aside className="lg:col-span-1 space-y-6">
                     <Card>
-                        <CardContent className="flex flex-col items-center p-6 text-center">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-lg">Profile</CardTitle>
+                             <div className="lg:hidden">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {isUserAdmin && (
+                                            <DropdownMenuItem asChild>
+                                                <Link href="/admin">
+                                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                                    {t.profile.adminPanel}
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem onClick={() => handleSignOut()} className="text-destructive">
+                                            <LogOut className="mr-2 h-4 w-4"/>
+                                            {t.profile.signOut}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                             </div>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center p-6 pt-0 text-center">
                             <Avatar className="h-24 w-24 mb-4">
                                 <AvatarImage src={user_metadata.avatar_url} alt={user_metadata.full_name} />
                                 <AvatarFallback>
@@ -96,7 +123,7 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                     <Card>
+                     <Card className="hidden lg:block">
                          <CardContent className="p-2">
                             {isUserAdmin && (
                                 <>

@@ -126,10 +126,25 @@ export function CouponsTab() {
                 <CardTitle>Manage Coupons</CardTitle>
                 <CardDescription>View, add, edit, or delete discount coupons.</CardDescription>
             </div>
-            <Button onClick={handleAddCoupon}>
+             <Button onClick={handleAddCoupon} className="hidden sm:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Coupon
             </Button>
+             <div className="sm:hidden">
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                         <DropdownMenuItem onClick={handleAddCoupon}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            <span>Add Coupon</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">

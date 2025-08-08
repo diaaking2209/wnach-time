@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, PlusCircle, User, RefreshCw } from "lucide-react";
+import { Loader2, Trash2, PlusCircle, User, RefreshCw, MoreHorizontal } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -23,11 +23,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 type AdminUser = {
   id: string;
@@ -37,6 +38,106 @@ type AdminUser = {
   created_at: string;
   role: 'owner' | 'product_adder' | 'super_owner';
 };
+
+function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
+    const [newAdminId, setNewAdminId] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleAddAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAdminId.trim()) {
+            toast({ variant: "destructive", title: "Admin ID cannot be empty." });
+            return;
+        }
+        
+        if (!/^\d+$/.test(newAdminId.trim())) {
+            toast({ variant: "destructive", title: "Invalid Discord ID", description: "Please enter a valid numeric Discord user ID." });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const { error: checkError } = await supabase.from('admins').select('id').eq('provider_id', newAdminId.trim()).single();
+            if(checkError && checkError.code !== 'PGRST116') throw checkError;
+            if(!checkError) {
+                 toast({ variant: "destructive", title: "Admin already exists." });
+                 setIsSaving(false);
+                 return;
+            }
+
+            const { data, error } = await supabase
+                .from("admins")
+                .insert([{ provider_id: newAdminId.trim(), role: 'product_adder' }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added.` });
+            onAdd();
+            setIsOpen(false);
+            setNewAdminId("");
+
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Failed to add admin", description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                 <div className="sm:hidden">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onSelect={() => setIsOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                <span>Add Admin</span>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={onAdd}>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                <span>Refresh List</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </DialogTrigger>
+            <DialogContent>
+                <form onSubmit={handleAddAdmin}>
+                    <DialogHeader>
+                        <DialogTitle>Add New Admin</DialogTitle>
+                        <DialogDescription>
+                            Enter the Discord User ID of the user you want to add as a Product Adder.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Input
+                            placeholder="Enter Discord User ID"
+                            value={newAdminId}
+                            onChange={(e) => setNewAdminId(e.target.value)}
+                            disabled={isSaving}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>Cancel</Button>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Add Admin
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 export function AdminsTab() {
   const { toast } = useToast();
@@ -86,9 +187,6 @@ export function AdminsTab() {
 
     setIsSaving(true);
     try {
-      // We only insert the provider_id and role.
-      // The user_id, username, and avatar_url will be populated automatically
-      // when the user signs in for the first time, via the logic in useAuth.
       const { data, error } = await supabase
         .from("admins")
         .insert([{ 
@@ -169,13 +267,18 @@ export function AdminsTab() {
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Manage Admins</CardTitle>
-          <CardDescription>
-            Add or remove administrators and assign their roles. Added users must sign in once for their info to appear.
-          </CardDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle>Manage Admins</CardTitle>
+              <CardDescription>
+                Add or remove administrators and assign their roles.
+              </CardDescription>
+            </div>
+             <AddAdminDialog onAdd={fetchAdmins} />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <form onSubmit={handleAddAdmin} className="flex items-center gap-2">
+          <form onSubmit={handleAddAdmin} className="hidden sm:flex items-center gap-2">
             <Input
               placeholder="Enter Discord User ID to add admin"
               value={newAdminId}
@@ -191,7 +294,7 @@ export function AdminsTab() {
           <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">Current Admins</h3>
-                <Button variant="ghost" size="icon" onClick={() => fetchAdmins()} disabled={loading}>
+                <Button variant="ghost" size="icon" onClick={() => fetchAdmins()} disabled={loading} className="hidden sm:inline-flex">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             </div>
