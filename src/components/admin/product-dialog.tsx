@@ -44,7 +44,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | string>("");
-  const [discount, setDiscount] = useState<number | string | undefined>("");
+  const [discount, setDiscount] = useState<number | string>("");
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [imageUrl, setImageUrl] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
@@ -61,7 +61,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setName(product.name);
       setDescription(product.description || "");
       setPrice(product.originalPrice || product.price); // Use original price for editing
-      setDiscount(product.discount);
+      setDiscount(product.discount || "");
       setPlatforms(product.platforms || []);
       setImageUrl(product.imageUrl || "");
       setBannerUrl(product.bannerUrl || "");

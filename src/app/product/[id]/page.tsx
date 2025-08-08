@@ -25,14 +25,16 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
+  const { id: productId } = params;
 
   useEffect(() => {
     const fetchProduct = async () => {
+      if (!productId) return;
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', productId)
         .single();
       
       if (error || !data) {
@@ -59,10 +61,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       setLoading(false);
     };
 
-    if (params.id) {
-      fetchProduct();
-    }
-  }, [params.id]);
+    fetchProduct();
+  }, [productId]);
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
