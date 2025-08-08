@@ -20,6 +20,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
