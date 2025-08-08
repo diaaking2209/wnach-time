@@ -57,9 +57,9 @@ export type Order = {
   order_items: OrderItem[];
   // The user data is now nested inside a 'users' object based on the explicit join
   users: {
-      raw_user_meta_data: {
-          full_name: string;
-          avatar_url: string;
+      raw_user_meta_data?: {
+          full_name?: string;
+          avatar_url?: string;
       }
   } | null
 };
