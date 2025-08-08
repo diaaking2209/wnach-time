@@ -114,27 +114,47 @@ export function OrdersTab() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
-
-
-  const handleMoveToProcessing = async (orderId: string) => {
-    const { error } = await supabase.rpc('move_to_processing', { p_order_id: orderId });
-    if (error) {
-      toast({ variant: "destructive", title: "Failed to update status", description: error.message });
-    } else {
-      toast({ title: "Order Status Updated", description: "Order has been marked as Processing." });
-      fetchOrders();
-    }
-  };
   
-  const handleCancelOrder = async (orderId: string, from: 'pending' | 'processing') => {
-      const { error } = await supabase.rpc('move_to_cancelled', { p_order_id: orderId, p_from_table: from });
+  const getFullOrderDetails = async (orderId: string, fromTable: string) => {
+    const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
+    if (error) throw error;
+    return data;
+  }
+
+  const createNotification = async (userId: string, orderId: string, message: string) => {
+      const { error } = await supabase.from('notifications').insert({ user_id: userId, order_id: orderId, message });
       if (error) {
-          toast({ variant: "destructive", title: "Failed to cancel order", description: error.message });
-      } else {
-          toast({ title: "Order Cancelled" });
-          fetchOrders();
+          console.error("Failed to create notification:", error);
       }
-  };
+  }
+
+  const handleMoveOrder = async (orderId: string, from: 'pending' | 'processing', to: 'processing' | 'cancelled') => {
+    try {
+        const fromTable = `${from}_orders`;
+        const toTable = `${to}_orders`;
+        
+        const fullOrder = await getFullOrderDetails(orderId, fromTable);
+        if(!fullOrder) throw new Error("Order not found");
+
+        const { error: insertError } = await supabase.from(toTable).insert(fullOrder);
+        if (insertError) throw insertError;
+        
+        const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', orderId);
+        if (deleteError) throw deleteError;
+
+        let message = '';
+        if(to === 'processing') message = 'Your order is now being processed.';
+        if(to === 'cancelled') message = 'Your order has been cancelled by the administration.';
+        
+        await createNotification(fullOrder.user_id, orderId, message);
+        
+        toast({ title: "Order Status Updated" });
+        fetchOrders();
+
+    } catch(error: any) {
+         toast({ variant: "destructive", title: "Failed to update status", description: error.message });
+    }
+  }
 
   const handleOpenDeliveryDialog = (order: Order) => {
     setSelectedOrder(order);
@@ -212,7 +232,7 @@ export function OrdersTab() {
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 
                                 {order.status === 'Pending' && (
-                                        <DropdownMenuItem onClick={() => handleMoveToProcessing(order.id)}>
+                                        <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'pending', 'processing')}>
                                             <Play className="mr-2 h-4 w-4" />
                                             <span>Start Processing</span>
                                         </DropdownMenuItem>
@@ -245,7 +265,7 @@ export function OrdersTab() {
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Close</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleCancelOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing')}>
+                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
                                                         Confirm Cancellation
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
@@ -320,3 +340,4 @@ export function OrdersTab() {
     </>
   );
 }
+
