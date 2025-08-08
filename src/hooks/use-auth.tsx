@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Session, User } from '@supabase/supabase-js';
 
 // The Discord server users must be a member of to access the app.
-const DISCORD_SERVER_ID = '1130580097439637694'; 
+const DISCORD_SERVER_ID = '1403414827686170747'; 
 
 type UserRole = 'super_owner' | 'owner' | 'product_adder';
 
