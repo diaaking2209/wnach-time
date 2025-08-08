@@ -42,10 +42,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) {
         setIsUserAdmin(false);
         setUserRole(null);
-        return;
+        return false;
     }
 
-    // Check against the 'admins' table using the user's ID
     const { data, error } = await supabase
         .from('admins')
         .select('role')
@@ -56,9 +55,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error("Error checking admin status:", error);
     }
     
-    setIsUserAdmin(!!data);
-    setUserRole(data?.role as UserRole || null);
-
+    const isAdmin = !!data;
+    setIsUserAdmin(isAdmin);
+    setUserRole(isAdmin ? (data.role as UserRole) : null);
+    return isAdmin;
   }, []);
 
   const handleSignIn = async () => {
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         scopes: 'identify email guilds',
       },
     });
-    setIsSigningIn(false);
+    // The browser will redirect, so setIsSigningIn(false) is not strictly needed here.
   };
 
   const handleSignOut = async (showModal = true) => {
@@ -89,80 +89,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await handleSignOut(false);
   }
   
-  // This function now also links the user's auth account to their admin record
   const syncAdminUserInfo = async (user: User) => {
-    if (!user?.user_metadata) return;
-
+    if (!user?.user_metadata?.provider_id) return;
     const { provider_id, full_name, avatar_url } = user.user_metadata;
     
-    if (!provider_id) return;
-    
-    // Find an admin record with this provider_id that doesn't have a user_id yet
-    const { data: adminRecord, error: findError } = await supabase
+    const { error } = await supabase
         .from('admins')
-        .select('id, user_id')
+        .update({ 
+            user_id: user.id,
+            username: full_name, 
+            avatar_url: avatar_url 
+        })
         .eq('provider_id', provider_id)
-        .single();
+        .is('user_id', null); // IMPORTANT: Only update if user_id is not already set.
 
-    if (findError && findError.code !== 'PGRST116') {
-        console.error("Error finding admin record for sync:", findError);
-        return;
-    }
-
-    if (adminRecord) {
-        // If the record exists and the user_id is not set or doesn't match, update it.
-        if (adminRecord.user_id !== user.id) {
-            const { error: updateError } = await supabase
-                .from('admins')
-                .update({ 
-                    user_id: user.id, // This is the crucial link
-                    username: full_name, 
-                    avatar_url: avatar_url 
-                })
-                .eq('provider_id', provider_id);
-
-            if (updateError) {
-                console.error("Error updating admin profile with user_id:", updateError.message);
-            }
-        }
+    if (error) {
+        console.error("Error syncing admin user info:", error.message);
     }
   };
 
   const checkGuildMembership = useCallback(async (session: Session | null) => {
-    if (!session?.provider_token || isVerifying) {
-        return;
-    }
+    if (!session?.provider_token) return true; // Assume member if no token
+    if (isVerifying) return true;
+
     setIsVerifying(true);
-    
     try {
         const response = await fetch('https://discord.com/api/users/@me/guilds', {
-            headers: {
-                Authorization: `Bearer ${session.provider_token}`,
-            },
+            headers: { Authorization: `Bearer ${session.provider_token}` },
         });
 
-        if (response.status === 401) { 
-            await handleSignOut(false);
-            toast({
-                title: "Authentication Expired",
-                description: "Your session has expired. Please sign in again.",
-            });
-            return;
-        }
-
-        if (response.status === 429) { 
-            console.error('Too many requests to Discord API.');
-            toast({
-                variant: "destructive",
-                title: "Verification Overloaded",
-                description: "We're checking memberships too quickly. Please wait a moment and try again.",
-            });
-             await handleSignOut(false);
-            return;
-        }
-        
         if (!response.ok) {
-            throw new Error(`Failed to fetch Discord guilds. Status: ${response.statusText}`);
+            // If token is expired or invalid, sign out the user
+            if (response.status === 401) {
+                toast({ title: "Authentication Expired", description: "Your session has expired. Please sign in again." });
+                await handleSignOut(false);
+            } else {
+                 console.error('Too many requests or other error with Discord API.');
+                 toast({ variant: "destructive", title: "Verification Failed", description: "Could not verify server membership." });
+            }
+            return false;
         }
         
         const guilds = await response.json();
@@ -170,20 +135,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (!isMember) {
             setShowGuildModal(true);
-        } else {
-            // If user is a member, sync their info (especially user_id) to the admins table
-            if (session.user) {
-                await syncAdminUserInfo(session.user);
-            }
+            return false;
         }
+        
+        return true;
+
     } catch (error) {
         console.error('Error checking guild membership:', error);
-        toast({
-            variant: "destructive",
-            title: "Verification Failed",
-            description: "Could not verify your Discord server membership. Please try signing in again.",
-        });
+        toast({ variant: "destructive", title: "Verification Failed", description: "Could not verify membership." });
         await handleSignOut(false);
+        return false;
     } finally {
       setIsVerifying(false);
     }
@@ -191,35 +152,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   useEffect(() => {
-    setIsLoading(true);
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      if(currentUser) {
-        await checkGuildMembership(session);
-        await checkAdminStatus(currentUser);
-      }
-      setIsLoading(false);
+    const processAuthStateChange = async (session: Session | null) => {
+        setIsLoading(true);
+        const currentUser = session?.user ?? null;
+        setSession(session);
+        setUser(currentUser);
+
+        if (currentUser) {
+            // 1. Sync user info first to link the account
+            await syncAdminUserInfo(currentUser);
+            // 2. Then, check admin status with the now-linked user_id
+            await checkAdminStatus(currentUser);
+            // 3. Finally, verify guild membership
+            await checkGuildMembership(session);
+        } else {
+            // Not signed in, so clear all admin state
+            setIsUserAdmin(false);
+            setUserRole(null);
+        }
+        setIsLoading(false);
+    };
+
+    // Process the initial session on component mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      processAuthStateChange(session);
     });
 
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoading(true);
-      const currentUser = session?.user ?? null;
-      setSession(session);
-      setUser(currentUser);
-      
-      if (_event === 'SIGNED_IN' && session) {
-        await checkGuildMembership(session);
-      }
-      if(currentUser) {
-        await checkAdminStatus(currentUser);
-      } else {
-        setIsUserAdmin(false);
-        setUserRole(null);
-      }
-
-      setIsLoading(false);
+        // We only care about the session object changing.
+        // The logic inside processAuthStateChange handles all cases (SIGNED_IN, SIGNED_OUT, etc.)
+        await processAuthStateChange(session);
     });
 
     return () => subscription.unsubscribe();
