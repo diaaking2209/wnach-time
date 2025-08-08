@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,17 +30,33 @@ interface CheckoutDialogProps {
   };
 }
 
-const DISCORD_TICKET_URL = "https://discord.com/channels/1130580097439637694/1130580097942589472"; // Replace with your actual ticket channel link
 
 export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDialogProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [newOrderId, setNewOrderId] = useState<string | null>(null);
+  const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
 
   const { toast } = useToast();
-  const { clearCart } = useCart();
+  const { clearCart, cart } = useCart();
   const { language } = useLanguage();
   const t = translations[language];
+
+  useEffect(() => {
+    if (isOpen) {
+        const fetchDiscordUrl = async () => {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'discord_ticket_url')
+                .single();
+            if (data?.value) {
+                setDiscordTicketUrl(data.value);
+            }
+        };
+        fetchDiscordUrl();
+    }
+  }, [isOpen]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -70,18 +86,30 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         if (orderError) throw orderError;
         const orderId = orderData.id;
 
-        // Step 2: Use the server-side function to copy cart items and clear cart
-        const { error: rpcError } = await supabase.rpc('create_order_from_cart', { p_order_id: orderId });
-        if (rpcError) {
-            // If the RPC fails, we should try to clean up the created order
+        // Step 2: Use the server-side function to copy cart items
+        // We need to denormalize the product info here because the cart context has it
+         const orderItems = cart.map(item => ({
+            order_id: orderId,
+            product_id: item.id,
+            quantity: item.quantity,
+            price_at_purchase: item.price,
+            product_name: item.name,
+            product_image_url: item.imageUrl
+        }));
+        
+        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+        if (itemsError) {
+             // If items fail, we should try to clean up the created order
             await supabase.from('orders').delete().eq('id', orderId);
-            throw rpcError;
+            throw itemsError;
         }
+
+        // Step 3: Clear the client-side cart
+        await clearCart();
 
         // Success!
         setNewOrderId(orderId);
         setIsSuccess(true);
-        clearCart(); // Clear client-side cart state
 
     } catch (error: any) {
         console.error("Checkout error:", error);
@@ -157,7 +185,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                      <Button type="button" variant="outline" onClick={handleClose} className="w-full">
                         {t.checkout.close}
                     </Button>
-                    <a href={DISCORD_TICKET_URL} target="_blank" rel="noopener noreferrer" className="w-full">
+                    <a href={discordTicketUrl} target="_blank" rel="noopener noreferrer" className="w-full">
                         <Button type="button" className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white">
                            {t.checkout.goToTicket}
                         </Button>

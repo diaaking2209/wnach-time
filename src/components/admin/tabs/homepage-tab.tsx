@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, GripVertical, Plus } from "lucide-react";
+import { Loader2, Trash2, GripVertical, Plus, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Product } from "@/components/product-card";
 import {
@@ -22,6 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 type CarouselSlide = {
   id: string;
@@ -45,6 +47,7 @@ export function HomePageTab() {
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([]);
   const [topProducts, setTopProducts] = useState<TopProductLink[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [discordUrl, setDiscordUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
 
@@ -62,6 +65,13 @@ export function HomePageTab() {
        const { data: allProds, error: allProdsError } = await supabase.from('products').select('*').order('name');
        if(allProdsError) throw allProdsError;
        setAllProducts(allProds);
+       
+       const { data: settingsData, error: settingsError } = await supabase.from('app_settings').select('value').eq('key', 'discord_ticket_url').single();
+       if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+       if (settingsData) {
+        setDiscordUrl(settingsData.value || "");
+       }
+
 
     } catch (error: any) {
       toast({ variant: "destructive", title: "Failed to load content", description: error.message });
@@ -160,7 +170,10 @@ export function HomePageTab() {
         const { error: topProductsError } = await supabase.from('homepage_top_products').upsert(topProductsUpsert);
         if (topProductsError) throw topProductsError;
 
-        toast({ title: "Success", description: "Home page content has been saved." });
+        const { error: settingsError } = await supabase.from('app_settings').update({ value: discordUrl }).eq('key', 'discord_ticket_url');
+        if (settingsError) throw settingsError;
+
+        toast({ title: "Success", description: "Home page and settings content have been saved." });
     } catch (error: any) {
          toast({ variant: "destructive", title: "Failed to save content", description: error.message });
     } finally {
@@ -267,10 +280,31 @@ export function HomePageTab() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Store Settings</CardTitle>
+          <CardDescription>Manage general store settings.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="discordUrl">Discord Ticket URL</Label>
+                <Input 
+                    id="discordUrl"
+                    value={discordUrl}
+                    onChange={(e) => setDiscordUrl(e.target.value)}
+                    placeholder="https://discord.com/channels/..."
+                />
+                <p className="text-sm text-muted-foreground">
+                    This is the link users will be directed to after a successful purchase.
+                </p>
+            </div>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
         <Button onClick={handleSaveAll} disabled={isSaving}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Home Page Changes
+            Save All Changes
         </Button>
       </div>
     </div>
