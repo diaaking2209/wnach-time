@@ -114,7 +114,7 @@ export function OrdersTab() {
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const { error } = await supabase
       .from('orders')
-      .update({ status: newStatus, send_on_discord: false })
+      .update({ status: newStatus, send_on_discord: false }) // Reset discord flag on every state change
       .eq('id', orderId);
 
     if (error) {

@@ -28,15 +28,15 @@ interface DeliveryDialogProps {
 
 export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDialogProps) {
   const [deliveryDetails, setDeliveryDetails] = useState("");
-  const [sendOnDiscord, setSendOnDiscord] = useState(false);
+  const [sendOnDiscord, setSendOnDiscord] = useState(true); // Default to true for this action
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (order) {
         setDeliveryDetails(order.delivery_details || "");
-        // Set discord toggle to false by default each time dialog opens
-        setSendOnDiscord(false);
+        // Set discord toggle to true by default for the delivery action
+        setSendOnDiscord(true);
     }
   }, [order, isOpen]);
 
@@ -50,7 +50,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
       .from('orders')
       .update({ 
         delivery_details: deliveryDetails,
-        send_on_discord: sendOnDiscord,
+        send_on_discord: sendOnDiscord, // Use the state of the switch
         status: 'Completed' as OrderStatus
       })
       .eq('id', order.id);
@@ -107,7 +107,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
                     checked={sendOnDiscord}
                     onCheckedChange={setSendOnDiscord}
                 />
-                <Label htmlFor="send-on-discord">Set 'send_on_discord' to true for this update</Label>
+                <Label htmlFor="send-on-discord">Send Discord Notification for this delivery</Label>
             </div>
           </div>
           <DialogFooter>
