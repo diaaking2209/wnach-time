@@ -28,7 +28,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-card text-card-foreground">
+    <footer className="bg-card text-card-foreground z-10 relative">
       <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
           <div className="flex flex-col items-start">
