@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, Check, Hourglass, X } from "lucide-react";
+import { Loader2, Package, Check, Hourglass, X, KeySquare } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/accordion"
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { Separator } from "../ui/separator";
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -37,6 +38,7 @@ type Order = {
   created_at: string;
   status: OrderStatus;
   total_amount: number;
+  delivery_details: string | null;
   order_items: OrderItem[];
 };
 
@@ -56,6 +58,7 @@ export function OrdersTab() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
+      // Fetches orders for the currently logged-in user thanks to RLS
       const { data, error } = await supabase
         .from("orders")
         .select(`
@@ -144,6 +147,21 @@ export function OrdersTab() {
                                          </div>
                                      </div>
                                  ))}
+
+                                {order.delivery_details && (
+                                    <>
+                                    <Separator />
+                                    <div className="space-y-2 rounded-md bg-green-950/50 border border-green-500/20 p-4">
+                                        <div className="flex items-center gap-2 text-green-400">
+                                            <KeySquare className="h-5 w-5" />
+                                            <h4 className="font-semibold">Your Delivered Items</h4>
+                                        </div>
+                                        <div className="whitespace-pre-wrap rounded-md bg-background/50 p-3 font-mono text-sm text-green-300">
+                                            {order.delivery_details}
+                                        </div>
+                                    </div>
+                                    </>
+                                )}
                                </div>
                             </AccordionContent>
                         </AccordionItem>

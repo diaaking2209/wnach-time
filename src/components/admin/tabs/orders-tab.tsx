@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { DeliveryDialog } from "../delivery-dialog";
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -52,6 +54,7 @@ export type Order = {
   status: OrderStatus;
   total_amount: number;
   user_id: string;
+  delivery_details: string | null;
   order_items: OrderItem[];
 };
 
@@ -67,6 +70,8 @@ const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: st
 export function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
 
   const fetchOrders = useCallback(async () => {
@@ -79,6 +84,7 @@ export function OrdersTab() {
             status,
             total_amount,
             user_id,
+            delivery_details,
             order_items (*)
         `)
         .order('created_at', { ascending: false });
@@ -121,6 +127,17 @@ export function OrdersTab() {
     }
   };
 
+  const handleOpenDeliveryDialog = (order: Order) => {
+    setSelectedOrder(order);
+    setDeliveryDialogOpen(true);
+  }
+  
+  const handleDeliverySave = () => {
+    setDeliveryDialogOpen(false);
+    fetchOrders();
+  }
+
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -129,6 +146,13 @@ export function OrdersTab() {
   };
   
   return (
+    <>
+    <DeliveryDialog 
+        isOpen={isDeliveryDialogOpen}
+        setIsOpen={setDeliveryDialogOpen}
+        order={selectedOrder}
+        onSave={handleDeliverySave}
+    />
     <Card>
       <CardHeader>
         <CardTitle>Manage Orders</CardTitle>
@@ -200,6 +224,11 @@ export function OrdersTab() {
                                     </div>
                                 </DropdownMenuItem>
                            ))}
+                           <DropdownMenuSeparator />
+                           <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
+                                <Send className="mr-2 h-4 w-4" />
+                                <span>Deliver Order</span>
+                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -217,7 +246,6 @@ export function OrdersTab() {
         </div>
       </CardContent>
     </Card>
+    </>
   );
 }
-
-
