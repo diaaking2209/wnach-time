@@ -253,7 +253,7 @@ export default function HomePage() {
             <p className="mt-2 max-w-lg text-muted-foreground mx-auto sm:mx-0">
                {t.home.discordDescription}
             </p>
-             <Button asChild size="lg" className="mt-6 bg-[#5865F2] hover:bg-[#4752C4] text-white">
+             <Button asChild size="lg" className="mt-6">
               <a href="https://discord.gg/7up" target="_blank" rel="noopener noreferrer">
                 <DiscordIcon className="mr-2 h-5 w-5" />
                 {t.home.joinDiscord}
