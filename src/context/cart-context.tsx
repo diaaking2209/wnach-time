@@ -114,29 +114,35 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     const addQuantity = item.quantity || 1;
+    const existingItem = cart.find(cartItem => cartItem.id === item.id);
+    const newQuantity = existingItem ? existingItem.quantity + addQuantity : addQuantity;
 
     try {
-        const { error } = await supabase.rpc('add_to_cart', {
-            p_user_id: user.id,
-            p_product_id: item.id,
-            p_quantity_to_add: addQuantity,
-        });
+        const { error } = await supabase.from('cart_items').upsert(
+            {
+                user_id: user.id,
+                product_id: item.id,
+                quantity: newQuantity,
+            },
+            {
+                onConflict: 'user_id,product_id',
+            }
+        );
 
         if (error) throw error;
         
         // After successful DB operation, update UI state
-        setCart(prevCart => {
-            const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
-            if (existingItem) {
-                return prevCart.map(cartItem => 
-                    cartItem.id === item.id 
-                    ? { ...cartItem, quantity: cartItem.quantity + addQuantity } 
-                    : cartItem
-                );
-            } else {
-                return [...prevCart, { ...item, quantity: addQuantity }];
-            }
-        });
+        if (existingItem) {
+            setCart(prevCart =>
+                prevCart.map(cartItem =>
+                    cartItem.id === item.id
+                        ? { ...cartItem, quantity: newQuantity }
+                        : cartItem
+                )
+            );
+        } else {
+            setCart(prevCart => [...prevCart, { ...item, quantity: addQuantity }]);
+        }
 
     } catch (error: any) {
         console.error('Error adding to cart:', error.message);

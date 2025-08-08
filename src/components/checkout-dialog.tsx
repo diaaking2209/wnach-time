@@ -114,22 +114,13 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
 
         // Step 3: If a coupon was used, increment its usage count.
         if (orderSummary.appliedCoupon?.code) {
-             const { data: coupon, error: couponError } = await supabase
-                .from('coupons')
-                .select('times_used, max_uses')
-                .eq('code', orderSummary.appliedCoupon.code)
-                .single();
-            
-            if (coupon && !couponError) {
-                 const { error: updateError } = await supabase
-                    .from('coupons')
-                    .update({ times_used: coupon.times_used + 1 })
-                    .eq('code', orderSummary.appliedCoupon.code);
+             const { error: rpcError } = await supabase.rpc('increment_coupon_usage', {
+                p_code: orderSummary.appliedCoupon.code
+            });
 
-                if (updateError) {
-                     // Log the error but don't block the checkout process
-                     console.error("Failed to increment coupon usage:", updateError);
-                }
+            if (rpcError) {
+                 // Log the error but don't block the checkout process, as the order is already placed.
+                console.error("Non-critical error incrementing coupon usage:", rpcError);
             }
         }
 
