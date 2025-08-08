@@ -75,7 +75,13 @@ export function Header() {
         if (error) {
             console.error("Error fetching search suggestions:", error);
         } else {
-            setSuggestions(data as Product[]);
+             const formattedProducts: Product[] = data.map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                imageUrl: item.image_url,
+            }));
+            setSuggestions(formattedProducts);
             setIsSuggestionsOpen(true);
         }
         setIsSearching(false);
