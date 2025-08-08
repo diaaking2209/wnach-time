@@ -38,7 +38,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, session, isLoading: isAuthLoading, handleSignIn } = useAuth();
+  const { user, session, isLoading: isAuthLoading, handleSignIn, isUserInGuild } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
@@ -87,7 +87,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [user, session, toast, isAuthLoading]);
 
   useEffect(() => {
-    fetchCart();
+    if (!isAuthLoading) {
+        fetchCart();
+    }
     // Load coupon from local storage on initial render (coupon can remain local)
     try {
       const localCoupon = localStorage.getItem('wnash-coupon');
@@ -97,7 +99,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to parse coupon from localStorage", error);
     }
-  }, [fetchCart]);
+  }, [fetchCart, isAuthLoading]);
 
   useEffect(() => {
     // Save coupon to local storage whenever it changes
@@ -110,7 +112,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addToCart = async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
-    if (!user) {
+    if (!user || !session) {
         toast({
             title: 'Please sign in',
             description: 'You must be signed in to add items to your cart.',
@@ -125,6 +127,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         });
         return;
     }
+
+    if (!isUserInGuild) {
+        toast({
+            variant: "destructive",
+            title: 'Membership Required',
+            description: 'You must be a member of our Discord server to add items.',
+        });
+        return;
+    }
+
     const addQuantity = item.quantity || 1;
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     const newQuantity = existingItem ? existingItem.quantity + addQuantity : addQuantity;

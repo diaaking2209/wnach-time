@@ -6,21 +6,9 @@ import { User, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { Skeleton } from './ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useLanguage } from '@/context/language-context';
-import { translations } from '@/lib/translations';
 
 export function AuthButton() {
-  const { session, user, isLoading, isSigningIn, handleSignIn, handleSignOut, isUserAdmin } = useAuth();
-  const { language } = useLanguage();
-  const t = translations[language];
+  const { session, user, isLoading, isSigningIn, handleSignIn } = useAuth();
   
   if (isLoading) {
     return <Skeleton className="h-9 w-9 rounded-full" />;
@@ -31,9 +19,8 @@ export function AuthButton() {
     const userName = user.user_metadata?.full_name;
     
     return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+        <Link href="/profile" passHref>
+             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={avatarUrl} alt={userName || 'User Avatar'} />
                     <AvatarFallback>
@@ -41,24 +28,7 @@ export function AuthButton() {
                     </AvatarFallback>
                 </Avatar>
             </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{userName || 'My Account'}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link href="/profile">{t.profile.tabs.orders}</Link>
-            </DropdownMenuItem>
-             {isUserAdmin && (
-                <DropdownMenuItem asChild>
-                    <Link href="/admin">{t.profile.adminPanel}</Link>
-                </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleSignOut()} className="text-destructive">
-                {t.profile.signOut}
-            </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </Link>
     );
   }
 
