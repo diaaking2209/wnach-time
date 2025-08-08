@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 
@@ -63,13 +64,12 @@ export type Order = {
 };
 
 
-const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: string, label: string } } = {
-    Pending: { icon: Hourglass, color: "bg-yellow-500", label: "Pending" },
-    Processing: { icon: Loader2, color: "bg-blue-500", label: "Processing" },
-    Completed: { icon: PackageCheck, color: "bg-green-500", label: "Completed" },
-    Cancelled: { icon: PackageX, color: "bg-red-500", label: "Cancelled" },
-}
-
+const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
+};
 
 export function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -114,7 +114,7 @@ export function OrdersTab() {
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const { error } = await supabase
       .from('orders')
-      .update({ status: newStatus, send_on_discord: false }) // Reset discord flag on every state change
+      .update({ status: newStatus, send_on_discord: false })
       .eq('id', orderId);
 
     if (error) {
@@ -128,7 +128,7 @@ export function OrdersTab() {
         title: "Order Status Updated",
         description: `Order has been marked as ${newStatus}.`,
       });
-      fetchOrders(); // Refresh the list
+      fetchOrders();
     }
   };
 
@@ -142,13 +142,135 @@ export function OrdersTab() {
     fetchOrders();
   }
 
+  const renderOrdersTable = (status: OrderStatus) => {
+    const filteredOrders = orders.filter(order => order.status === status);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
+    return (
+        <Card>
+            <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Customer ID</TableHead>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>
+                        <span className="sr-only">Actions</span>
+                        </TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {loading ? (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center py-10">
+                                <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                            </TableCell>
+                        </TableRow>
+                    ) : filteredOrders.length > 0 ? (
+                        filteredOrders.map((order) => (
+                        <TableRow key={order.id}>
+                            <TableCell>
+                                <div className="flex items-center gap-2 font-mono text-xs">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                    {order.user_id}
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant="outline">{order.id.substring(0, 8)}</Badge>
+                            </TableCell>
+                            <TableCell>{formatPrice(order.total_amount)}</TableCell>
+                            <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button aria-haspopup="true" size="icon" variant="ghost">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Toggle menu</span>
+                                </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Order Details</DropdownMenuLabel>
+                                {order.order_items.map(item => (
+                                        <DropdownMenuItem key={item.id} disabled>
+                                            <div className="flex justify-between w-full">
+                                                <span>{item.product_name} (x{item.quantity})</span>
+                                                <span>{formatPrice(item.price_at_purchase * item.quantity)}</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                ))}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                
+                                {order.status === 'Pending' && (
+                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
+                                            <Play className="mr-2 h-4 w-4" />
+                                            <span>Start Processing</span>
+                                        </DropdownMenuItem>
+                                )}
+
+                                {order.status === 'Processing' && (
+                                        <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
+                                            <Send className="mr-2 h-4 w-4" />
+                                            <span>Deliver Order</span>
+                                        </DropdownMenuItem>
+                                )}
+
+                                {order.status === 'Completed' && (
+                                        <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
+                                            <Undo className="mr-2 h-4 w-4" />
+                                            <span>Return to Processing</span>
+                                        </DropdownMenuItem>
+                                )}
+
+                                {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                                    <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem
+                                                    className="text-destructive"
+                                                    onSelect={(e) => e.preventDefault()}
+                                                >
+                                                    <PackageX className="mr-2 h-4 w-4" />
+                                                    <span>Cancel Order</span>
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action will mark the order as cancelled. This cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Close</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleStatusChange(order.id, 'Cancelled')}>
+                                                        Confirm Cancellation
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                )}
+
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center py-10">
+                                <p className="text-muted-foreground">No {status.toLowerCase()} orders.</p>
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    </TableBody>
+                </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+  }
   
   return (
     <>
@@ -161,140 +283,37 @@ export function OrdersTab() {
     <Card>
       <CardHeader>
         <CardTitle>Manage Orders</CardTitle>
-        <CardDescription>View and manage all customer orders.</CardDescription>
+        <CardDescription>View and manage all customer orders, organized by status.</CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer ID</TableHead>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
-                        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                    </TableCell>
-                </TableRow>
-              ) : orders.length > 0 ? (
-                orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                        <div className="flex items-center gap-2 font-mono text-xs">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            {order.user_id}
-                        </div>
-                    </TableCell>
-                     <TableCell>
-                        <Badge variant="outline">{order.id.substring(0, 8)}</Badge>
-                     </TableCell>
-                    <TableCell>
-                      <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'} className="whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                           {order.status === 'Pending' && <Hourglass className="h-3 w-3 text-yellow-400" />}
-                           {order.status === 'Processing' && <Loader2 className="h-3 w-3 text-blue-400 animate-spin" />}
-                           {order.status === 'Completed' && <BadgeCheck className="h-3 w-3 text-green-400" />}
-                           {order.status === 'Cancelled' && <PackageX className="h-3 w-3 text-red-400" />}
-                          <span>{order.status}</span>
-                        </div>
-                      </Badge>
-                    </TableCell>
-                     <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                    <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Order Details</DropdownMenuLabel>
-                           {order.order_items.map(item => (
-                                <DropdownMenuItem key={item.id} disabled>
-                                    <div className="flex justify-between w-full">
-                                        <span>{item.product_name} (x{item.quantity})</span>
-                                        <span>{formatPrice(item.price_at_purchase * item.quantity)}</span>
-                                    </div>
-                                </DropdownMenuItem>
-                           ))}
-                           <DropdownMenuSeparator />
-                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                           
-                           {order.status === 'Pending' && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
-                                    <Play className="mr-2 h-4 w-4" />
-                                    <span>Start Processing</span>
-                                </DropdownMenuItem>
-                           )}
-
-                           {order.status === 'Processing' && (
-                                <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    <span>Deliver Order</span>
-                                </DropdownMenuItem>
-                           )}
-
-                           {order.status === 'Completed' && (
-                                <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'Processing')}>
-                                    <Undo className="mr-2 h-4 w-4" />
-                                    <span>Return to Processing</span>
-                                </DropdownMenuItem>
-                           )}
-
-                           {order.status !== 'Cancelled' && order.status !== 'Completed' && (
-                               <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <DropdownMenuItem
-                                            className="text-destructive"
-                                            onSelect={(e) => e.preventDefault()}
-                                        >
-                                            <PackageX className="mr-2 h-4 w-4" />
-                                            <span>Cancel Order</span>
-                                        </DropdownMenuItem>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This action will mark the order as cancelled. This cannot be undone.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Close</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleStatusChange(order.id, 'Cancelled')}>
-                                                Confirm Cancellation
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                           )}
-
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
-                        <p className="text-muted-foreground">No orders found yet.</p>
-                    </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+      <CardContent>
+         <Tabs defaultValue="Pending" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="Pending">
+                    <Hourglass className="mr-2 h-4 w-4" /> Pending
+                </TabsTrigger>
+                <TabsTrigger value="Processing">
+                    <Loader2 className="mr-2 h-4 w-4" /> Processing
+                </TabsTrigger>
+                <TabsTrigger value="Completed">
+                    <PackageCheck className="mr-2 h-4 w-4" /> Completed
+                </TabsTrigger>
+                <TabsTrigger value="Cancelled">
+                    <PackageX className="mr-2 h-4 w-4" /> Cancelled
+                </TabsTrigger>
+            </TabsList>
+            <TabsContent value="Pending" className="mt-4">
+                {renderOrdersTable('Pending')}
+            </TabsContent>
+            <TabsContent value="Processing" className="mt-4">
+                {renderOrdersTable('Processing')}
+            </TabsContent>
+            <TabsContent value="Completed" className="mt-4">
+                {renderOrdersTable('Completed')}
+            </TabsContent>
+            <TabsContent value="Cancelled" className="mt-4">
+                {renderOrdersTable('Cancelled')}
+            </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
     </>
