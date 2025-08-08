@@ -1,3 +1,4 @@
+
 "use client"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,18 +12,21 @@ import {
 import { Search, ShoppingCart, Globe } from "lucide-react";
 import { AuthButton } from "../auth-button";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/cart-context";
 import { useLanguage, Language } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { NotificationsPopover } from "../notifications-popover";
+import { useState } from "react";
 
 export function Header() {
   const { cart } = useCart();
   const pathname = usePathname();
+  const router = useRouter();
   const { language, setLanguage } = useLanguage();
   const t = translations[language];
+  const [searchQuery, setSearchQuery] = useState('');
 
   const navLinks = [
     { name: t.nav.home, href: "/" },
@@ -35,6 +39,12 @@ export function Header() {
   
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${searchQuery}`);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
@@ -44,10 +54,15 @@ export function Header() {
         </Link>
         
         <div className="flex-1 flex justify-center items-center px-2 sm:px-4">
-          <div className="relative w-full max-w-lg">
+          <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder={t.searchPlaceholder} className="w-full rounded-md bg-card pl-10 pr-4 h-9" />
-          </div>
+            <Input 
+                placeholder={t.searchPlaceholder} 
+                className="w-full rounded-md bg-card pl-10 pr-4 h-9" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </form>
         </div>
 
         <div className="flex items-center gap-1">
