@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Order, OrderStatus } from "./tabs/orders-tab";
 
 interface DeliveryDialogProps {
@@ -27,25 +28,28 @@ interface DeliveryDialogProps {
 
 export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDialogProps) {
   const [deliveryDetails, setDeliveryDetails] = useState("");
+  const [sendOnDiscord, setSendOnDiscord] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (order) {
         setDeliveryDetails(order.delivery_details || "");
+        setSendOnDiscord(order.send_on_discord || false);
     }
-  }, [order]);
+  }, [order, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order) return;
     setIsSaving(true);
     
-    // Update the order with delivery details and set status to "Completed"
+    // Update the order with delivery details, discord flag, and set status to "Completed"
     const { error } = await supabase
       .from('orders')
       .update({ 
         delivery_details: deliveryDetails,
+        send_on_discord: sendOnDiscord,
         status: 'Completed' as OrderStatus
       })
       .eq('id', order.id);
@@ -79,7 +83,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
           <DialogHeader>
             <DialogTitle>Deliver Order</DialogTitle>
             <DialogDescription>
-              Enter the delivery details below (e.g., product keys, links, etc.). Saving will mark the order as 'Completed'.
+              Enter the delivery details below. Saving will mark the order as 'Completed'.
               <br />
               Order ID: <span className="font-mono text-primary">{order?.id.substring(0,8)}</span>
             </DialogDescription>
@@ -92,9 +96,17 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
                 value={deliveryDetails} 
                 onChange={(e) => setDeliveryDetails(e.target.value)} 
                 className="col-span-3 min-h-[150px] font-mono"
-                placeholder="Enter product key(s) here..." 
+                placeholder="Enter product key(s), links, or other delivery information here..." 
                 required 
               />
+            </div>
+             <div className="flex items-center space-x-2">
+                <Switch
+                    id="send-on-discord"
+                    checked={sendOnDiscord}
+                    onCheckedChange={setSendOnDiscord}
+                />
+                <Label htmlFor="send-on-discord">Send notification on Discord</Label>
             </div>
           </div>
           <DialogFooter>

@@ -26,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +54,7 @@ export type Order = {
   total_amount: number;
   user_id: string;
   delivery_details: string | null;
+  send_on_discord: boolean;
   order_items: OrderItem[];
 };
 
@@ -85,6 +85,7 @@ export function OrdersTab() {
             total_amount,
             user_id,
             delivery_details,
+            send_on_discord,
             order_items (*)
         `)
         .order('created_at', { ascending: false });

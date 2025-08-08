@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, Check, Hourglass, X, KeySquare } from "lucide-react";
+import { Loader2, Package, Check, Hourglass, X, KeySquare, Bell } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -39,6 +39,7 @@ type Order = {
   status: OrderStatus;
   total_amount: number;
   delivery_details: string | null;
+  send_on_discord: boolean;
   order_items: OrderItem[];
 };
 
@@ -148,7 +149,7 @@ export function OrdersTab() {
                                      </div>
                                  ))}
 
-                                {order.delivery_details && (
+                                {order.status === 'Completed' && order.delivery_details && (
                                     <>
                                     <Separator />
                                     <div className="space-y-2 rounded-md bg-green-950/50 border border-green-500/20 p-4">
@@ -159,6 +160,12 @@ export function OrdersTab() {
                                         <div className="whitespace-pre-wrap rounded-md bg-background/50 p-3 font-mono text-sm text-green-300">
                                             {order.delivery_details}
                                         </div>
+                                        {order.send_on_discord && (
+                                            <div className="flex items-center gap-2 text-xs text-blue-400 pt-2">
+                                                <Bell className="h-4 w-4" />
+                                                <span>A notification for this delivery was also sent to you on Discord.</span>
+                                            </div>
+                                        )}
                                     </div>
                                     </>
                                 )}
