@@ -86,15 +86,14 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         if (orderError) throw orderError;
         const orderId = orderData.id;
 
-        // Step 2: Use the server-side function to copy cart items
-        // We need to denormalize the product info here because the cart context has it
+        // Step 2: Create the order items from the cart
          const orderItems = cart.map(item => ({
             order_id: orderId,
             product_id: item.id,
             quantity: item.quantity,
             price_at_purchase: item.price,
             product_name: item.name,
-            product_image_url: item.imageUrl
+            product_image_url: item.imageUrl || null
         }));
         
         const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
