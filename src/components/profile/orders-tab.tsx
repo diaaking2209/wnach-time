@@ -60,6 +60,21 @@ export function OrdersTab() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
+  const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
+
+  const fetchMiscData = useCallback(async () => {
+    const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'discord_ticket_url')
+        .single();
+    if (data?.value) {
+        setDiscordTicketUrl(data.value);
+    }
+    if(error && error.code !== 'PGRST116') {
+      console.error("Error fetching discord url", error);
+    }
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
@@ -99,7 +114,8 @@ export function OrdersTab() {
 
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+    fetchMiscData();
+  }, [fetchOrders, fetchMiscData]);
   
   const handleCancelOrder = async (orderId: string) => {
     setIsCancelling(orderId);
@@ -196,30 +212,37 @@ export function OrdersTab() {
                                     </div>
                                     </>
                                 )}
-                                {isCancellable && (
+                                {(order.status === 'Pending' || order.status === 'Processing') && (
                                     <>
                                         <Separator/>
-                                        <div className="flex justify-end">
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" disabled={isCancelling === order.id}>
-                                                        {isCancelling === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PackageX className="mr-2 h-4 w-4" />}
-                                                        Cancel Order
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            This action cannot be undone. This will permanently cancel your order.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Close</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleCancelOrder(order.id)}>Confirm Cancellation</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
+                                        <div className="flex items-center justify-end gap-2">
+                                            {isCancellable && (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="destructive" size="sm" disabled={isCancelling === order.id}>
+                                                            {isCancelling === order.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PackageX className="mr-2 h-4 w-4" />}
+                                                            Cancel Order
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                This action cannot be undone. This will permanently cancel your order.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Close</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleCancelOrder(order.id)}>Confirm Cancellation</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
+                                            <Button size="sm" asChild>
+                                                <a href={discordTicketUrl} target="_blank" rel="noopener noreferrer">
+                                                    Create a Ticket
+                                                </a>
+                                            </Button>
                                         </div>
                                     </>
                                 )}

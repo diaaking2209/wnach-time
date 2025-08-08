@@ -38,7 +38,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, session } = useAuth();
+  const { user, session, handleSignIn } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
@@ -110,7 +110,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
     if (!user) {
-        toast({ variant: 'destructive', title: 'Please sign in', description: 'You must be signed in to add items to your cart.' });
+        toast({
+            title: 'Please sign in',
+            description: 'You must be signed in to add items to your cart.',
+            action: (
+                <button
+                    onClick={() => handleSignIn()}
+                    className="bg-primary text-primary-foreground py-1 px-3 rounded-md text-sm"
+                >
+                    Sign In
+                </button>
+            ),
+        });
         return;
     }
     const addQuantity = item.quantity || 1;
