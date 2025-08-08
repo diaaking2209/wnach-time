@@ -39,16 +39,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   const checkAdminStatus = useCallback(async (user: User | null) => {
-    if (!user) {
+    if (!user || !user.user_metadata.provider_id) {
         setIsUserAdmin(false);
         setUserRole(null);
         return false;
     }
+    
+    const providerId = user.user_metadata.provider_id;
 
     const { data, error } = await supabase
         .from('admins')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('provider_id', providerId)
         .single();
     
     if (error && error.code !== 'PGRST116') { // PGRST116: "No rows found"
@@ -93,15 +95,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.user_metadata?.provider_id) return;
     const { provider_id, full_name, avatar_url } = user.user_metadata;
     
+    // This function now only updates the username and avatar_url if they are not set.
+    // The core logic relies on provider_id which is permanent.
     const { error } = await supabase
         .from('admins')
         .update({ 
-            user_id: user.id,
             username: full_name, 
             avatar_url: avatar_url 
         })
-        .eq('provider_id', provider_id)
-        .is('user_id', null); // IMPORTANT: Only update if user_id is not already set.
+        .eq('provider_id', provider_id);
 
     if (error) {
         console.error("Error syncing admin user info:", error.message);
@@ -159,12 +161,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(currentUser);
 
         if (currentUser) {
-            // 1. Sync user info first to link the account
-            await syncAdminUserInfo(currentUser);
-            // 2. Then, check admin status with the now-linked user_id
-            await checkAdminStatus(currentUser);
-            // 3. Finally, verify guild membership
-            await checkGuildMembership(session);
+            // 1. Verify guild membership first
+            const isMember = await checkGuildMembership(session);
+            if(isMember) {
+                // 2. Then, check admin status with the now-linked user_id
+                const isAdmin = await checkAdminStatus(currentUser);
+                 // 3. If the user is an admin, sync their info (username/avatar)
+                if (isAdmin) {
+                    await syncAdminUserInfo(currentUser);
+                }
+            }
         } else {
             // Not signed in, so clear all admin state
             setIsUserAdmin(false);
