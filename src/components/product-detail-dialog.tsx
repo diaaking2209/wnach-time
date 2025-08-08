@@ -109,7 +109,7 @@ export function ProductDetailDialog({ isOpen, setIsOpen, product }: ProductDetai
 
                 <div className="mt-auto pt-4 space-y-4">
                     <div className="flex items-center gap-4">
-                        <label htmlFor="quantity" className="font-medium">Quantity:</label>
+                        <label htmlFor="quantity" className="font-medium">{t.cart.title}:</label>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
                             <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-8 w-14 text-center" />
