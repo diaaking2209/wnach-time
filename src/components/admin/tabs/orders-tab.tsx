@@ -55,9 +55,11 @@ export type Order = {
   total_amount: number;
   user_id: string;
   order_items: OrderItem[];
-  admins: {
-      username: string;
-      avatar_url: string;
+  users: {
+      raw_user_meta_data: {
+          full_name: string;
+          avatar_url: string;
+      }
   } | null
 };
 
@@ -86,9 +88,8 @@ export function OrdersTab() {
             total_amount,
             user_id,
             order_items (*),
-            admins:user_id (
-                username,
-                avatar_url
+            users (
+                raw_user_meta_data
             )
         `)
         .order('created_at', { ascending: false });
@@ -171,12 +172,12 @@ export function OrdersTab() {
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={order.admins?.avatar_url || undefined} />
+                                <AvatarImage src={order.users?.raw_user_meta_data?.avatar_url || undefined} />
                                 <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                             </Avatar>
                             <div>
                                 <div className="font-medium whitespace-nowrap">
-                                    {order.admins?.username || 'N/A'}
+                                    {order.users?.raw_user_meta_data?.full_name || 'N/A'}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     {order.user_id}
