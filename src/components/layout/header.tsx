@@ -1,4 +1,3 @@
-
 "use client"
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,19 +14,23 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/cart-context";
-
-const navLinks = [
-    { name: "Home", href: "/" },
-    { name: "Games", href: "/games" },
-    { name: "Cards", href: "/cards" },
-    { name: "Subscriptions", href: "/subscriptions" },
-    { name: "In-game", href: "/ingame" },
-    { name: "Programs", href: "/programs" },
-]
+import { useLanguage, Language } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export function Header() {
   const { cart } = useCart();
   const pathname = usePathname();
+  const { language, setLanguage } = useLanguage();
+  const t = translations[language];
+
+  const navLinks = [
+    { name: t.nav.home, href: "/" },
+    { name: t.nav.games, href: "/games" },
+    { name: t.nav.cards, href: "/cards" },
+    { name: t.nav.subscriptions, href: "/subscriptions" },
+    { name: t.nav.ingame, href: "/ingame" },
+    { name: t.nav.programs, href: "/programs" },
+]
   
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -42,7 +45,7 @@ export function Header() {
         <div className="flex-1 flex justify-center items-center px-4 sm:px-8">
           <div className="relative w-full max-w-lg">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="w-full rounded-md bg-card pl-10 pr-4 h-9" />
+            <Input placeholder={t.searchPlaceholder} className="w-full rounded-md bg-card pl-10 pr-4 h-9" />
           </div>
         </div>
 
@@ -55,8 +58,8 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>English</DropdownMenuItem>
-                  <DropdownMenuItem>العربية</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLanguage('en' as Language)}>English</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLanguage('ar' as Language)}>العربية</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 

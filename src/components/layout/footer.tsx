@@ -1,10 +1,13 @@
 
+"use client"
 import Link from "next/link";
 import { Mail, MessageSquare, Instagram, Youtube } from "lucide-react";
 import { XIcon } from "../icons/x-icon";
 import { DiscordIcon } from "../icons/discord-icon";
 import { TiktokIcon } from "../icons/tiktok-icon";
 import Image from "next/image";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 const socialLinks = [
   { name: "X", icon: XIcon, href: "#" },
@@ -14,13 +17,16 @@ const socialLinks = [
   { name: "YouTube", icon: Youtube, href: "#" },
 ];
 
-const footerLinks = [
-  { name: "About Us", href: "#" },
-  { name: "Privacy Policy", href: "#" },
-  { name: "Terms of Use", href: "#" },
-];
-
 export function Footer() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const footerLinks = [
+    { name: t.footer.about, href: "#" },
+    { name: t.footer.privacy, href: "#" },
+    { name: t.footer.terms, href: "#" },
+  ];
+
   return (
     <footer className="bg-card text-card-foreground">
       <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -30,13 +36,12 @@ export function Footer() {
               <Image src="https://i.postimg.cc/0KdnQQm2/image-14-1-1.webp" alt="Wnash time" width={120} height={34} />
             </Link>
             <p className="text-sm text-muted-foreground">
-              A digital store that provides games, cards, subscriptions, and
-              digital software.
+              {t.footer.description}
             </p>
           </div>
 
           <div className="md:justify-self-center">
-            <h3 className="mb-4 font-semibold text-foreground">Quick Links</h3>
+            <h3 className="mb-4 font-semibold text-foreground">{t.footer.quickLinks}</h3>
             <ul className="space-y-2">
               {footerLinks.map((link) => (
                 <li key={link.name}>
@@ -49,7 +54,7 @@ export function Footer() {
           </div>
           
           <div className="md:justify-self-end">
-             <h3 className="mb-4 font-semibold text-foreground">Contact Us</h3>
+             <h3 className="mb-4 font-semibold text-foreground">{t.footer.contactUs}</h3>
             <div className="space-y-3">
                <a href="mailto:contact@wnashtime.dev" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <Mail className="h-4 w-4" />
@@ -57,7 +62,7 @@ export function Footer() {
               </a>
               <a href="#" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
                 <MessageSquare className="h-4 w-4" />
-                <span>WhatsApp Support</span>
+                <span>{t.footer.whatsapp}</span>
               </a>
             </div>
             <div className="mt-4 flex space-x-4">
@@ -72,7 +77,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border/40 pt-4 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Wnash time. All Rights Reserved.
+          &copy; {new Date().getFullYear()} Wnash time. {t.footer.rightsReserved}.
         </div>
       </div>
     </footer>

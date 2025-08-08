@@ -16,11 +16,15 @@ import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useLanguage } from "@/context/language-context"
+import { translations } from "@/lib/translations"
 
 export default function ProfilePage() {
     const { user, session, isLoading, handleSignOut, isUserAdmin } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
+    const { language } = useLanguage();
+    const t = translations[language];
 
     useEffect(() => {
         if (!isLoading && !session) {
@@ -41,10 +45,10 @@ export default function ProfilePage() {
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        toast({ title: "Copied!", description: "The ID has been copied to your clipboard." });
+        toast({ title: t.toast.copied, description: t.toast.copiedDesc });
     }
 
-    const memberSince = new Date(created_at).toLocaleDateString('en-US', {
+    const memberSince = new Date(created_at).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -64,13 +68,13 @@ export default function ProfilePage() {
                                 </AvatarFallback>
                             </Avatar>
                             <h2 className="text-xl font-bold">{user_metadata.full_name}</h2>
-                            <p className="text-sm text-muted-foreground">Member since {memberSince}</p>
+                            <p className="text-sm text-muted-foreground">{t.profile.memberSince} {memberSince}</p>
                         </CardContent>
                         <Separator />
                         <CardContent className="p-4">
                              <Collapsible defaultOpen>
                                 <CollapsibleTrigger className="flex w-full justify-between items-center py-2 text-sm font-semibold">
-                                    Details
+                                    {t.profile.details}
                                 </CollapsibleTrigger>
                                 <CollapsibleContent className="space-y-3 text-sm text-left">
                                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -101,12 +105,12 @@ export default function ProfilePage() {
                             {isUserAdmin && (
                                 <Link href="/admin">
                                     <Button variant="ghost" className="w-full justify-start">
-                                        <LayoutDashboard className="mr-2 h-4 w-4" /> Admin Panel
+                                        <LayoutDashboard className="mr-2 h-4 w-4" /> {t.profile.adminPanel}
                                     </Button>
                                 </Link>
                             )}
                              <Button onClick={() => handleSignOut()} variant="ghost" className="w-full justify-start text-destructive hover:text-destructive">
-                                <LogOut className="mr-2 h-4 w-4"/> Sign Out
+                                <LogOut className="mr-2 h-4 w-4"/> {t.profile.signOut}
                              </Button>
                          </CardContent>
                     </Card>
@@ -116,48 +120,48 @@ export default function ProfilePage() {
                 <main className="md:col-span-3">
                      <Tabs defaultValue="account-log" className="w-full">
                         <TabsList>
-                            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                            <TabsTrigger value="submissions">Submissions</TabsTrigger>
-                            <TabsTrigger value="account-log">Account Log</TabsTrigger>
-                            <TabsTrigger value="characters">Characters</TabsTrigger>
+                            <TabsTrigger value="notifications">{t.profile.tabs.notifications}</TabsTrigger>
+                            <TabsTrigger value="submissions">{t.profile.tabs.submissions}</TabsTrigger>
+                            <TabsTrigger value="account-log">{t.profile.tabs.accountLog}</TabsTrigger>
+                            <TabsTrigger value="characters">{t.profile.tabs.characters}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="account-log" className="mt-6">
                             <Card>
                                 <CardHeader>
-                                    <h3 className="text-lg font-semibold">Account Log</h3>
+                                    <h3 className="text-lg font-semibold">{t.profile.tabs.accountLog}</h3>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-muted-foreground">No account activity to show yet.</p>
+                                    <p className="text-muted-foreground">{t.profile.noActivity}</p>
                                 </CardContent>
                             </Card>
                         </TabsContent>
                          <TabsContent value="notifications" className="mt-6">
                             <Card>
                                 <CardHeader>
-                                    <h3 className="text-lg font-semibold">Notifications</h3>
+                                    <h3 className="text-lg font-semibold">{t.profile.tabs.notifications}</h3>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-muted-foreground">No notifications yet.</p>
+                                    <p className="text-muted-foreground">{t.profile.noNotifications}</p>
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="submissions" className="mt-6">
                             <Card>
                                 <CardHeader>
-                                <h3 className="text-lg font-semibold">Submissions</h3>
+                                <h3 className="text-lg font-semibold">{t.profile.tabs.submissions}</h3>
                                 </CardHeader>
                                 <CardContent>
-                                <p className="text-muted-foreground">No submissions yet.</p>
+                                <p className="text-muted-foreground">{t.profile.noSubmissions}</p>
                                 </CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="characters" className="mt-6">
                             <Card>
                                 <CardHeader>
-                                <h3 className="text-lg font-semibold">Characters</h3>
+                                <h3 className="text-lg font-semibold">{t.profile.tabs.characters}</h3>
                                 </CardHeader>
                                 <CardContent>
-                                <p className="text-muted-foreground">No characters yet.</p>
+                                <p className="text-muted-foreground">{t.profile.noCharacters}</p>
                                 </CardContent>
                             </Card>
                         </TabsContent>

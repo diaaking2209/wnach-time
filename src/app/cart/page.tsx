@@ -13,10 +13,14 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
     const { toast } = useToast();
+    const { language } = useLanguage();
+    const t = translations[language];
     
     const [couponInput, setCouponInput] = useState("");
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -53,28 +57,28 @@ export default function CartPage() {
                 .single();
 
             if (error || !data) {
-                toast({ variant: "destructive", title: "Invalid Coupon", description: "The coupon code you entered is not valid." });
+                toast({ variant: "destructive", title: t.toast.invalidCoupon, description: t.toast.invalidCouponDesc });
                 removeCoupon();
                 return;
             }
 
             if (!data.is_active) {
-                toast({ variant: "destructive", title: "Inactive Coupon", description: "This coupon is currently not active." });
+                toast({ variant: "destructive", title: t.toast.inactiveCoupon, description: t.toast.inactiveCouponDesc });
                 removeCoupon();
                 return;
             }
 
             if (data.max_uses !== null && data.times_used >= data.max_uses) {
-                toast({ variant: "destructive", title: "Coupon Limit Reached", description: "This coupon has reached its usage limit." });
+                toast({ variant: "destructive", title: t.toast.couponLimit, description: t.toast.couponLimitDesc });
                 removeCoupon();
                 return;
             }
 
             applyCoupon({ code: data.code, discount: data.discount_percentage });
-            toast({ title: "Coupon Applied", description: `You've got a ${data.discount_percentage}% discount!` });
+            toast({ title: t.toast.couponApplied, description: `${t.toast.couponAppliedDescStart} ${data.discount_percentage}% ${t.toast.couponAppliedDescEnd}` });
 
         } catch (err: any) {
-            toast({ variant: "destructive", title: "Error", description: "Could not apply coupon. Please try again." });
+            toast({ variant: "destructive", title: t.toast.error, description: t.toast.applyCouponError });
             removeCoupon();
         } finally {
             setIsApplyingCoupon(false);
@@ -86,18 +90,18 @@ export default function CartPage() {
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <div className="mb-6">
                 <p className="text-sm text-muted-foreground">
-                    <Link href="/" className="hover:text-primary">HOME</Link>
+                    <Link href="/" className="hover:text-primary">{t.breadcrumbs.home}</Link>
                     <span className="mx-2">/</span>
-                    <span>CART</span>
+                    <span>{t.breadcrumbs.cart}</span>
                 </p>
             </div>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <Card className="bg-card border-border/60">
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-lg font-semibold">Cart Items ({cart.length})</CardTitle>
+                            <CardTitle className="text-lg font-semibold">{t.cart.title} ({cart.length})</CardTitle>
                              {cart.length > 0 && (
-                                <Button variant="outline" size="sm" onClick={clearCart}>Clear Cart</Button>
+                                <Button variant="outline" size="sm" onClick={clearCart}>{t.cart.clearCart}</Button>
                             )}
                         </CardHeader>
                         <CardContent>
@@ -106,9 +110,9 @@ export default function CartPage() {
                                     <div className="relative mb-4">
                                         <ShoppingCart className="h-16 w-16 text-muted-foreground" />
                                     </div>
-                                    <p className="text-muted-foreground">Your cart is empty</p>
+                                    <p className="text-muted-foreground">{t.cart.empty}</p>
                                     <Button asChild className="mt-4">
-                                        <Link href="/">Continue Shopping</Link>
+                                        <Link href="/">{t.cart.continueShopping}</Link>
                                     </Button>
                                 </div>
                             ) : (
@@ -144,12 +148,12 @@ export default function CartPage() {
                 <div className="space-y-6">
                     <Card className="bg-card border-border/60">
                         <CardHeader>
-                            <CardTitle className="text-lg font-semibold">Have a coupon?</CardTitle>
+                            <CardTitle className="text-lg font-semibold">{t.cart.haveCoupon}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-2">
                                 <Input 
-                                    placeholder="Discount Code" 
+                                    placeholder={t.cart.discountCode}
                                     className="bg-input border-border"
                                     value={couponInput}
                                     onChange={(e) => setCouponInput(e.target.value)}
@@ -157,7 +161,7 @@ export default function CartPage() {
                                 />
                                 <Button onClick={handleApplyCoupon} className="bg-primary hover:bg-primary/90" disabled={isApplyingCoupon || !!appliedCoupon}>
                                     {isApplyingCoupon && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Apply
+                                    {t.cart.apply}
                                 </Button>
                             </div>
                         </CardContent>
@@ -166,18 +170,18 @@ export default function CartPage() {
                     <Card className="bg-card border-border/60">
                         <CardContent className="p-6 space-y-4">
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Sub Total:</span>
+                                <span className="text-muted-foreground">{t.cart.subTotal}:</span>
                                 <span>{formatPrice(subTotal)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">VAT:</span>
+                                <span className="text-muted-foreground">{t.cart.vat}:</span>
                                 <span>{formatPrice(vat)}</span>
                             </div>
 
                             {appliedCoupon && (
                                 <div className="flex justify-between text-sm font-medium">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-green-500">Discount:</span>
+                                        <span className="text-green-500">{t.cart.discount}:</span>
                                         <Badge variant="secondary">{appliedCoupon.code}</Badge>
                                         <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive"><XCircle className="h-4 w-4"/></button>
                                     </div>
@@ -187,11 +191,11 @@ export default function CartPage() {
 
                             <Separator className="bg-border/60" />
                             <div className="flex justify-between font-semibold">
-                                <span>Total (USD):</span>
+                                <span>{t.cart.total} (USD):</span>
                                 <span>{formatPrice(total)}</span>
                             </div>
                             <Button className="w-full bg-primary hover:bg-primary/80 text-primary-foreground" disabled={cart.length === 0}>
-                                Proceed to Checkout
+                                {t.cart.checkout}
                             </Button>
                         </CardContent>
                     </Card>

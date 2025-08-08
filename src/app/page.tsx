@@ -1,4 +1,5 @@
 
+'use client'
 import Image from "next/image";
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
@@ -13,7 +14,9 @@ import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 type CarouselDeal = {
     title: string;
@@ -23,62 +26,12 @@ type CarouselDeal = {
 }
 
 const categories = [
-    { name: "Games", icon: Gamepad2, href: "/games" },
-    { name: "Digital Cards", icon: CreditCard, href: "/cards" },
-    { name: "Subscriptions", icon: CalendarDays, href: "/subscriptions" },
-    { name: "In-game Items", icon: ShoppingBag, href: "/ingame" },
-    { name: "Computer Programs", icon: Code, href: "/programs" },
+    { nameKey: "games", icon: Gamepad2, href: "/games" },
+    { nameKey: "digitalCards", icon: CreditCard, href: "/cards" },
+    { nameKey: "subscriptions", icon: CalendarDays, href: "/subscriptions" },
+    { nameKey: "ingameItems", icon: ShoppingBag, href: "/ingame" },
+    { nameKey: "computerPrograms", icon: Code, href: "/programs" },
 ];
-
-
-async function getCarouselDeals() {
-    const { data: dealsData, error: dealsError } = await supabase
-        .from('homepage_carousel')
-        .select('*')
-        .order('sort_order');
-    
-    if (dealsError) {
-        console.error("Error fetching deals:", dealsError);
-        return [];
-    }
-    
-    return dealsData.map(d => ({
-        title: d.title,
-        imageUrl: d.image_url,
-        aiHint: d.ai_hint,
-        link: d.link,
-    }));
-}
-
-async function getTopProducts() {
-    const { data: topProductsData, error: topProductsError } = await supabase
-        .from('homepage_top_products')
-        .select('products(*)') // This joins the products table
-        .order('sort_order');
-    
-    if (topProductsError) {
-        console.error("Error fetching top products:", topProductsError);
-        return [];
-    }
-
-    return topProductsData
-        .map(item => item.products) // Extract the product object
-        .filter(p => p) // Filter out any null products if the join failed
-        .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            tags: item.tags || [],
-            imageUrl: item.image_url,
-            description: item.description,
-            category: item.category,
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-}
 
 function CarouselSkeleton() {
     return (
@@ -89,7 +42,30 @@ function CarouselSkeleton() {
 }
 
 async function HeroCarousel() {
-    const bestDeals = await getCarouselDeals();
+    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
+    
+    useEffect(() => {
+        const getCarouselDeals = async () => {
+            const { data: dealsData, error: dealsError } = await supabase
+                .from('homepage_carousel')
+                .select('*')
+                .order('sort_order');
+            
+            if (dealsError) {
+                console.error("Error fetching deals:", dealsError);
+                return;
+            }
+            
+            setBestDeals(dealsData.map(d => ({
+                title: d.title,
+                imageUrl: d.image_url,
+                aiHint: d.ai_hint,
+                link: d.link,
+            })));
+        }
+        getCarouselDeals();
+    }, []);
+
 
     return (
         <Carousel
@@ -143,7 +119,42 @@ function TopProductsSkeleton() {
 }
 
 async function TopProducts() {
-    const topProducts = await getTopProducts();
+    const [topProducts, setTopProducts] = useState<Product[]>([]);
+    const { language } = useLanguage();
+    const t = translations[language];
+    
+    useEffect(() => {
+        const getTopProducts = async () => {
+            const { data: topProductsData, error: topProductsError } = await supabase
+                .from('homepage_top_products')
+                .select('products(*)') // This joins the products table
+                .order('sort_order');
+            
+            if (topProductsError) {
+                console.error("Error fetching top products:", topProductsError);
+                return;
+            }
+
+            setTopProducts(topProductsData
+                .map(item => item.products) // Extract the product object
+                .filter(p => p) // Filter out any null products if the join failed
+                .map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    originalPrice: item.original_price,
+                    discount: item.discount,
+                    platforms: item.platforms || [],
+                    tags: item.tags || [],
+                    imageUrl: item.image_url,
+                    description: item.description,
+                    category: item.category,
+                    stockStatus: item.stock_status,
+                    isActive: item.is_active,
+                })));
+        }
+        getTopProducts();
+    }, [])
 
     return topProducts.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -153,13 +164,16 @@ async function TopProducts() {
         </div>
     ) : (
         <div className="text-center py-10 text-muted-foreground">
-            <p>No top products featured at the moment. Add some from the admin panel!</p>
+            <p>{t.home.noTopProducts}</p>
         </div>
     );
 }
 
 
 export default function HomePage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <section className="mb-12">
@@ -173,21 +187,21 @@ export default function HomePage() {
             <div className="w-1 bg-primary h-8"></div>
             <div>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                    Categories
+                    {t.home.categories}
                 </h2>
-                <p className="text-muted-foreground">Browse products by category</p>
+                <p className="text-muted-foreground">{t.home.categoriesDescription}</p>
             </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => (
-            <Link key={category.name} href={category.href}>
+            <Link key={category.nameKey} href={category.href}>
               <div className="flex flex-col items-center justify-center gap-3 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50 text-center">
                 <div className="rounded-md bg-muted p-3 text-primary">
                   <category.icon className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">
-                    {category.name}
+                    {t.categories[category.nameKey as keyof typeof t.categories]}
                   </h3>
                 </div>
               </div>
@@ -201,9 +215,9 @@ export default function HomePage() {
             <div className="w-1 bg-primary h-8"></div>
             <div>
                 <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                    Top Products
+                    {t.home.topProducts}
                 </h2>
-                <p className="text-muted-foreground">Check out our best-selling items</p>
+                <p className="text-muted-foreground">{t.home.topProductsDescription}</p>
             </div>
         </div>
         <Suspense fallback={<TopProductsSkeleton />}>

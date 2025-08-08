@@ -14,6 +14,8 @@ import { Product } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { ShoppingCart } from "lucide-react";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 interface ProductDetailDialogProps {
   isOpen: boolean;
@@ -25,6 +27,9 @@ export function ProductDetailDialog({ isOpen, setIsOpen, product }: ProductDetai
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language];
+
 
   if (!product) return null;
 

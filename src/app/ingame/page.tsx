@@ -1,41 +1,51 @@
 
+'use client'
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
+import { useEffect, useState } from "react";
 
-async function getInGameProducts() {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('category', 'In-game Purchases')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+export default function InGamePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const { language } = useLanguage();
+  const t = translations[language];
 
-  if (error) {
-    console.error("Error fetching in-game products:", error);
-    return [];
-  }
-  
-  const formattedProducts: Product[] = data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      originalPrice: item.original_price,
-      discount: item.discount,
-      platforms: item.platforms || [],
-      tags: item.tags || [],
-      imageUrl: item.image_url,
-      description: item.description,
-      category: item.category,
-      stockStatus: item.stock_status,
-      isActive: item.is_active,
-  }));
+  useEffect(() => {
+    async function getInGameProducts() {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', 'In-game Purchases')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-  return formattedProducts;
-}
+      if (error) {
+        console.error("Error fetching in-game products:", error);
+        return;
+      }
+      
+      const formattedProducts: Product[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          discount: item.discount,
+          platforms: item.platforms || [],
+          tags: item.tags || [],
+          imageUrl: item.image_url,
+          description: item.description,
+          category: item.category,
+          stockStatus: item.stock_status,
+          isActive: item.is_active,
+      }));
 
-export default async function InGamePage() {
-  const products = await getInGameProducts();
+      setProducts(formattedProducts);
+    }
+    getInGameProducts();
+  }, [])
+
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -43,9 +53,9 @@ export default async function InGamePage() {
         <div className="w-1 bg-primary h-8"></div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            In-game Purchases
+            {t.inGamePage.title}
           </h1>
-          <p className="text-muted-foreground">Get your in-game items and currency</p>
+          <p className="text-muted-foreground">{t.inGamePage.description}</p>
         </div>
       </div>
       {products.length > 0 ? (
@@ -56,7 +66,7 @@ export default async function InGamePage() {
         </div>
       ) : (
          <div className="text-center py-20">
-            <p className="text-muted-foreground">No in-game products found at the moment.</p>
+            <p className="text-muted-foreground">{t.inGamePage.noProducts}</p>
         </div>
       )}
       <ScrollToTop />
