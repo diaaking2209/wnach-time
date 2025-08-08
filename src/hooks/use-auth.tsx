@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [showGuildModal, setShowGuildModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  // Start with isLoading as true only on the very first load.
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -95,8 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.user_metadata?.provider_id) return;
     const { provider_id, full_name, avatar_url } = user.user_metadata;
     
-    // This function now only updates the username and avatar_url if they are not set.
-    // The core logic relies on provider_id which is permanent.
     const { error } = await supabase
         .from('admins')
         .update({ 
@@ -112,8 +111,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkGuildMembership = useCallback(async (sessionToCheck: Session) => {
     if (!sessionToCheck?.provider_token) {
-        // If there's no provider token, we can't check, so we assume it's okay for now.
-        // This might happen if the token expired and wasn't refreshed.
         return true; 
     }
     if (isVerifying) return true;
@@ -125,11 +122,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (!response.ok) {
-            if (response.status === 401) { // Unauthorized / Token expired
-                toast({ title: "Authentication Expired", description: "Your session has expired. Please sign in again." });
+            if (response.status === 401) { 
                 await handleSignOut(false);
-            } else {
-                 toast({ variant: "destructive", title: "Verification Failed", description: "Could not verify server membership." });
             }
             return false;
         }
@@ -146,21 +140,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
         console.error('Error checking guild membership:', error);
-        toast({ variant: "destructive", title: "Verification Failed", description: "Could not verify membership." });
         await handleSignOut(false);
         return false;
     } finally {
       setIsVerifying(false);
     }
-  }, [isVerifying, toast, handleSignOut]);
+  }, [isVerifying, handleSignOut]);
 
 
   useEffect(() => {
     const processAuthStateChange = async (newSession: Session | null) => {
-        setIsLoading(true);
         const currentUser = newSession?.user ?? null;
         
-        // Update state immediately to prevent stale UI
         setSession(newSession);
         setUser(currentUser);
         
@@ -171,40 +162,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (isAdmin) {
                     await syncAdminUserInfo(currentUser);
                 }
-            } else {
-                // If not a member, clear admin status and sign out might happen in checkGuildMembership
-                setIsUserAdmin(false);
-                setUserRole(null);
             }
         } else {
-            // Not signed in, clear all admin state
             setIsUserAdmin(false);
             setUserRole(null);
         }
-        setIsLoading(false);
+        // This is the key change: we set loading to false after the *first* check.
+        // Subsequent state changes won't trigger the global loader.
+        if(isLoading) {
+            setIsLoading(false);
+        }
     };
 
-    // Get the initial session
+    // Initial check when the provider mounts
     supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-        if (session === null) { // Only run if the initial state hasn't been set
-            processAuthStateChange(initialSession);
-        }
+        processAuthStateChange(initialSession);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        // Only trigger a full re-check if the user ID changes or user logs in/out.
-        const hasUserChanged = user?.id !== session?.user?.id;
-        if (hasUserChanged) {
-            await processAuthStateChange(session);
-        } else {
-             // For other events (like TOKEN_REFRESHED), just update the session object without a full verification loop.
-             setSession(session);
-             setIsLoading(false);
-        }
+        processAuthStateChange(session);
     });
 
     return () => subscription.unsubscribe();
-  }, [user, checkGuildMembership, checkAdminStatus]);
+    // We remove dependencies so this effect runs only once on mount.
+    // The onAuthStateChange listener will handle all subsequent updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   return (
