@@ -112,16 +112,27 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             throw itemsError;
         }
 
-        // Step 3: If a coupon was used, increment its usage count.
+        // Step 3: If a coupon was used, we will manually update its usage count in a separate, more robust step if needed.
+        // For now, we remove the problematic RPC call to ensure checkout completes successfully.
         if (orderSummary.appliedCoupon?.code) {
-             const { error: couponError } = await supabase.rpc('increment_coupon_usage', {
-                p_code: orderSummary.appliedCoupon.code
-            });
-            if (couponError) {
-                // Log this but don't fail the checkout. The order is placed.
-                console.error("Failed to increment coupon usage:", couponError);
+             const { data: coupon, error: couponError } = await supabase
+                .from('coupons')
+                .select('times_used, max_uses')
+                .eq('code', orderSummary.appliedCoupon.code)
+                .single();
+            
+            if (coupon && !couponError) {
+                 const { error: updateError } = await supabase
+                    .from('coupons')
+                    .update({ times_used: coupon.times_used + 1 })
+                    .eq('code', orderSummary.appliedCoupon.code);
+
+                if (updateError) {
+                     console.error("Failed to increment coupon usage:", updateError);
+                }
             }
         }
+
 
         // Step 4: Clear the client-side cart and show success
         clearCart(); 
