@@ -28,12 +28,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!params.id) return;
+      const productId = params.id;
+      if (!productId) return;
+
       setLoading(true);
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', productId)
         .single();
       
       if (error || !data) {
@@ -61,7 +63,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
 
     fetchProduct();
-  }, [params.id]);
+  }, [params]);
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
