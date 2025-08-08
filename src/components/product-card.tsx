@@ -74,9 +74,9 @@ export function ProductCard({ product }: { product: Product }) {
   const isOutOfStock = product.stockStatus === 'Out of Stock';
 
   return (
-    <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg">
+    <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg h-full">
       <Card 
-        className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-2 cursor-pointer"
+        className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-1 cursor-pointer"
       >
         <CardContent className="flex flex-grow flex-col p-0">
           <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
@@ -85,7 +85,7 @@ export function ProductCard({ product }: { product: Product }) {
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 data-ai-hint={product.aiHint}
               />
@@ -97,15 +97,20 @@ export function ProductCard({ product }: { product: Product }) {
                   Out of Stock
               </Badge>
             )}
+            {product.discount && product.discount > 0 && !isOutOfStock && (
+                 <Badge variant="destructive" className="absolute top-2 right-2 z-10">
+                    -{product.discount}%
+                </Badge>
+            )}
             {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
           </div>
 
           <div className="flex flex-grow flex-col p-3">
-            <h3 className="mb-2 flex-grow text-sm font-semibold leading-tight text-foreground truncate">
+            <h3 className="mb-2 flex-grow text-sm font-semibold leading-tight text-foreground line-clamp-2">
               {product.name}
             </h3>
 
-            <div className="mb-2 flex flex-wrap gap-1">
+            <div className="mb-2 flex flex-wrap items-center gap-1">
               {product.platforms && (
                   <div className="flex items-center gap-1.5 mr-2">
                       {product.platforms.map((p) => {
@@ -122,15 +127,13 @@ export function ProductCard({ product }: { product: Product }) {
             <div className="mt-auto flex items-end justify-between">
               <div className="flex flex-col items-start">
                   {product.originalPrice && product.discount && product.discount > 0 ? (
-                      <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground line-through">
-                              {formatPrice(product.originalPrice)}
-                          </span>
-                          <Badge variant="destructive">
-                              -{product.discount}%
-                          </Badge>
-                      </div>
-                  ) : null}
+                      <span className="text-xs text-muted-foreground line-through sm:text-sm">
+                          {formatPrice(product.originalPrice)}
+                      </span>
+                  ) : (
+                    // Add a placeholder to maintain height consistency
+                    <span className="text-xs text-transparent sm:text-sm">.</span>
+                  )}
                   <p className="text-base font-bold text-foreground">
                       {formatPrice(priceToDisplay)}
                   </p>

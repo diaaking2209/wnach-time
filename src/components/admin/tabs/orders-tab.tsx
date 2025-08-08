@@ -192,11 +192,10 @@ export function OrdersTab() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Date</TableHead>
-                        {status !== 'Pending' && <TableHead>Last Modified By</TableHead>}
+                        <TableHead className="hidden sm:table-cell">Customer</TableHead>
+                        <TableHead>Details</TableHead>
+                        <TableHead className="hidden md:table-cell">Date</TableHead>
+                        {status !== 'Pending' && <TableHead className="hidden lg:table-cell">Modified By</TableHead>}
                         <TableHead>
                         <span className="sr-only">Actions</span>
                         </TableHead>
@@ -205,27 +204,27 @@ export function OrdersTab() {
                     <TableBody>
                     {loading ? (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center py-10">
+                            <TableCell colSpan={5} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                             </TableCell>
                         </TableRow>
                     ) : filteredOrders.length > 0 ? (
                         filteredOrders.map((order) => (
                         <TableRow key={order.id}>
-                            <TableCell>
-                                <div className="flex items-center gap-2 font-mono text-xs">
-                                    <User className="h-4 w-4 text-muted-foreground" />
-                                    <span>{order.user_metadata?.full_name || 'N/A'}</span>
-                                </div>
+                            <TableCell className="hidden sm:table-cell">
+                                <div className="font-semibold">{order.user_metadata?.full_name || 'N/A'}</div>
                                 <div className="font-mono text-xs text-muted-foreground">{order.user_metadata?.provider_id}</div>
                             </TableCell>
                             <TableCell>
-                                <Badge variant="outline">{order.id.substring(0, 8)}</Badge>
+                                <div className="flex flex-col gap-1">
+                                    <div><Badge variant="outline">{order.id.substring(0, 8)}</Badge></div>
+                                    <div className="font-semibold">{formatPrice(order.total_amount)}</div>
+                                    <div className="font-medium text-muted-foreground sm:hidden">{order.user_metadata?.full_name || 'N/A'}</div>
+                                </div>
                             </TableCell>
-                            <TableCell>{formatPrice(order.total_amount)}</TableCell>
-                            <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="hidden md:table-cell">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                             {status !== 'Pending' && (
-                                <TableCell>
+                                <TableCell className="hidden lg:table-cell">
                                   {order.last_modified_by_admin_username ? (
                                     <div className="flex items-center gap-2 font-mono text-xs">
                                         <Edit className="h-4 w-4 text-muted-foreground" />
@@ -245,7 +244,7 @@ export function OrdersTab() {
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>Order Details</DropdownMenuLabel>
+                                <DropdownMenuLabel>Order Items</DropdownMenuLabel>
                                 {order.items.map(item => (
                                         <DropdownMenuItem key={item.product_id} disabled>
                                             <div className="flex items-center justify-between w-full gap-2">
@@ -309,7 +308,7 @@ export function OrdersTab() {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center py-10">
+                            <TableCell colSpan={5} className="text-center py-10">
                                 <p className="text-muted-foreground">No {status.toLowerCase()} orders.</p>
                             </TableCell>
                         </TableRow>
@@ -337,18 +336,22 @@ export function OrdersTab() {
       </CardHeader>
       <CardContent>
          <Tabs defaultValue="Pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                 <TabsTrigger value="Pending">
-                    <Hourglass className="mr-2 h-4 w-4" /> Pending
+                    <Hourglass className="mr-0 md:mr-2 h-4 w-4" />
+                    <span className="hidden md:inline">Pending</span>
                 </TabsTrigger>
                 <TabsTrigger value="Processing">
-                    <Loader2 className="mr-2 h-4 w-4" /> Processing
+                    <Loader2 className="mr-0 md:mr-2 h-4 w-4" />
+                     <span className="hidden md:inline">Processing</span>
                 </TabsTrigger>
                 <TabsTrigger value="Completed">
-                    <PackageCheck className="mr-2 h-4 w-4" /> Completed
+                    <PackageCheck className="mr-0 md:mr-2 h-4 w-4" />
+                     <span className="hidden md:inline">Completed</span>
                 </TabsTrigger>
                 <TabsTrigger value="Cancelled">
-                    <PackageX className="mr-2 h-4 w-4" /> Cancelled
+                    <PackageX className="mr-0 md:mr-2 h-4 w-4" />
+                     <span className="hidden md:inline">Cancelled</span>
                 </TabsTrigger>
             </TabsList>
             <TabsContent value="Pending" className="mt-4">

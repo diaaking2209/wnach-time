@@ -24,7 +24,7 @@ export default function AdminPage() {
 
   if (!isUserAdmin) {
     return (
-      <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center">
+      <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center p-4">
         <h1 className="text-3xl font-bold">Access Denied</h1>
         <p className="text-muted-foreground">
           You do not have permission to view this page.
@@ -39,17 +39,21 @@ export default function AdminPage() {
   const isSuperOwner = userRole === 'super_owner';
   const isOwner = userRole === 'owner' || isSuperOwner;
 
+  const tabs = [
+    { value: "products", label: "Products", visible: true },
+    { value: "orders", label: "Orders", visible: isOwner },
+    { value: "homepage", label: "Home Page", visible: isOwner },
+    { value: "coupons", label: "Coupons", visible: isOwner },
+    { value: "admins", label: "Admins", visible: isSuperOwner },
+  ].filter(tab => tab.visible);
+  
   const getGridColsClass = () => {
-    let count = 1; // Products
-    if (isOwner) count++; // Orders
-    if (isOwner) count++; // Home Page
-    if (isOwner) count++; // Coupons
-    if (isSuperOwner) count++; // Admins
-    if(count === 3) return "grid-cols-3";
-    if(count === 4) return "grid-cols-4";
-    if(count === 5) return "grid-cols-5";
-    if(count === 2) return "grid-cols-2";
-    return `grid-cols-1`;
+    const count = tabs.length;
+    if (count <= 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-2';
+    if (count === 3) return 'grid-cols-3';
+    if (count === 4) return 'grid-cols-4';
+    return 'grid-cols-2 sm:grid-cols-5'; // Default for 5 or more
   }
 
   return (
@@ -59,14 +63,13 @@ export default function AdminPage() {
         <p className="text-muted-foreground">Manage your store's content, products, and settings.</p>
       </div>
 
-      <Tabs defaultValue="products">
-        <TabsList className={`grid w-full ${getGridColsClass()}`}>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          {isOwner && <TabsTrigger value="orders">Orders</TabsTrigger>}
-          {isOwner && <TabsTrigger value="homepage">Home Page</TabsTrigger>}
-          {isOwner && <TabsTrigger value="coupons">Coupons</TabsTrigger>}
-          {isSuperOwner && <TabsTrigger value="admins">Admins</TabsTrigger>}
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className={`grid w-full h-auto ${getGridColsClass()}`}>
+          {tabs.map(tab => (
+             <TabsTrigger key={tab.value} value={tab.value} className="py-2">{tab.label}</TabsTrigger>
+          ))}
         </TabsList>
+
         <TabsContent value="products" className="mt-6">
           <ProductsTab />
         </TabsContent>

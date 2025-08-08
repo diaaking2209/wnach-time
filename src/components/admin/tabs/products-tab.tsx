@@ -129,12 +129,12 @@ export function ProductsTab() {
     />
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
             <div>
                 <CardTitle>All Products</CardTitle>
                 <CardDescription>View, add, edit, or delete products in your store.</CardDescription>
             </div>
-            <Button onClick={handleAddProduct}>
+            <Button onClick={handleAddProduct} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Product
             </Button>
@@ -146,10 +146,10 @@ export function ProductsTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Stock</TableHead>
+                <TableHead className="hidden sm:table-cell">Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Stock</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Category</TableHead>
+                <TableHead className="hidden md:table-cell">Category</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -166,19 +166,33 @@ export function ProductsTab() {
               ) : products.length > 0 ? (
                 products.map((product) => (
                   <TableRow key={product.id}>
-                    <TableCell className="font-medium whitespace-nowrap">{product.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium">
+                        <div className="whitespace-pre-wrap">{product.name}</div>
+                        <div className="sm:hidden mt-2 flex flex-col gap-2 text-xs">
+                             <div>
+                                <Badge variant={product.isActive ? "default" : "secondary"} className={cn("w-fit", product.isActive ? "bg-green-600" : "bg-gray-500")}>
+                                    {product.isActive ? 'On' : 'Off'}
+                                </Badge>
+                            </div>
+                            <div>
+                                <Badge variant={product.stockStatus === 'In Stock' ? "outline" : "destructive"} className="w-fit">
+                                    {product.stockStatus}
+                                </Badge>
+                            </div>
+                        </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
                         <Badge variant={product.isActive ? "default" : "secondary"} className={cn(product.isActive ? "bg-green-600" : "bg-gray-500")}>
                             {product.isActive ? 'On' : 'Off'}
                         </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                         <Badge variant={product.stockStatus === 'In Stock' ? "outline" : "destructive"}>
                             {product.stockStatus}
                         </Badge>
                     </TableCell>
                     <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                         {product.category && <Badge variant="secondary">{product.category}</Badge>}
                     </TableCell>
                     <TableCell>

@@ -35,7 +35,7 @@ const categories = [
 
 function CarouselSkeleton() {
     return (
-        <div className="relative h-64 w-full overflow-hidden rounded-lg md:h-80 bg-muted/30 flex items-center justify-center">
+        <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80 bg-muted/30 flex items-center justify-center">
             <Skeleton className="h-full w-full" />
         </div>
     );
@@ -77,7 +77,7 @@ function HeroCarousel() {
             <CarouselContent>
             {bestDeals.length > 0 ? bestDeals.map((deal, index) => (
                 <CarouselItem key={index}>
-                    <div className="relative h-64 w-full overflow-hidden rounded-lg md:h-80">
+                    <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80">
                         <Image
                         src={deal.imageUrl}
                         alt={deal.title}
@@ -87,7 +87,7 @@ function HeroCarousel() {
                         priority // Prioritize loading of the first carousel image
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white">
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
                         <h2 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
                             {deal.title}
                         </h2>
@@ -100,15 +100,15 @@ function HeroCarousel() {
                 </CarouselItem>
             )}
             </CarouselContent>
-            <CarouselPrevious className="left-4 rtl:right-4 rtl:left-auto" />
-            <CarouselNext className="right-4 rtl:left-4 rtl:right-auto" />
+            <CarouselPrevious className="left-2 sm:left-4 rtl:right-2 sm:rtl:right-4 rtl:left-auto" />
+            <CarouselNext className="right-2 sm:right-4 rtl:left-2 sm:rtl:left-4 rtl:right-auto" />
         </Carousel>
     );
 }
 
 function TopProductsSkeleton() {
     return (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="space-y-2">
                     <Skeleton className="aspect-[4/3] w-full rounded-lg" />
@@ -139,7 +139,7 @@ function TopProducts() {
 
             setTopProducts(topProductsData
                 .map(item => item.products) // Extract the product object
-                .filter(p => p) // Filter out any null products if the join failed
+                .filter(p => p && p.is_active) // Filter out any null products if the join failed or product is inactive
                 .map((item: any) => ({
                     id: item.id,
                     name: item.name,
@@ -159,7 +159,7 @@ function TopProducts() {
     }, [language])
 
     return topProducts.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
         {topProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
         ))}
@@ -188,21 +188,21 @@ export default function HomePage() {
          <div className="mb-8 flex items-baseline gap-4">
             <div className="w-1 bg-primary h-8"></div>
             <div>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     {t.home.categories}
                 </h2>
-                <p className="text-muted-foreground">{t.home.categoriesDescription}</p>
+                <p className="text-sm text-muted-foreground sm:text-base">{t.home.categoriesDescription}</p>
             </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
           {categories.map((category) => (
             <Link key={category.nameKey} href={category.href}>
-              <div className="flex flex-col items-center justify-center gap-3 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50 text-center">
+              <div className="flex flex-col items-center justify-center gap-2 rounded-lg bg-card p-4 transition-all hover:bg-card hover:scale-105 border border-transparent hover:border-primary/50 text-center h-full">
                 <div className="rounded-md bg-muted p-3 text-primary">
                   <category.icon className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">
+                  <h3 className="font-semibold text-foreground text-sm sm:text-base">
                     {t.categories[category.nameKey as keyof typeof t.categories]}
                   </h3>
                 </div>
@@ -216,10 +216,10 @@ export default function HomePage() {
         <div className="mb-8 flex items-baseline gap-4">
             <div className="w-1 bg-primary h-8"></div>
             <div>
-                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                     {t.home.topProducts}
                 </h2>
-                <p className="text-muted-foreground">{t.home.topProductsDescription}</p>
+                <p className="text-sm text-muted-foreground sm:text-base">{t.home.topProductsDescription}</p>
             </div>
         </div>
         <Suspense fallback={<TopProductsSkeleton />}>

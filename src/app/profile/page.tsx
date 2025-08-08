@@ -57,9 +57,9 @@ export default function ProfilePage() {
 
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-4 lg:grid-cols-3">
                 {/* Left Column */}
-                <aside className="md:col-span-1">
+                <aside className="md:col-span-1 lg:col-span-1">
                     <Card>
                         <CardContent className="flex flex-col items-center p-6 text-center">
                             <Avatar className="h-24 w-24 mb-4">
@@ -77,7 +77,7 @@ export default function ProfilePage() {
                                 <CollapsibleTrigger className="flex w-full justify-between items-center py-2 text-sm font-semibold">
                                     {t.profile.details}
                                 </CollapsibleTrigger>
-                                <CollapsibleContent className="space-y-3 text-sm text-left">
+                                <CollapsibleContent className="space-y-3 text-sm text-left rtl:text-right">
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <User className="h-4 w-4"/>
                                         <span>{user_metadata.full_name}</span>
@@ -93,9 +93,9 @@ export default function ProfilePage() {
                                         >
                                             <div className="flex items-center gap-2">
                                                 <Shield className="h-4 w-4"/>
-                                                <span>{providerId}</span>
+                                                <span className="truncate">{providerId}</span>
                                             </div>
-                                            <Copy className="h-4 w-4"/>
+                                            <Copy className="h-4 w-4 flex-shrink-0"/>
                                         </div>
                                     )}
                                 </CollapsibleContent>
@@ -118,9 +118,9 @@ export default function ProfilePage() {
                 </aside>
                 
                 {/* Right Column */}
-                <main className="md:col-span-3">
+                <main className="md:col-span-3 lg:col-span-2">
                      <Tabs defaultValue="orders" className="w-full">
-                        <TabsList>
+                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                             <TabsTrigger value="orders"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
                             <TabsTrigger value="submissions">{t.profile.tabs.submissions}</TabsTrigger>
                             <TabsTrigger value="account-log">{t.profile.tabs.accountLog}</TabsTrigger>

@@ -124,10 +124,10 @@ export default function CartPage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {cart.map(item => (
-                                        <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border/40 pb-4">
-                                            <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
+                                        <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border/40 pb-6 last:border-b-0">
+                                            <div className="relative h-24 w-24 sm:h-20 sm:w-20 flex-shrink-0 overflow-hidden rounded-md">
                                                 <Image src={item.imageUrl || 'https://placehold.co/100x100.png'} alt={item.name} fill className="object-cover"/>
                                             </div>
                                             <div className="flex-grow">
