@@ -42,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
 
 export type OrderItem = {
     product_id: string;
@@ -56,8 +57,11 @@ export type Order = {
   created_at: string;
   total_amount: number;
   user_id: string;
+  user_metadata: {
+    full_name: string;
+    provider_id: string;
+  }
   delivery_details: string | null;
-  send_on_discord: boolean;
   items: OrderItem[];
 };
 
@@ -152,7 +156,7 @@ export function OrdersTab() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead>Customer ID</TableHead>
+                        <TableHead>Customer</TableHead>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Date</TableHead>
@@ -174,8 +178,9 @@ export function OrdersTab() {
                             <TableCell>
                                 <div className="flex items-center gap-2 font-mono text-xs">
                                     <User className="h-4 w-4 text-muted-foreground" />
-                                    {order.user_id}
+                                    <span>{order.user_metadata?.full_name || 'N/A'}</span>
                                 </div>
+                                <div className="font-mono text-xs text-muted-foreground">{order.user_metadata?.provider_id}</div>
                             </TableCell>
                             <TableCell>
                                 <Badge variant="outline">{order.id.substring(0, 8)}</Badge>
@@ -190,13 +195,16 @@ export function OrdersTab() {
                                     <span className="sr-only">Toggle menu</span>
                                 </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="w-64">
                                 <DropdownMenuLabel>Order Details</DropdownMenuLabel>
                                 {order.items.map(item => (
                                         <DropdownMenuItem key={item.product_id} disabled>
-                                            <div className="flex justify-between w-full">
-                                                <span>{item.product_name} (x{item.quantity})</span>
-                                                <span>{formatPrice(item.price_at_purchase * item.quantity)}</span>
+                                            <div className="flex items-center justify-between w-full gap-2">
+                                                <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded-md">
+                                                    <Image src={item.product_image_url || 'https://placehold.co/100x100.png'} alt={item.product_name} fill className="object-cover" />
+                                                </div>
+                                                <span className="truncate flex-grow">{item.product_name} (x{item.quantity})</span>
+                                                <span className="whitespace-nowrap">{formatPrice(item.price_at_purchase * item.quantity)}</span>
                                             </div>
                                         </DropdownMenuItem>
                                 ))}

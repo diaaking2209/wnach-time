@@ -38,7 +38,6 @@ type Order = {
   created_at: string;
   total_amount: number;
   delivery_details: string | null;
-  send_on_discord: boolean;
   items: OrderItem[];
   status: OrderStatus; // Added status to each order object
 };
@@ -170,12 +169,6 @@ export function OrdersTab() {
                                         <div className="whitespace-pre-wrap rounded-md bg-background/50 p-3 font-mono text-sm text-green-300">
                                             {order.delivery_details}
                                         </div>
-                                        {order.send_on_discord && (
-                                            <div className="flex items-center gap-2 text-xs text-blue-400 pt-2">
-                                                <Bell className="h-4 w-4" />
-                                                <span>A notification for this delivery was also sent to you on Discord.</span>
-                                            </div>
-                                        )}
                                     </div>
                                     </>
                                 )}
