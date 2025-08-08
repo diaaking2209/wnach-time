@@ -86,10 +86,9 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         
         const { data: orderId, error } = await supabase.rpc('create_new_order', {
             p_user_id: user.id,
-            p_user_metadata: {
-              full_name: user.user_metadata.full_name,
-              provider_id: user.user_metadata.provider_id
-            },
+            p_customer_username: user.user_metadata.full_name,
+            p_customer_email: user.email,
+            p_customer_provider_id: user.user_metadata.provider_id,
             p_sub_total: orderSummary.subTotal,
             p_discount_amount: orderSummary.discountAmount,
             p_total_amount: orderSummary.total,

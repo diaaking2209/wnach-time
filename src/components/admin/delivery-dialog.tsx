@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { Order } from "./tabs/orders-tab";
+import { useAuth } from "@/hooks/use-auth";
 
 interface DeliveryDialogProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
   const [deliveryDetails, setDeliveryDetails] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (order) {
@@ -38,7 +40,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!order) return;
+    if (!order || !user) return;
     setIsSaving(true);
     
     try {
@@ -55,6 +57,8 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
             ...fullOrder,
             delivery_details: deliveryDetails,
             send_on_discord: true, // Hardcoded as per request
+            last_modified_by_admin_id: user.id,
+            last_modified_by_admin_username: user.user_metadata.full_name,
         };
 
         // 3. Insert the order into the 'completed_orders' table

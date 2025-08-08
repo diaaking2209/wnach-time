@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Undo, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
+import { useAuth } from "@/hooks/use-auth";
 
 export type OrderItem = {
     product_id: string;
@@ -63,6 +64,8 @@ export type Order = {
   }
   delivery_details: string | null;
   items: OrderItem[];
+  last_modified_by_admin_id: string | null;
+  last_modified_by_admin_username: string | null;
 };
 
 type OrderWithStatus = Order & { status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled' };
@@ -81,6 +84,7 @@ export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -128,19 +132,31 @@ export function OrdersTab() {
       }
   }
 
-  const handleMoveOrder = async (orderId: string, from: 'pending' | 'processing', to: 'processing' | 'cancelled') => {
+ const handleMoveOrder = async (orderId: string, from: 'pending' | 'processing', to: 'processing' | 'cancelled') => {
+    if (!user) return;
     try {
         const fromTable = `${from}_orders`;
         const toTable = `${to}_orders`;
         
         const fullOrder = await getFullOrderDetails(orderId, fromTable);
         if(!fullOrder) throw new Error("Order not found");
+        
+        // Add admin info to the order before inserting
+        const orderDataWithAdmin = {
+            ...fullOrder,
+            last_modified_by_admin_id: user.id,
+            last_modified_by_admin_username: user.user_metadata.full_name,
+        };
 
-        const { error: insertError } = await supabase.from(toTable).insert(fullOrder);
+        const { error: insertError } = await supabase.from(toTable).insert(orderDataWithAdmin);
         if (insertError) throw insertError;
         
         const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', orderId);
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+            // Rollback if deletion fails
+            await supabase.from(toTable).delete().eq('id', orderId);
+            throw deleteError;
+        };
 
         let message = '';
         if(to === 'processing') message = 'Your order is now being processed.';
@@ -180,6 +196,7 @@ export function OrdersTab() {
                         <TableHead>Order ID</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Date</TableHead>
+                        {status !== 'Pending' && <TableHead>Last Modified By</TableHead>}
                         <TableHead>
                         <span className="sr-only">Actions</span>
                         </TableHead>
@@ -188,7 +205,7 @@ export function OrdersTab() {
                     <TableBody>
                     {loading ? (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center py-10">
+                            <TableCell colSpan={6} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                             </TableCell>
                         </TableRow>
@@ -207,6 +224,18 @@ export function OrdersTab() {
                             </TableCell>
                             <TableCell>{formatPrice(order.total_amount)}</TableCell>
                             <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                            {status !== 'Pending' && (
+                                <TableCell>
+                                  {order.last_modified_by_admin_username ? (
+                                    <div className="flex items-center gap-2 font-mono text-xs">
+                                        <Edit className="h-4 w-4 text-muted-foreground" />
+                                        <span>{order.last_modified_by_admin_username}</span>
+                                    </div>
+                                    ) : (
+                                        <span className="text-muted-foreground text-xs">N/A</span>
+                                    )}
+                                </TableCell>
+                            )}
                             <TableCell>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -280,7 +309,7 @@ export function OrdersTab() {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="text-center py-10">
+                            <TableCell colSpan={6} className="text-center py-10">
                                 <p className="text-muted-foreground">No {status.toLowerCase()} orders.</p>
                             </TableCell>
                         </TableRow>
@@ -340,4 +369,3 @@ export function OrdersTab() {
     </>
   );
 }
-
