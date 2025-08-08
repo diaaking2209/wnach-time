@@ -38,6 +38,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const handleSignOut = useCallback(async (showModal = true) => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setIsUserAdmin(false);
+    setUserRole(null);
+    if(showModal) {
+      setShowGuildModal(false);
+    }
+  }, []);
+
   const checkAdminStatus = useCallback(async (user: User | null) => {
     if (!user || !user.user_metadata.provider_id) {
         setIsUserAdmin(false);
@@ -74,17 +85,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     // The browser will redirect, so setIsSigningIn(false) is not strictly needed here.
   };
-
-  const handleSignOut = async (showModal = true) => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setIsUserAdmin(false);
-    setUserRole(null);
-    if(showModal) {
-      setShowGuildModal(false);
-    }
-  };
   
   const handleCloseAndSignOut = async () => {
     setShowGuildModal(false);
@@ -110,23 +110,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const checkGuildMembership = useCallback(async (session: Session | null) => {
-    if (!session?.provider_token) return true; // Assume member if no token
+  const checkGuildMembership = useCallback(async (sessionToCheck: Session) => {
+    if (!sessionToCheck?.provider_token) {
+        // If there's no provider token, we can't check, so we assume it's okay for now.
+        // This might happen if the token expired and wasn't refreshed.
+        return true; 
+    }
     if (isVerifying) return true;
 
     setIsVerifying(true);
     try {
         const response = await fetch('https://discord.com/api/users/@me/guilds', {
-            headers: { Authorization: `Bearer ${session.provider_token}` },
+            headers: { Authorization: `Bearer ${sessionToCheck.provider_token}` },
         });
 
         if (!response.ok) {
-            // If token is expired or invalid, sign out the user
-            if (response.status === 401) {
+            if (response.status === 401) { // Unauthorized / Token expired
                 toast({ title: "Authentication Expired", description: "Your session has expired. Please sign in again." });
                 await handleSignOut(false);
             } else {
-                 console.error('Too many requests or other error with Discord API.');
                  toast({ variant: "destructive", title: "Verification Failed", description: "Could not verify server membership." });
             }
             return false;
@@ -150,49 +152,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsVerifying(false);
     }
-  }, [isVerifying, toast]);
+  }, [isVerifying, toast, handleSignOut]);
 
 
   useEffect(() => {
-    const processAuthStateChange = async (session: Session | null) => {
+    const processAuthStateChange = async (newSession: Session | null) => {
         setIsLoading(true);
-        const currentUser = session?.user ?? null;
-        setSession(session);
+        const currentUser = newSession?.user ?? null;
+        
+        // Update state immediately to prevent stale UI
+        setSession(newSession);
         setUser(currentUser);
-
-        if (currentUser) {
-            // 1. Verify guild membership first
-            const isMember = await checkGuildMembership(session);
-            if(isMember) {
-                // 2. Then, check admin status with the now-linked user_id
+        
+        if (currentUser && newSession) {
+            const isMember = await checkGuildMembership(newSession);
+            if (isMember) {
                 const isAdmin = await checkAdminStatus(currentUser);
-                 // 3. If the user is an admin, sync their info (username/avatar)
                 if (isAdmin) {
                     await syncAdminUserInfo(currentUser);
                 }
+            } else {
+                // If not a member, clear admin status and sign out might happen in checkGuildMembership
+                setIsUserAdmin(false);
+                setUserRole(null);
             }
         } else {
-            // Not signed in, so clear all admin state
+            // Not signed in, clear all admin state
             setIsUserAdmin(false);
             setUserRole(null);
         }
         setIsLoading(false);
     };
 
-    // Process the initial session on component mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      processAuthStateChange(session);
+    // Get the initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+        if (session === null) { // Only run if the initial state hasn't been set
+            processAuthStateChange(initialSession);
+        }
     });
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-        // We only care about the session object changing.
-        // The logic inside processAuthStateChange handles all cases (SIGNED_IN, SIGNED_OUT, etc.)
-        await processAuthStateChange(session);
+        // Only trigger a full re-check if the user ID changes or user logs in/out.
+        const hasUserChanged = user?.id !== session?.user?.id;
+        if (hasUserChanged) {
+            await processAuthStateChange(session);
+        } else {
+             // For other events (like TOKEN_REFRESHED), just update the session object without a full verification loop.
+             setSession(session);
+             setIsLoading(false);
+        }
     });
 
     return () => subscription.unsubscribe();
-  }, [checkAdminStatus, checkGuildMembership]);
+  }, [user, checkGuildMembership, checkAdminStatus]);
+
 
   return (
     <AuthContext.Provider value={{ 
