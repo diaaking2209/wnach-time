@@ -36,11 +36,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Load cart from local storage on initial render
     try {
-      const localCart = localStorage.getItem('nexus-vault-cart');
+      const localCart = localStorage.getItem('wnash-cart');
       if (localCart) {
         setCart(JSON.parse(localCart));
       }
-      const localCoupon = localStorage.getItem('nexus-vault-coupon');
+      const localCoupon = localStorage.getItem('wnash-coupon');
       if (localCoupon) {
         setAppliedCoupon(JSON.parse(localCoupon));
       }
@@ -51,14 +51,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Save cart to local storage whenever it changes
-    localStorage.setItem('nexus-vault-cart', JSON.stringify(cart));
+    localStorage.setItem('wnash-cart', JSON.stringify(cart));
   }, [cart]);
 
   useEffect(() => {
     if (appliedCoupon) {
-      localStorage.setItem('nexus-vault-coupon', JSON.stringify(appliedCoupon));
+      localStorage.setItem('wnash-coupon', JSON.stringify(appliedCoupon));
     } else {
-      localStorage.removeItem('nexus-vault-coupon');
+      localStorage.removeItem('wnash-coupon');
     }
   }, [appliedCoupon]);
 
