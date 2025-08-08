@@ -14,9 +14,10 @@ import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import Autoplay from "embla-carousel-autoplay"
 
 type CarouselDeal = {
     title: string;
@@ -45,6 +46,10 @@ function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
     
+    const plugin = useRef(
+        Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })
+    );
+    
     useEffect(() => {
         const getCarouselDeals = async () => {
             const { data: dealsData, error: dealsError } = await supabase
@@ -71,6 +76,7 @@ function HeroCarousel() {
     return (
         <Carousel
             opts={{ align: "start", loop: true }}
+            plugins={[plugin.current]}
             className="w-full"
             dir={language === 'ar' ? 'rtl' : 'ltr'}
         >
