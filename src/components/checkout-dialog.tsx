@@ -76,25 +76,28 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     }
     setIsProcessing(true);
     try {
-        // Step 1: Create the order record
+        // Step 1: Prepare order data
+        const orderPayload = {
+            user_id: user.id,
+            sub_total: orderSummary.subTotal,
+            discount_amount: orderSummary.discountAmount,
+            total_amount: orderSummary.total,
+            applied_coupon_code: orderSummary.appliedCoupon?.code || null,
+            status: 'Pending' as const,
+        };
+
+        // Step 2: Insert the order and get the new order ID
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
-            .insert({
-                user_id: user.id, // This was the missing piece
-                sub_total: orderSummary.subTotal,
-                discount_amount: orderSummary.discountAmount,
-                total_amount: orderSummary.total,
-                applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-                status: 'Pending',
-            })
+            .insert(orderPayload)
             .select('id')
             .single();
 
         if (orderError) throw orderError;
         const orderId = orderData.id;
 
-        // Step 2: Create the order items from the cart
-         const orderItems = cart.map(item => ({
+        // Step 3: Prepare order items
+        const orderItems = cart.map(item => ({
             order_id: orderId,
             product_id: item.id,
             quantity: item.quantity,
@@ -102,16 +105,18 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             product_name: item.name,
             product_image_url: item.imageUrl || null
         }));
-        
+
+        // Step 4: Insert order items
         const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+
         if (itemsError) {
-             // If items fail, we should try to clean up the created order
+            // If items fail, attempt to delete the orphaned order for data consistency
             await supabase.from('orders').delete().eq('id', orderId);
             throw itemsError;
         }
 
-        // Step 3: Clear the client-side cart
-        clearCart(); // Note: This already calls removeCoupon
+        // Step 5: Clear the client-side cart (this also removes the coupon)
+        clearCart(); 
 
         // Success!
         setNewOrderId(orderId);
@@ -124,8 +129,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             title: t.toast.checkoutErrorTitle,
             description: error.message || t.toast.checkoutErrorDesc,
         });
-        // Do not close the dialog on error, let the user retry
-        // setIsOpen(false); 
     } finally {
         setIsProcessing(false);
     }
