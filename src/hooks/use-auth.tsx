@@ -17,7 +17,7 @@ interface AuthContextType {
     isLoading: boolean;
     handleSignIn: () => Promise<void>;
     handleSignOut: () => Promise<void>;
-    isUserInGuild: boolean;
+    isUserInGuild: boolean | undefined;
     recheckGuildMembership: () => Promise<void>;
     isCheckingGuild: boolean;
     isServerGateOpen: boolean;
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUserInGuild, setIsUserInGuild] = useState(false);
+  const [isUserInGuild, setIsUserInGuild] = useState<boolean | undefined>(undefined);
   const [isCheckingGuild, setIsCheckingGuild] = useState(false);
   const [isServerGateOpen, setServerGateOpen] = useState(false);
 
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setIsUserAdmin(false);
     setUserRole(null);
-    setIsUserInGuild(false);
+    setIsUserInGuild(undefined);
   };
 
   const checkGuildMembership = useCallback(async (currentSession: Session | null): Promise<boolean> => {
@@ -116,38 +116,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const recheckGuildMembership = useCallback(async () => {
     if (!session) return;
     setIsCheckingGuild(true);
-    await checkGuildMembership(session);
+    const isInGuild = await checkGuildMembership(session);
     setIsCheckingGuild(false);
+    if(isInGuild) {
+      setServerGateOpen(false);
+    }
   }, [session, checkGuildMembership]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setIsLoading(true);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        const isAdmin = await checkAdminStatus(session.user);
-        if(isAdmin) await syncAdminUserInfo(session.user);
+        await checkAdminStatus(session.user).then((isAdmin) => {
+            if(isAdmin) syncAdminUserInfo(session.user);
+        });
         await checkGuildMembership(session);
       } else {
         setIsUserAdmin(false);
         setUserRole(null);
-        setIsUserInGuild(false);
+        setIsUserInGuild(undefined);
       }
       setIsLoading(false);
     });
 
     const initialCheck = async () => {
+        setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
          if (session?.user) {
-            const isAdmin = await checkAdminStatus(session.user);
-            if(isAdmin) await syncAdminUserInfo(session.user);
+            await checkAdminStatus(session.user).then((isAdmin) => {
+                if(isAdmin) syncAdminUserInfo(session.user);
+            });
             await checkGuildMembership(session);
         } else {
             setIsUserAdmin(false);
             setUserRole(null);
-            setIsUserInGuild(false);
+            setIsUserInGuild(undefined);
         }
         setIsLoading(false);
     }
