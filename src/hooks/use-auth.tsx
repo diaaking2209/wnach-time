@@ -20,6 +20,8 @@ interface AuthContextType {
     isUserInGuild: boolean;
     recheckGuildMembership: () => Promise<void>;
     isCheckingGuild: boolean;
+    isServerGateOpen: boolean;
+    setServerGateOpen: (isOpen: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUserInGuild, setIsUserInGuild] = useState(false);
   const [isCheckingGuild, setIsCheckingGuild] = useState(false);
+  const [isServerGateOpen, setServerGateOpen] = useState(false);
 
   const checkAdminStatus = useCallback(async (user: User) => {
     if (!user.user_metadata.provider_id) {
@@ -77,8 +80,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsUserInGuild(false);
   };
 
-  const checkGuildMembership = useCallback(async (currentSession: Session): Promise<boolean> => {
-    if (!currentSession.provider_token) {
+  const checkGuildMembership = useCallback(async (currentSession: Session | null): Promise<boolean> => {
+    if (!currentSession?.provider_token) {
         setIsUserInGuild(false);
         return false;
     }
@@ -88,14 +91,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (!response.ok) {
-            if (response.status === 401) {
-                await supabase.auth.refreshSession();
+            if (response.status === 401) { // Token expired
+                 const { data, error } = await supabase.auth.refreshSession();
+                 if(error || !data.session) throw new Error("Could not refresh session");
+                 // Retry with the new token
+                 return checkGuildMembership(data.session);
             }
             throw new Error(`Failed to fetch guilds: ${response.statusText}`);
         }
         const guilds = await response.json();
         const isInGuild = guilds.some((guild: any) => guild.id === GUILD_ID);
         setIsUserInGuild(isInGuild);
+        if(isInGuild) {
+            setServerGateOpen(false);
+        }
         return isInGuild;
     } catch (error) {
         console.error("Error checking guild membership:", error);
@@ -112,33 +121,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [session, checkGuildMembership]);
 
   useEffect(() => {
-    const processAuthStateChange = async (newSession: Session | null) => {
-      setIsLoading(true);
-      setSession(newSession);
-      const currentUser = newSession?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser && newSession) {
-        await checkGuildMembership(newSession);
-        const isAdmin = await checkAdminStatus(currentUser);
-        if (isAdmin) {
-          await syncAdminUserInfo(currentUser);
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const isAdmin = await checkAdminStatus(session.user);
+        if(isAdmin) await syncAdminUserInfo(session.user);
+        await checkGuildMembership(session);
       } else {
         setIsUserAdmin(false);
         setUserRole(null);
         setIsUserInGuild(false);
       }
       setIsLoading(false);
-    };
-
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      processAuthStateChange(initialSession);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      processAuthStateChange(session);
-    });
+    const initialCheck = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+         if (session?.user) {
+            const isAdmin = await checkAdminStatus(session.user);
+            if(isAdmin) await syncAdminUserInfo(session.user);
+            await checkGuildMembership(session);
+        } else {
+            setIsUserAdmin(false);
+            setUserRole(null);
+            setIsUserInGuild(false);
+        }
+        setIsLoading(false);
+    }
+    initialCheck();
+
 
     return () => {
       subscription.unsubscribe();
@@ -158,6 +172,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isUserInGuild,
         recheckGuildMembership,
         isCheckingGuild,
+        isServerGateOpen,
+        setServerGateOpen,
     }}>
       {children}
     </AuthContext.Provider>

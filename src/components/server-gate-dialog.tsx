@@ -1,7 +1,7 @@
 
 "use client"
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -12,21 +12,11 @@ const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
 
 
 export function ServerGateDialog() {
-    const { session, isUserInGuild, isLoading, handleSignOut, recheckGuildMembership, isCheckingGuild } = useAuth();
-    const [showDialog, setShowDialog] = useState(false);
-
-    useEffect(() => {
-        // Show the dialog if the user is logged in but not in the guild, and auth is not loading.
-        if (session && !isUserInGuild && !isLoading) {
-            setShowDialog(true);
-        } else {
-            setShowDialog(false);
-        }
-    }, [session, isUserInGuild, isLoading]);
+    const { isServerGateOpen, setServerGateOpen, recheckGuildMembership, isCheckingGuild } = useAuth();
 
     // This effect handles re-checking membership when the user returns to the tab.
      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && showDialog) {
+        if (document.visibilityState === 'visible' && isServerGateOpen) {
             recheckGuildMembership();
         }
     };
@@ -37,19 +27,17 @@ export function ServerGateDialog() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showDialog]);
-
+    }, [isServerGateOpen]);
 
     return (
-        <Dialog open={showDialog}>
+        <Dialog open={isServerGateOpen} onOpenChange={setServerGateOpen}>
             <DialogContent 
                 className="sm:max-w-md" 
-                onInteractOutside={(e) => e.preventDefault()} // Prevents closing by clicking outside
             >
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl">Join Our Server</DialogTitle>
                     <DialogDescription className="text-center">
-                        To continue, you must be a member of our Discord server.
+                        To use this feature, you must be a member of our Discord server.
                     </DialogDescription>
                 </DialogHeader>
                  <div className="py-4 flex flex-col items-center gap-4">
@@ -66,11 +54,6 @@ export function ServerGateDialog() {
                         I've Joined, Re-check
                     </Button>
                 </div>
-                <DialogFooter className="justify-center">
-                    <Button variant="link" onClick={handleSignOut} className="text-xs">
-                        Sign out
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
