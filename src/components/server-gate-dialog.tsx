@@ -7,16 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { DiscordIcon } from "./icons/discord-icon";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
 
-const GUILD_ID = "1403414827686170747";
 const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
 
 
 export function ServerGateDialog() {
-    const { session, isUserInGuild, isLoading, handleSignOut } = useAuth();
-    const [isChecking, setIsChecking] = useState(false);
+    const { session, isUserInGuild, isLoading, handleSignOut, recheckGuildMembership, isCheckingGuild } = useAuth();
     const [showDialog, setShowDialog] = useState(false);
 
     useEffect(() => {
@@ -28,30 +24,10 @@ export function ServerGateDialog() {
         }
     }, [session, isUserInGuild, isLoading]);
 
-
-    const recheckMembership = async () => {
-        if (!session) return;
-        setIsChecking(true);
-        try {
-            const response = await fetch('https://discord.com/api/users/@me/guilds', {
-                headers: { Authorization: `Bearer ${session.provider_token}` },
-            });
-             if (response.ok) {
-                const guilds = await response.json();
-                if (guilds.some((g: any) => g.id === GUILD_ID)) {
-                    // User is now in the guild, reload the page to refresh auth context state.
-                    window.location.reload();
-                }
-            }
-        } catch (error) {
-            console.error("Error re-checking membership:", error);
-        }
-        setIsChecking(false);
-    };
-
+    // This effect handles re-checking membership when the user returns to the tab.
      const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible' && showDialog) {
-            recheckMembership();
+            recheckGuildMembership();
         }
     };
 
@@ -83,8 +59,8 @@ export function ServerGateDialog() {
                             Join Server
                         </a>
                      </Button>
-                      <Button onClick={recheckMembership} disabled={isChecking} variant="secondary" className="w-full">
-                        {isChecking ? (
+                      <Button onClick={recheckGuildMembership} disabled={isCheckingGuild} variant="secondary" className="w-full">
+                        {isCheckingGuild ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
                         I've Joined, Re-check
