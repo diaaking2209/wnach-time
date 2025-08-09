@@ -21,7 +21,6 @@ import { NotificationsPopover } from "../notifications-popover";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Product } from "../product-card";
-import { useAuth } from "@/hooks/use-auth";
 
 export function Header() {
   const { cart } = useCart();
@@ -29,7 +28,6 @@ export function Header() {
   const router = useRouter();
   const { language, setLanguage } = useLanguage();
   const t = translations[language];
-  const { session, isUserInGuild, setServerGateOpen } = useAuth();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -109,13 +107,6 @@ export function Header() {
     setSearchQuery('');
   }
 
-  const handleCartClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if(session && !isUserInGuild){
-      e.preventDefault();
-      setServerGateOpen(true);
-    }
-  }
-
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
@@ -183,7 +174,7 @@ export function Header() {
 
             <NotificationsPopover />
 
-          <Link href="/cart" onClick={handleCartClick}>
+          <Link href="/cart">
             <Button variant="ghost" className="relative h-9 w-9 flex-shrink-0 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
               <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (

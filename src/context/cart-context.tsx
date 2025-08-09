@@ -38,7 +38,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, session, isLoading: isAuthLoading, handleSignIn, isUserInGuild, setServerGateOpen } = useAuth();
+  const { user, session, isLoading: isAuthLoading, handleSignIn } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
@@ -125,11 +125,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 </button>
             ),
         });
-        return;
-    }
-
-    if (!isUserInGuild) {
-        setServerGateOpen(true);
         return;
     }
 

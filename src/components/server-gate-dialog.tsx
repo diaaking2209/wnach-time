@@ -2,21 +2,25 @@
 "use client"
 import React from "react";
 import { useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { DiscordIcon } from "./icons/discord-icon";
 
 const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
 
+interface ServerGateDialogProps {
+    isOpen: boolean;
+    setIsOpen: (open: boolean) => void;
+    recheckGuildMembership: () => void;
+    isCheckingGuild: boolean;
+}
 
-export function ServerGateDialog() {
-    const { isServerGateOpen, setServerGateOpen, recheckGuildMembership, isCheckingGuild } = useAuth();
+export function ServerGateDialog({ isOpen, setIsOpen, recheckGuildMembership, isCheckingGuild }: ServerGateDialogProps) {
 
     // This effect handles re-checking membership when the user returns to the tab.
      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && isServerGateOpen) {
+        if (document.visibilityState === 'visible' && isOpen) {
             recheckGuildMembership();
         }
     };
@@ -27,10 +31,10 @@ export function ServerGateDialog() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isServerGateOpen]);
+    }, [isOpen]);
 
     return (
-        <Dialog open={isServerGateOpen} onOpenChange={setServerGateOpen}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent 
                 className="sm:max-w-md" 
             >
