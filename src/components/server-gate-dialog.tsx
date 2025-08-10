@@ -1,27 +1,39 @@
 
 "use client"
 import React from "react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { DiscordIcon } from "./icons/discord-icon";
+import { useAuth } from "@/hooks/use-auth";
 
 const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
 
 interface ServerGateDialogProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
-    recheckGuildMembership: () => void;
-    isCheckingGuild: boolean;
+    onUserJoined: () => void;
 }
 
-export function ServerGateDialog({ isOpen, setIsOpen, recheckGuildMembership, isCheckingGuild }: ServerGateDialogProps) {
+export function ServerGateDialog({ isOpen, setIsOpen, onUserJoined }: ServerGateDialogProps) {
+    const { session, checkGuildMembership } = useAuth();
+    const [isRechecking, setIsRechecking] = useState(false);
+
+    const handleRecheck = async () => {
+        if (!session) return;
+        setIsRechecking(true);
+        const isMember = await checkGuildMembership(session);
+        if(isMember) {
+            onUserJoined();
+        }
+        setIsRechecking(false);
+    };
 
     // This effect handles re-checking membership when the user returns to the tab.
      const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible' && isOpen) {
-            recheckGuildMembership();
+            handleRecheck();
         }
     };
 
@@ -51,8 +63,8 @@ export function ServerGateDialog({ isOpen, setIsOpen, recheckGuildMembership, is
                             Join Server
                         </a>
                      </Button>
-                      <Button onClick={recheckGuildMembership} disabled={isCheckingGuild} variant="secondary" className="w-full">
-                        {isCheckingGuild ? (
+                      <Button onClick={handleRecheck} disabled={isRechecking} variant="secondary" className="w-full">
+                        {isRechecking ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
                         I've Joined, Re-check

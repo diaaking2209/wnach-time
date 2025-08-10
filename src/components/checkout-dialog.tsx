@@ -43,7 +43,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const { toast } = useToast();
   const { clearCart, cart } = useCart();
   const { language } = useLanguage();
-  const { user, session, isUserInGuild, recheckGuildMembership, isCheckingGuild } = useAuth();
+  const { user, session, checkGuildMembership, recheckGuildMembership, isCheckingGuild } = useAuth();
   const t = translations[language];
 
   useEffect(() => {
@@ -77,18 +77,22 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
       return;
     }
     
-    // Check guild membership before proceeding
-    if (!isUserInGuild) {
-        setShowServerGate(true);
-        return;
+    setIsProcessing(true);
+    // Perform a fresh check on guild membership
+    const isMember = await checkGuildMembership(session);
+    setIsProcessing(false);
+
+    if (isMember) {
+      // If they are a member, proceed to payment
+      await handleConfirmCheckout();
+    } else {
+      // If not a member, show the gate
+      setShowServerGate(true);
     }
-    
-    // If user is in guild, proceed to confirmation
-    await handleConfirmCheckout();
   };
   
   const handleConfirmCheckout = async () => {
-    if (!user) return; // Should be caught by initial check, but for safety
+    if (!user) return; 
 
     setIsProcessing(true);
     try {
@@ -144,21 +148,18 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   }
 
   // Effect to re-attempt checkout if user joins the server
-  useEffect(() => {
-    if (isUserInGuild && showServerGate) {
-        setShowServerGate(false);
-        handleConfirmCheckout();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isUserInGuild, showServerGate]);
+  const onUserJoined = () => {
+    setShowServerGate(false);
+    handleConfirmCheckout();
+  }
+
 
   if (showServerGate) {
       return (
         <ServerGateDialog 
             isOpen={showServerGate} 
             setIsOpen={setShowServerGate}
-            recheckGuildMembership={recheckGuildMembership}
-            isCheckingGuild={isCheckingGuild}
+            onUserJoined={onUserJoined}
         />
       );
   }

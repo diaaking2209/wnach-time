@@ -17,9 +17,7 @@ interface AuthContextType {
     isLoading: boolean;
     handleSignIn: () => Promise<void>;
     handleSignOut: () => Promise<void>;
-    isUserInGuild: boolean | undefined;
-    recheckGuildMembership: () => Promise<void>;
-    isCheckingGuild: boolean;
+    checkGuildMembership: (currentSession: Session) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,8 +29,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUserInGuild, setIsUserInGuild] = useState<boolean | undefined>(undefined);
-  const [isCheckingGuild, setIsCheckingGuild] = useState(false);
+
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setIsUserAdmin(false);
+    setUserRole(null);
+  }, []);
 
   const checkAdminStatus = useCallback(async (user: User) => {
     if (!user.user_metadata.provider_id) {
@@ -68,18 +72,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setIsUserAdmin(false);
-    setUserRole(null);
-    setIsUserInGuild(undefined);
-  };
-
   const checkGuildMembership = useCallback(async (currentSession: Session | null): Promise<boolean> => {
     if (!currentSession?.provider_token) {
-        setIsUserInGuild(false);
         return false;
     }
     try {
@@ -91,32 +85,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (response.status === 401) { // Token expired
                  const { data, error } = await supabase.auth.refreshSession();
                  if(error || !data.session) {
-                    // If refresh fails, sign out user
                     await handleSignOut();
                     throw new Error("Could not refresh session. User signed out.");
                  }
-                 // Retry with the new token
+                 setSession(data.session); // Update the session state
                  return checkGuildMembership(data.session);
             }
             throw new Error(`Failed to fetch guilds: ${response.statusText}`);
         }
         const guilds = await response.json();
         const isInGuild = guilds.some((guild: any) => guild.id === GUILD_ID);
-        setIsUserInGuild(isInGuild);
         return isInGuild;
     } catch (error) {
         console.error("Error checking guild membership:", error);
-        setIsUserInGuild(false);
         return false;
     }
-  }, []);
+  }, [handleSignOut]);
   
-  const recheckGuildMembership = useCallback(async () => {
-    if (!session) return;
-    setIsCheckingGuild(true);
-    await checkGuildMembership(session);
-    setIsCheckingGuild(false);
-  }, [session, checkGuildMembership]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -127,11 +112,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await checkAdminStatus(session.user).then((isAdmin) => {
             if(isAdmin) syncAdminUserInfo(session.user);
         });
-        await checkGuildMembership(session);
       } else {
         setIsUserAdmin(false);
         setUserRole(null);
-        setIsUserInGuild(undefined);
       }
       setIsLoading(false);
     });
@@ -139,7 +122,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus, checkGuildMembership]);
+  }, [checkAdminStatus]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -151,9 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         handleSignIn,
         handleSignOut,
-        isUserInGuild,
-        recheckGuildMembership,
-        isCheckingGuild,
+        checkGuildMembership,
     }}>
       {children}
     </AuthContext.Provider>
