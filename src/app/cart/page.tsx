@@ -16,12 +16,14 @@ import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { CheckoutDialog } from "@/components/checkout-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
     const { toast } = useToast();
     const { language } = useLanguage();
     const t = translations[language];
+    const { session } = useAuth();
     
     const [couponInput, setCouponInput] = useState("");
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -86,6 +88,22 @@ export default function CartPage() {
             setIsApplyingCoupon(false);
             setCouponInput("");
         }
+    }
+    
+    if (!session) {
+        return (
+             <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center p-4">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="relative mb-4">
+                        <ShoppingCart className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">{t.cart.empty}</p>
+                    <Button asChild className="mt-4">
+                        <Link href="/">{t.cart.continueShopping}</Link>
+                    </Button>
+                </div>
+            </div>
+        )
     }
 
     return (

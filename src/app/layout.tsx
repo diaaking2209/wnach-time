@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import { CartProvider } from '@/context/cart-context';
 import { LanguageProvider } from '@/context/language-context';
-import { ServerGateDialog } from '@/components/server-gate-dialog';
 
 export const metadata: Metadata = {
   title: 'Wnash time',
@@ -42,7 +41,6 @@ export default function RootLayout({
                     <Footer />
                   </div>
                   <Toaster />
-                  <ServerGateDialog />
               </CartProvider>
           </AuthProvider>
         </body>

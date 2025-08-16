@@ -19,7 +19,6 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/hooks/use-auth";
-import { ServerGateDialog } from "./server-gate-dialog";
 
 interface CheckoutDialogProps {
   isOpen: boolean;
@@ -38,12 +37,11 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const [isSuccess, setIsSuccess] = useState(false);
   const [newOrderId, setNewOrderId] = useState<string | null>(null);
   const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
-  const [showServerGate, setShowServerGate] = useState(false);
 
   const { toast } = useToast();
   const { clearCart, cart } = useCart();
   const { language } = useLanguage();
-  const { user, session, checkGuildMembership, recheckGuildMembership, isCheckingGuild } = useAuth();
+  const { user } = useAuth();
   const t = translations[language];
 
   useEffect(() => {
@@ -71,26 +69,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     }).format(price);
   };
 
-  const handleInitialCheckout = async () => {
-    if (!user || !session) {
-      toast({ variant: "destructive", title: "You must be signed in to checkout." });
-      return;
-    }
-    
-    setIsProcessing(true);
-    // Perform a fresh check on guild membership
-    const isMember = await checkGuildMembership(session);
-    setIsProcessing(false);
-
-    if (isMember) {
-      // If they are a member, proceed to payment
-      await handleConfirmCheckout();
-    } else {
-      // If not a member, show the gate
-      setShowServerGate(true);
-    }
-  };
-  
   const handleConfirmCheckout = async () => {
     if (!user) return; 
 
@@ -147,23 +125,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     }, 300);
   }
 
-  // Effect to re-attempt checkout if user joins the server
-  const onUserJoined = () => {
-    setShowServerGate(false);
-    handleConfirmCheckout();
-  }
-
-
-  if (showServerGate) {
-      return (
-        <ServerGateDialog 
-            isOpen={showServerGate} 
-            setIsOpen={setShowServerGate}
-            onUserJoined={onUserJoined}
-        />
-      );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={!isProcessing ? handleClose : undefined}>
       <DialogContent className="sm:max-w-md">
@@ -194,7 +155,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                     <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isProcessing}>
                         {t.checkout.cancel}
                     </Button>
-                    <Button type="button" onClick={handleInitialCheckout} disabled={isProcessing || cart.length === 0}>
+                    <Button type="button" onClick={handleConfirmCheckout} disabled={isProcessing || cart.length === 0}>
                         {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t.checkout.confirm}
                     </Button>

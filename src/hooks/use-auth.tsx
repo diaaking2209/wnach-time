@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
+import { useToast } from './use-toast';
 
 type UserRole = 'super_owner' | 'owner' | 'product_adder';
 
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -86,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  const { data, error } = await supabase.auth.refreshSession();
                  if(error || !data.session) {
                     await handleSignOut();
-                    throw new Error("Could not refresh session. User signed out.");
+                    return false;
                  }
                  setSession(data.session); // Update the session state
                  return checkGuildMembership(data.session);
@@ -106,13 +108,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setIsLoading(true);
-      setSession(session);
-      setUser(session?.user ?? null);
+      
       if (session?.user) {
-        await checkAdminStatus(session.user).then((isAdmin) => {
-            if(isAdmin) syncAdminUserInfo(session.user);
-        });
+        const isMember = await checkGuildMembership(session);
+        
+        if (!isMember) {
+            toast({
+                variant: 'destructive',
+                title: 'Membership Required',
+                description: 'You must be a member of our Discord server to use the store. You have been signed out.',
+            });
+            await handleSignOut();
+            setIsLoading(false);
+            return;
+        }
+
+        setSession(session);
+        setUser(session.user);
+        
+        const isAdmin = await checkAdminStatus(session.user);
+        if(isAdmin) {
+            await syncAdminUserInfo(session.user);
+        }
+
       } else {
+        setSession(null);
+        setUser(null);
         setIsUserAdmin(false);
         setUserRole(null);
       }
@@ -122,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus]);
+  }, [checkAdminStatus, checkGuildMembership, handleSignOut, toast]);
 
   return (
     <AuthContext.Provider value={{ 

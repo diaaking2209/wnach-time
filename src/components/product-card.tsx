@@ -12,6 +12,7 @@ import { Badge } from "./ui/badge";
 import Link from "next/link";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 export type Product = {
   id?: string;
@@ -42,6 +43,7 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { handleSignIn, session } = useAuth();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -55,6 +57,23 @@ export function ProductCard({ product }: { product: Product }) {
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault(); // Prevent Link navigation
     e.stopPropagation(); // Stop event bubbling
+    
+    if (!session) {
+        toast({
+            title: 'Please sign in',
+            description: 'You must be signed in to add items to your cart.',
+            action: (
+                <button
+                    onClick={() => handleSignIn()}
+                    className="bg-primary text-primary-foreground py-1 px-3 rounded-md text-sm"
+                >
+                    Sign In
+                </button>
+            ),
+        });
+        return;
+    }
+
     if (product.id) {
         addToCart({
             id: product.id,
