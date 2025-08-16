@@ -3,22 +3,28 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShoppingCart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ServerGateDialog } from "@/components/server-gate-dialog";
 import { CartPageContent } from "./cart-page-content";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 
 export default function CheckoutPage() {
     const { session, isLoading: isAuthLoading, checkGuildMembership } = useAuth();
     const router = useRouter();
+    const { language } = useLanguage();
+    const t = translations[language];
 
     const [isGateOpen, setGateOpen] = useState(false);
     const [isVerifying, setIsVerifying] = useState(true);
 
      const checkAccess = useCallback(async () => {
         if (!session) {
-            router.push('/cart'); // Redirect to cart if not logged in
+            setIsVerifying(false);
             return;
         }
         setIsVerifying(true);
@@ -26,10 +32,10 @@ export default function CheckoutPage() {
         if (!isMember) {
             setGateOpen(true);
         } else {
-            setGateOpen(false); // Ensure dialog is closed if they are a member
+            setGateOpen(false); 
         }
         setIsVerifying(false);
-    }, [session, checkGuildMembership, router]);
+    }, [session, checkGuildMembership]);
 
     useEffect(() => {
         if (!isAuthLoading) {
@@ -45,16 +51,26 @@ export default function CheckoutPage() {
         )
     }
 
-    // if user is not member, gate is open, we show nothing else
-    if(isGateOpen) {
-         return <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={checkAccess} />
+    if (!session) {
+        return (
+             <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center p-4">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="relative mb-4">
+                        <ShoppingCart className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">{t.cart.empty}</p>
+                    <Button asChild className="mt-4">
+                        <Link href="/">{t.cart.continueShopping}</Link>
+                    </Button>
+                </div>
+            </div>
+        )
     }
     
-    // if user is member, gate is closed, verification is done, we can show cart
     return (
         <>
             <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={checkAccess} />
-            {!isVerifying && !isGateOpen && session && <CartPageContent />}
+            {!isGateOpen && <CartPageContent />}
         </>
     );
 
