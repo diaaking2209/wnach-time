@@ -13,39 +13,19 @@ const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
 interface ServerGateDialogProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
-    onUserJoined: () => void;
+    onGatePass: () => void;
 }
 
-export function ServerGateDialog({ isOpen, setIsOpen, onUserJoined }: ServerGateDialogProps) {
-    const { session } = useAuth();
+export function ServerGateDialog({ isOpen, setIsOpen, onGatePass }: ServerGateDialogProps) {
     const [isRechecking, setIsRechecking] = useState(false);
 
     const handleRecheck = async () => {
-        if (!session) return;
         setIsRechecking(true);
-        // This is a placeholder for a re-check logic.
-        // In a real scenario, you'd re-validate the auth session or re-check the guild membership.
-        // For now, we'll just simulate a check and assume the user joined.
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
-        onUserJoined();
+        // This tells the parent component to re-run the check logic.
+        await onGatePass();
         setIsRechecking(false);
-        setIsOpen(false);
+        // The parent component is responsible for closing the dialog on success.
     };
-
-    // This effect handles re-checking membership when the user returns to the tab.
-     const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible' && isOpen) {
-            handleRecheck();
-        }
-    };
-
-    useEffect(() => {
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen]);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,17 +17,42 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { CheckoutDialog } from "@/components/checkout-dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { ServerGateDialog } from "@/components/server-gate-dialog";
+import { useRouter } from "next/navigation";
+
 
 export default function CartPage() {
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
     const { toast } = useToast();
     const { language } = useLanguage();
     const t = translations[language];
-    const { session, isLoading: isAuthLoading } = useAuth();
-    
+    const { session, isLoading: isAuthLoading, checkGuildMembership } = useAuth();
+    const router = useRouter();
+
     const [couponInput, setCouponInput] = useState("");
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
     const [isCheckoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+    const [isGateOpen, setGateOpen] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(true);
+
+    const checkAccess = useCallback(async () => {
+        if (!session) {
+            setIsVerifying(false);
+            return;
+        }
+        setIsVerifying(true);
+        const isMember = await checkGuildMembership();
+        if (!isMember) {
+            setGateOpen(true);
+        }
+        setIsVerifying(false);
+    }, [session, checkGuildMembership]);
+
+    useEffect(() => {
+        if (!isAuthLoading) {
+            checkAccess();
+        }
+    }, [isAuthLoading, checkAccess]);
 
     const subTotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
     const discountAmount = appliedCoupon ? subTotal * (appliedCoupon.discount / 100) : 0;
@@ -90,7 +115,7 @@ export default function CartPage() {
         }
     }
     
-    if (isAuthLoading) {
+    if (isAuthLoading || isVerifying) {
          return (
              <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -116,6 +141,7 @@ export default function CartPage() {
 
     return (
         <>
+        <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={() => checkAccess()} />
         <CheckoutDialog 
             isOpen={isCheckoutDialogOpen}
             setIsOpen={setCheckoutDialogOpen}

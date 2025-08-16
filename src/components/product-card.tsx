@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Smartphone, Gamepad2, ShoppingCart } from "lucide-react";
+import { Smartphone, Gamepad2, ShoppingCart, Loader2 } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
@@ -13,6 +13,8 @@ import Link from "next/link";
 import { useCart } from "@/context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { ServerGateDialog } from "./server-gate-dialog";
+import { useState } from "react";
 
 export type Product = {
   id?: string;
@@ -41,9 +43,12 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addToCart } = useCart();
+  const { addToCart, isAddingToCart } = useCart();
   const { toast } = useToast();
-  const { handleSignIn, session } = useAuth();
+  const { handleSignIn, session, checkGuildMembership } = useAuth();
+  const [isGateOpen, setGateOpen] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -54,9 +59,9 @@ export function ProductCard({ product }: { product: Product }) {
     }).format(price);
   };
 
-  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault(); // Prevent Link navigation
-    e.stopPropagation(); // Stop event bubbling
+  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     
     if (!session) {
         toast({
@@ -74,15 +79,22 @@ export function ProductCard({ product }: { product: Product }) {
         return;
     }
 
-    if (product.id) {
-        addToCart({
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            imageUrl: product.imageUrl,
-            quantity: 1,
-        });
+    setIsChecking(true);
+    const isMember = await checkGuildMembership();
+    if (isMember) {
+        if (product.id) {
+            addToCart({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                quantity: 1,
+            });
+        }
+    } else {
+        setGateOpen(true);
     }
+    setIsChecking(false);
   };
   
   const priceToDisplay = product.price;
@@ -90,6 +102,8 @@ export function ProductCard({ product }: { product: Product }) {
   const hasDiscount = product.discount && product.discount > 0 && !isOutOfStock;
 
   return (
+    <>
+    <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} />
     <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg h-full">
       <Card 
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-1 cursor-pointer"
@@ -151,10 +165,14 @@ export function ProductCard({ product }: { product: Product }) {
               <Button 
                 size="icon"
                 className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isAddingToCart || isChecking}
                 onClick={handleAddToCart}
               >
-                  <ShoppingCart className="h-4 w-4" />
+                  {isAddingToCart || isChecking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="h-4 w-4" />
+                  )}
                   <span className="sr-only">Add to cart</span>
               </Button>
             </div>
@@ -167,5 +185,6 @@ export function ProductCard({ product }: { product: Product }) {
         </CardContent>
       </Card>
     </Link>
+    </>
   );
 }

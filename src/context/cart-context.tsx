@@ -30,6 +30,7 @@ interface CartContextType {
   applyCoupon: (coupon: AppliedCoupon) => void;
   removeCoupon: () => void;
   loading: boolean;
+  isAddingToCart: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,7 +39,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, session, isLoading: isAuthLoading, handleSignIn } = useAuth();
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { user, session, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
 
   const fetchCart = useCallback(async () => {
@@ -113,22 +115,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addToCart = async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
-    if (!user || !session) {
-        toast({
-            title: 'Please sign in',
-            description: 'You must be signed in to add items to your cart.',
-            action: (
-                <button
-                    onClick={() => handleSignIn()}
-                    className="bg-primary text-primary-foreground py-1 px-3 rounded-md text-sm"
-                >
-                    Sign In
-                </button>
-            ),
-        });
-        return;
-    }
+    if (!user || !session) return; // This should be handled by the component calling this function
 
+    setIsAddingToCart(true);
     const addQuantity = item.quantity || 1;
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     const newQuantity = existingItem ? existingItem.quantity + addQuantity : addQuantity;
@@ -169,6 +158,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
         console.error('Error adding to cart:', error.message);
         toast({ variant: 'destructive', title: 'Error', description: 'Could not add item to cart.' });
+    } finally {
+        setIsAddingToCart(false);
     }
   };
 
@@ -246,7 +237,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, appliedCoupon, applyCoupon, removeCoupon, loading }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, appliedCoupon, applyCoupon, removeCoupon, loading, isAddingToCart }}>
       {children}
     </CartContext.Provider>
   );

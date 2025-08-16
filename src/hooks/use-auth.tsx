@@ -18,6 +18,7 @@ interface AuthContextType {
     isLoading: boolean;
     handleSignIn: () => Promise<void>;
     handleSignOut: () => Promise<void>;
+    checkGuildMembership: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await supabase.auth.signInWithOAuth({
         provider: 'discord',
-        options: { scopes: 'identify email guilds guilds.join' },
+        options: { scopes: 'identify email guilds' },
       });
     } catch (error) {
       console.error("Sign in error", error);
@@ -73,7 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const checkGuildMembership = useCallback(async (currentSession: Session | null): Promise<boolean> => {
+  const checkGuildMembership = useCallback(async (): Promise<boolean> => {
+    const currentSession = session; // Use the session from state
     if (!currentSession?.provider_token) {
         return false;
     }
@@ -90,50 +92,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     return false;
                  }
                  setSession(data.session); // Update the session state
-                 return checkGuildMembership(data.session);
+                 // After refreshing, the parent component needs to call this function again.
+                 // Returning false here signals that a retry is needed.
+                 return false; 
             }
             throw new Error(`Failed to fetch guilds: ${response.statusText}`);
         }
         const guilds = await response.json();
-        const isInGuild = guilds.some((guild: any) => guild.id === GUILD_ID);
-        return isInGuild;
+        return guilds.some((guild: any) => guild.id === GUILD_ID);
     } catch (error) {
         console.error("Error checking guild membership:", error);
         return false;
     }
-  }, [handleSignOut]);
-
-  const addUserToGuild = useCallback(async (currentSession: Session | null, userId: string): Promise<boolean> => {
-     if (!currentSession?.provider_token || !process.env.NEXT_PUBLIC_DISCORD_BOT_TOKEN) {
-        console.error("Missing provider token or bot token");
-        return false;
-    }
-    try {
-        const response = await fetch(`https://discord.com/api/guilds/${GUILD_ID}/members/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bot ${process.env.NEXT_PUBLIC_DISCORD_BOT_TOKEN}`,
-            },
-            body: JSON.stringify({
-                access_token: currentSession.provider_token,
-            }),
-        });
-
-        // 201 Created means user was added, 204 No Content means user was already a member
-        if (response.ok) {
-            console.log("Successfully added user to guild or user was already a member.");
-            return true;
-        } else {
-            const errorData = await response.json();
-            console.error("Failed to add user to guild:", response.status, errorData);
-            return false;
-        }
-    } catch (error) {
-        console.error("Error adding user to guild:", error);
-        return false;
-    }
-  }, []);
+  }, [session, handleSignOut]);
   
 
   useEffect(() => {
@@ -141,30 +112,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       
       if (session?.user) {
-        let isMember = await checkGuildMembership(session);
-        
-        if (!isMember) {
-            const added = await addUserToGuild(session, session.user.user_metadata.provider_id);
-             if(added) {
-                // Re-check membership after attempting to add
-                isMember = await checkGuildMembership(session);
-            }
-        }
-
-        if(!isMember) {
-             toast({
-                variant: 'destructive',
-                title: 'Membership Required',
-                description: 'Failed to add you to the Discord server. You have been signed out.',
-            });
-            await handleSignOut();
-            setIsLoading(false);
-            return;
-        }
-
         setSession(session);
         setUser(session.user);
-        
         const isAdmin = await checkAdminStatus(session.user);
         if(isAdmin) {
             await syncAdminUserInfo(session.user);
@@ -182,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus, checkGuildMembership, handleSignOut, toast, addUserToGuild]);
+  }, [checkAdminStatus]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -194,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         handleSignIn,
         handleSignOut,
+        checkGuildMembership,
     }}>
       {children}
     </AuthContext.Provider>
