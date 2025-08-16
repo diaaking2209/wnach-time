@@ -1,14 +1,13 @@
 
 "use client"
 
-import React, { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { DiscordIcon } from "./icons/discord-icon";
-import { useAuth } from "@/hooks/use-auth";
 
-const GUILD_INVITE_URL = "https://discord.gg/UmddAQ2YcN";
+const GUILD_INVITE_URL = "https://discord.gg/7up";
 
 interface ServerGateDialogProps {
     isOpen: boolean;
@@ -31,11 +30,12 @@ export function ServerGateDialog({ isOpen, setIsOpen, onGatePass }: ServerGateDi
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent 
                 className="sm:max-w-md" 
+                onInteractOutside={(e) => e.preventDefault()}
             >
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl">Join Our Server</DialogTitle>
                     <DialogDescription className="text-center">
-                        To use this feature, you must be a member of our Discord server.
+                        To continue, you must be a member of our Discord server.
                     </DialogDescription>
                 </DialogHeader>
                  <div className="py-4 flex flex-col items-center gap-4">
@@ -49,9 +49,12 @@ export function ServerGateDialog({ isOpen, setIsOpen, onGatePass }: ServerGateDi
                         {isRechecking ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
-                        I've Joined, Re-check
+                        I've Joined, Continue
                     </Button>
                 </div>
+                 <DialogFooter className="text-center text-xs text-muted-foreground">
+                    After joining, click "Continue" to proceed.
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

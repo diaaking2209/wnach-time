@@ -89,47 +89,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsSigningIn(false);
     }
   };
-
+  
   const checkGuildMembership = useCallback(async (): Promise<boolean> => {
-    const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError || !currentSession?.provider_token) {
-        console.error("Session fetch error or no provider token");
+    if (sessionError || !session?.provider_token || !session.user?.user_metadata?.provider_id) {
+        console.error("Session fetch error, no provider token, or no provider ID.");
+        if (session) await handleSignOut(); // Force sign out if session is corrupted
         return false;
     }
     
     try {
-        const response = await fetch('https://discord.com/api/users/@me/guilds', {
-            headers: { Authorization: `Bearer ${currentSession.provider_token}` },
+        const response = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
+            headers: { Authorization: `Bearer ${session.provider_token}` },
         });
 
-        if (response.status === 401) { // Token expired or invalid
-             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-             if (refreshError || !refreshData.session) {
-                await handleSignOut();
-                return false;
-             }
-             // Re-fetch guilds with the new token
-             const newResponse = await fetch('https://discord.com/api/users/@me/guilds', {
-                headers: { Authorization: `Bearer ${refreshData.session.provider_token}` },
-             });
-             if (!newResponse.ok) throw new Error(`Failed to fetch guilds after refresh: ${newResponse.statusText}`);
-             const newGuilds = await newResponse.json();
-             return newGuilds.some((guild: any) => guild.id === GUILD_ID);
+        if (response.status === 404) { // Not a member
+          return false;
         }
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch guilds: ${response.statusText}`);
+        if (response.status === 401) { // Token expired
+             toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again." });
+             await handleSignOut();
+             return false;
         }
-
-        const guilds = await response.json();
-        return guilds.some((guild: any) => guild.id === GUILD_ID);
+        
+        if (!response.ok) { // Other errors
+            throw new Error(`Failed to fetch guild member: ${response.statusText}`);
+        }
+        
+        // If response is ok (200), the user is a member.
+        return true;
 
     } catch (error) {
         console.error("Error checking guild membership:", error);
+        toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership." });
         return false;
     }
-  }, [handleSignOut]);
+  }, [handleSignOut, toast]);
   
 
   useEffect(() => {
