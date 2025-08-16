@@ -4,7 +4,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, ShoppingCart } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { ServerGateDialog } from "@/components/server-gate-dialog";
 import { CartPageContent } from "./cart-page-content";
 import { useLanguage } from "@/context/language-context";
@@ -15,7 +14,6 @@ import Link from "next/link";
 
 export default function CheckoutPage() {
     const { session, isLoading: isAuthLoading, checkGuildMembership } = useAuth();
-    const router = useRouter();
     const { language } = useLanguage();
     const t = translations[language];
 
@@ -41,7 +39,7 @@ export default function CheckoutPage() {
         if (!isAuthLoading) {
             checkAccess();
         }
-    }, [isAuthLoading, checkAccess]);
+    }, [isAuthLoading, session, checkAccess]);
 
     if(isAuthLoading || isVerifying) {
         return (
