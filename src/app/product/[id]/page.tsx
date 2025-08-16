@@ -159,64 +159,68 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             priority
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="relative aspect-square w-3/5 max-w-[200px] overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-105 sm:w-2/5 sm:max-w-[250px] md:w-1/3">
-             <Image
-                src={product.imageUrl}
-                alt={product.name}
-                fill
-                className="object-cover"
-                priority
-              />
-          </div>
-        </div>
+         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent md:hidden" />
       </div>
 
       {/* Product Details & Actions */}
-      <div className="mx-auto max-w-2xl text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
-        
-        <Separator className="my-6" />
+        <div className="mx-auto max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="md:col-span-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
+                    {/* Add rating and platform icons here if available in your data */}
+                    <Separator className="my-6" />
 
-        <div className="flex items-baseline justify-center gap-3">
-            {product.originalPrice && product.discount && product.discount > 0 ? (
-                <>
-                    <Badge variant="destructive" className="text-base">
-                        -{product.discount}%
-                    </Badge>
-                     <span className="text-xl text-muted-foreground line-through">
-                        {formatPrice(product.originalPrice)}
-                    </span>
-                    <span className="text-3xl font-bold text-primary">
-                        {formatPrice(product.price)}
-                    </span>
-                 </>
-            ) : (
-                <p className="text-3xl font-bold text-primary">
-                    {formatPrice(product.price)}
-                </p>
-            )}
-        </div>
-        
-        <div className="mt-6">
-            {isOutOfStock ? (
-                <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
-            ) : (
-                <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
-                        <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
-                        <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
+                    <div className="flex items-baseline gap-3">
+                        {product.originalPrice && product.discount && product.discount > 0 ? (
+                            <>
+                                <Badge variant="destructive" className="text-base">
+                                    -{product.discount}%
+                                </Badge>
+                                <span className="text-xl text-muted-foreground line-through">
+                                    {formatPrice(product.originalPrice)}
+                                </span>
+                                <span className="text-3xl font-bold text-primary">
+                                    {formatPrice(product.price)}
+                                </span>
+                            </>
+                        ) : (
+                            <p className="text-3xl font-bold text-primary">
+                                {formatPrice(product.price)}
+                            </p>
+                        )}
                     </div>
-                    <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
-                        <ShoppingCart className="mr-2 h-5 w-5" />
-                        {t.cart.addToCart}
-                    </Button>
+                    
+                    <div className="mt-6">
+                        {isOutOfStock ? (
+                            <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
+                        ) : (
+                            <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
+                                    <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-20 text-center text-lg" />
+                                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
+                                </div>
+                                <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto flex-grow">
+                                    <ShoppingCart className="mr-2 h-5 w-5" />
+                                    {t.cart.addToCart}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
+                <div className="hidden md:block">
+                     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-105">
+                        <Image
+                            src={product.imageUrl}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
       
        {/* Description Section */}
         <div className="mt-12">
