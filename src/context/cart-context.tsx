@@ -59,7 +59,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     id,
                     name,
                     price,
-                    image_url
+                    image_url,
+                    stock_status
                 )
             `)
             .eq('user_id', user.id);
@@ -67,7 +68,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (error) throw error;
         
         const fetchedCart: CartItem[] = cartData
-            .filter(item => item.products) // Ensure product data exists
+            .filter(item => item.products && (item.products as Product).stockStatus !== 'Out of Stock') // Ensure product data exists and is in stock
             .map(item => ({
                 id: (item.products as Product).id!,
                 name: (item.products as Product).name,

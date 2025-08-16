@@ -23,7 +23,7 @@ export default function CartPage() {
     const { toast } = useToast();
     const { language } = useLanguage();
     const t = translations[language];
-    const { session } = useAuth();
+    const { session, isLoading: isAuthLoading } = useAuth();
     
     const [couponInput, setCouponInput] = useState("");
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -90,6 +90,14 @@ export default function CartPage() {
         }
     }
     
+    if (isAuthLoading) {
+         return (
+             <div className="flex h-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+         )
+    }
+
     if (!session) {
         return (
              <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center p-4">

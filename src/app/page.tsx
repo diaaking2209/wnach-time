@@ -86,20 +86,22 @@ function HeroCarousel() {
             {bestDeals.length > 0 ? bestDeals.map((deal, index) => (
                 <CarouselItem key={index}>
                     <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80">
-                        <Image
-                        src={deal.imageUrl}
-                        alt={deal.title}
-                        fill
-                        className="object-cover"
-                        data-ai-hint={deal.aiHint}
-                        priority // Prioritize loading of the first carousel image
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
-                        <h2 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                            {deal.title}
-                        </h2>
-                        </div>
+                        <Link href={deal.link} passHref>
+                          <Image
+                            src={deal.imageUrl}
+                            alt={deal.title}
+                            fill
+                            className="object-cover"
+                            data-ai-hint={deal.aiHint}
+                            priority // Prioritize loading of the first carousel image
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
+                            <h2 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+                                {deal.title}
+                            </h2>
+                          </div>
+                        </Link>
                     </div>
                 </CarouselItem>
             )) : (
