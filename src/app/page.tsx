@@ -7,19 +7,19 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel"
 import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import Autoplay from "embla-carousel-autoplay"
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { Button } from "@/components/ui/button";
+import type { EmblaCarouselType } from 'embla-carousel-react'
+import { cn } from "@/lib/utils";
 
 type CarouselDeal = {
     title: string;
@@ -47,7 +47,9 @@ function CarouselSkeleton() {
 function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
-    
+    const [emblaApi, setEmblaApi] = useState<EmblaCarouselType | null>(null)
+    const [selectedIndex, setSelectedIndex] = useState(0)
+
     const plugin = useRef(
         Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
@@ -74,45 +76,74 @@ function HeroCarousel() {
         getCarouselDeals();
     }, [language]);
 
+     useEffect(() => {
+        if (!emblaApi) return
+        const onSelect = (emblaApi: EmblaCarouselType) => {
+            setSelectedIndex(emblaApi.selectedScrollSnap())
+        }
+        emblaApi.on('select', onSelect)
+        emblaApi.on('reInit', onSelect)
+        return () => {
+            emblaApi.off('select', onSelect)
+        }
+    }, [emblaApi])
+
+    const scrollTo = useCallback((index: number) => emblaApi && emblaApi.scrollTo(index), [emblaApi]);
+
 
     return (
-        <Carousel
-            opts={{ align: "start", loop: true }}
-            plugins={[plugin.current]}
-            className="w-full"
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-        >
-            <CarouselContent>
-            {bestDeals.length > 0 ? bestDeals.map((deal, index) => (
-                <CarouselItem key={index}>
-                    <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80">
-                        <Link href={deal.link} passHref>
-                          <Image
-                            src={deal.imageUrl}
-                            alt={deal.title}
-                            fill
-                            className="object-cover"
-                            data-ai-hint={deal.aiHint}
-                            priority // Prioritize loading of the first carousel image
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
-                            <h2 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                                {deal.title}
-                            </h2>
-                          </div>
-                        </Link>
-                    </div>
-                </CarouselItem>
-            )) : (
-                <CarouselItem>
-                    <CarouselSkeleton />
-                </CarouselItem>
+        <div className="relative w-full">
+            <Carousel
+                setApi={setEmblaApi}
+                opts={{ align: "start", loop: true }}
+                plugins={[plugin.current]}
+                className="w-full"
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+            >
+                <CarouselContent>
+                {bestDeals.length > 0 ? bestDeals.map((deal, index) => (
+                    <CarouselItem key={index}>
+                        <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80">
+                            <Link href={deal.link} passHref>
+                              <Image
+                                src={deal.imageUrl}
+                                alt={deal.title}
+                                fill
+                                className="object-cover"
+                                data-ai-hint={deal.aiHint}
+                                priority // Prioritize loading of the first carousel image
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-4">
+                                <h2 className="text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+                                    {deal.title}
+                                </h2>
+                              </div>
+                            </Link>
+                        </div>
+                    </CarouselItem>
+                )) : (
+                    <CarouselItem>
+                        <CarouselSkeleton />
+                    </CarouselItem>
+                )}
+                </CarouselContent>
+            </Carousel>
+            {bestDeals.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex space-x-2">
+                    {bestDeals.map((_, index) => (
+                        <button
+                        key={index}
+                        onClick={() => scrollTo(index)}
+                        className={cn(
+                            "h-2 w-2 rounded-full transition-all duration-300",
+                            selectedIndex === index ? "w-4 bg-primary" : "bg-white/50"
+                        )}
+                        />
+                    ))}
+                </div>
             )}
-            </CarouselContent>
-            <CarouselPrevious className="left-2 sm:left-4 rtl:right-2 sm:rtl:right-4 rtl:left-auto" />
-            <CarouselNext className="right-2 sm:right-4 rtl:left-2 sm:rtl:left-4 rtl:right-auto" />
-        </Carousel>
+        </div>
     );
 }
 

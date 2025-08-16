@@ -309,7 +309,7 @@ export function AdminsTab() {
                             </Avatar>
                             <div>
                                 <p className="font-semibold">{admin.username || `User (Pending Sign-in)`}</p>
-                                <p className="text-sm text-muted-foreground">ID: {admin.provider_id}</p>
+                                <p className="text-sm text-muted-foreground">Discord ID: {admin.provider_id}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
