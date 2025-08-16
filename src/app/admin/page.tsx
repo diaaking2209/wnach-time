@@ -6,6 +6,7 @@ import { HomePageTab } from "@/components/admin/tabs/homepage-tab";
 import { AdminsTab } from "@/components/admin/tabs/admins-tab";
 import { CouponsTab } from "@/components/admin/tabs/coupons-tab";
 import { OrdersTab } from "@/components/admin/tabs/orders-tab";
+import { ReviewsTab } from "@/components/admin/tabs/reviews-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -42,6 +43,7 @@ export default function AdminPage() {
   const tabs = [
     { value: "products", label: "Products", visible: true },
     { value: "orders", label: "Orders", visible: isOwner },
+    { value: "reviews", label: "Reviews", visible: isOwner },
     { value: "homepage", label: "Home Page", visible: isOwner },
     { value: "coupons", label: "Coupons", visible: isOwner },
     { value: "admins", label: "Admins", visible: isSuperOwner },
@@ -69,6 +71,11 @@ export default function AdminPage() {
         {isOwner && (
             <TabsContent value="orders" className="mt-6">
                 <OrdersTab />
+            </TabsContent>
+        )}
+        {isOwner && (
+            <TabsContent value="reviews" className="mt-6">
+                <ReviewsTab />
             </TabsContent>
         )}
         {isOwner && (

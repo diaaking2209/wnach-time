@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, MoreVertical } from "lucide-react"
+import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, MoreVertical, Star } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
@@ -14,6 +14,7 @@ import { useEffect } from "react"
 import { useLanguage } from "@/context/language-context"
 import { translations } from "@/lib/translations"
 import { OrdersTab } from "@/components/profile/orders-tab"
+import { RatingsTab } from "@/components/profile/ratings-tab"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 export default function ProfilePage() {
@@ -148,6 +149,7 @@ export default function ProfilePage() {
                         <div className="overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                             <TabsList className="inline-flex h-auto">
                                 <TabsTrigger value="orders" className="whitespace-nowrap"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
+                                <TabsTrigger value="ratings" className="whitespace-nowrap"><Star className="mr-2 h-4 w-4" />{t.profile.tabs.ratings}</TabsTrigger>
                                 <TabsTrigger value="submissions" className="whitespace-nowrap">{t.profile.tabs.submissions}</TabsTrigger>
                                 <TabsTrigger value="account-log" className="whitespace-nowrap">{t.profile.tabs.accountLog}</TabsTrigger>
                                 <TabsTrigger value="characters" className="whitespace-nowrap">{t.profile.tabs.characters}</TabsTrigger>
@@ -155,6 +157,9 @@ export default function ProfilePage() {
                         </div>
                          <TabsContent value="orders" className="mt-6">
                             <OrdersTab />
+                        </TabsContent>
+                        <TabsContent value="ratings" className="mt-6">
+                            <RatingsTab />
                         </TabsContent>
                         <TabsContent value="account-log" className="mt-6">
                             <Card>

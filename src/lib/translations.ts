@@ -19,6 +19,9 @@ export const translations = {
         discordTitle: 'Join Our Community!',
         discordDescription: 'Be part of our Discord server to get exclusive deals, support, and connect with other gamers.',
         joinDiscord: 'Join Discord',
+        featuredReviews: "What Our Customers Say",
+        reviewsDescription: "Check out some of our best reviews",
+        reviewFor: "for"
     },
     categories: {
         games: 'Games',
@@ -110,6 +113,7 @@ export const translations = {
         signOut: 'Sign Out',
         tabs: {
             orders: 'Orders',
+            ratings: 'My Ratings',
             notifications: 'Notifications',
             submissions: 'Submissions',
             accountLog: 'Account Log',
@@ -151,6 +155,9 @@ export const translations = {
         discordTitle: 'انضم إلى مجتمعنا!',
         discordDescription: 'كن جزءًا من سيرفر ديسكورد الخاص بنا للحصول على عروض حصرية ودعم والتواصل مع لاعبين آخرين.',
         joinDiscord: 'انضم إلى ديسكورد',
+        featuredReviews: "ماذا يقول عملاؤنا",
+        reviewsDescription: "اطلع على بعض أفضل تقييماتنا",
+        reviewFor: "لـ"
     },
     categories: {
         games: 'الألعاب',
@@ -242,6 +249,7 @@ export const translations = {
         signOut: 'تسجيل الخروج',
         tabs: {
             orders: 'الطلبات',
+            ratings: 'تقييماتي',
             notifications: 'الإشعارات',
             submissions: 'المشاركات',
             accountLog: 'سجل الحساب',
