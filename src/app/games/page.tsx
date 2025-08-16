@@ -5,15 +5,21 @@ import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+
+let cachedProducts: Product[] | null = null;
 
 export default function GamesPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(cachedProducts || []);
   const { language } = useLanguage();
   const t = translations[language];
 
+  const hasFetched = useMemo(() => !!cachedProducts, []);
+
   useEffect(() => {
     async function getGameProducts() {
+      if (hasFetched) return;
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -41,10 +47,11 @@ export default function GamesPage() {
           isActive: item.is_active,
       }));
 
+      cachedProducts = formattedProducts;
       setProducts(formattedProducts);
     }
     getGameProducts();
-  }, [])
+  }, [hasFetched])
 
 
   return (

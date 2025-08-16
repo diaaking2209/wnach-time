@@ -7,6 +7,7 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  type CarouselApi,
 } from "@/components/ui/carousel"
 import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
@@ -18,7 +19,6 @@ import { translations } from "@/lib/translations";
 import Autoplay from "embla-carousel-autoplay"
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { Button } from "@/components/ui/button";
-import type { EmblaCarouselType } from 'embla-carousel-react'
 import { cn } from "@/lib/utils";
 
 type CarouselDeal = {
@@ -47,8 +47,8 @@ function CarouselSkeleton() {
 function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
-    const [emblaApi, setEmblaApi] = useState<EmblaCarouselType | null>(null)
-    const [selectedIndex, setSelectedIndex] = useState(0)
+    const [api, setApi] = useState<CarouselApi>()
+    const [current, setCurrent] = useState(0)
 
     const plugin = useRef(
         Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })
@@ -77,24 +77,30 @@ function HeroCarousel() {
     }, [language]);
 
      useEffect(() => {
-        if (!emblaApi) return
-        const onSelect = (emblaApi: EmblaCarouselType) => {
-            setSelectedIndex(emblaApi.selectedScrollSnap())
+        if (!api) {
+          return
         }
-        emblaApi.on('select', onSelect)
-        emblaApi.on('reInit', onSelect)
+    
+        setCurrent(api.selectedScrollSnap())
+    
+        const handleSelect = (api: CarouselApi) => {
+          setCurrent(api.selectedScrollSnap())
+        }
+    
+        api.on('select', handleSelect)
+    
         return () => {
-            emblaApi.off('select', onSelect)
+          api.off('select', handleSelect)
         }
-    }, [emblaApi])
+      }, [api])
 
-    const scrollTo = useCallback((index: number) => emblaApi && emblaApi.scrollTo(index), [emblaApi]);
+    const scrollTo = useCallback((index: number) => api && api.scrollTo(index), [api]);
 
 
     return (
         <div className="relative w-full">
             <Carousel
-                setApi={setEmblaApi}
+                setApi={setApi}
                 opts={{ align: "start", loop: true }}
                 plugins={[plugin.current]}
                 className="w-full"
@@ -137,7 +143,7 @@ function HeroCarousel() {
                         onClick={() => scrollTo(index)}
                         className={cn(
                             "h-2 w-2 rounded-full transition-all duration-300",
-                            selectedIndex === index ? "w-4 bg-primary" : "bg-white/50"
+                            current === index ? "w-4 bg-primary" : "bg-white/50"
                         )}
                         />
                     ))}
