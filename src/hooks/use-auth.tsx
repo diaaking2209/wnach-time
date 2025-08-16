@@ -95,7 +95,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (sessionError || !session?.provider_token || !session.user?.user_metadata?.provider_id) {
         console.error("Session fetch error, no provider token, or no provider ID.");
-        if (session) await handleSignOut(); // Force sign out if session is corrupted
+        // Do not sign out here as it causes issues. Let the user sign out manually if needed.
         return false;
     }
     
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (response.status === 401) { // Token expired
              toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again." });
-             await handleSignOut();
+             // Don't auto-sign out, let user do it.
              return false;
         }
         
@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership." });
         return false;
     }
-  }, [handleSignOut, toast]);
+  }, [toast]);
   
 
   useEffect(() => {
