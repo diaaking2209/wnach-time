@@ -199,10 +199,10 @@ export function OrdersTab() {
                                     </div>
                                     </>
                                 )}
-                                {(order.status === 'Pending' || order.status === 'Processing') && (
+                                {(order.status === 'Pending' || order.status === 'Processing' || order.status === 'Cancelled') && (
                                     <>
                                         <Separator/>
-                                        <div className="flex items-center justify-end gap-2">
+                                        <div className="flex items-center justify-end gap-2 mt-4">
                                             <Button size="sm" asChild>
                                                 <a href={discordTicketUrl} target="_blank" rel="noopener noreferrer">
                                                     Create a Ticket for Support

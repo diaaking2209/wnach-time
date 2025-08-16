@@ -83,6 +83,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             price_at_purchase: item.price,
             product_name: item.name,
             product_image_url: item.imageUrl,
+            product_emoji: '📦'
         }));
         
         const { data: newOrder, error } = await supabase.from('pending_orders').insert({

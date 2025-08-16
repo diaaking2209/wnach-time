@@ -58,6 +58,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { provider_id, full_name, avatar_url } = user.user_metadata;
     await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
   };
+  
+  const syncUserProfileInfo = async (user: User) => {
+    const { id, raw_user_meta_data } = user;
+    if (!id || !raw_user_meta_data) return;
+
+    const { data, error } = await supabase.from('user_profiles')
+      .upsert({
+        user_id: id,
+        username: raw_user_meta_data.full_name,
+        avatar_url: raw_user_meta_data.avatar_url
+      }, { onConflict: 'user_id' });
+    
+    if(error) {
+        console.error("Error syncing user profile:", error);
+    }
+  }
 
   const handleSignIn = async () => {
     if (isSigningIn) return;
@@ -75,36 +91,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const checkGuildMembership = useCallback(async (): Promise<boolean> => {
-    const currentSession = session; // Use the session from state
-    if (!currentSession?.provider_token) {
+    const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !currentSession?.provider_token) {
+        console.error("Session fetch error or no provider token");
         return false;
     }
+    
     try {
         const response = await fetch('https://discord.com/api/users/@me/guilds', {
             headers: { Authorization: `Bearer ${currentSession.provider_token}` },
         });
 
+        if (response.status === 401) { // Token expired or invalid
+             const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+             if (refreshError || !refreshData.session) {
+                await handleSignOut();
+                return false;
+             }
+             // Re-fetch guilds with the new token
+             const newResponse = await fetch('https://discord.com/api/users/@me/guilds', {
+                headers: { Authorization: `Bearer ${refreshData.session.provider_token}` },
+             });
+             if (!newResponse.ok) throw new Error(`Failed to fetch guilds after refresh: ${newResponse.statusText}`);
+             const newGuilds = await newResponse.json();
+             return newGuilds.some((guild: any) => guild.id === GUILD_ID);
+        }
+
         if (!response.ok) {
-            if (response.status === 401) { // Token expired
-                 const { data, error } = await supabase.auth.refreshSession();
-                 if(error || !data.session) {
-                    await handleSignOut();
-                    return false;
-                 }
-                 setSession(data.session); // Update the session state
-                 // After refreshing, the parent component needs to call this function again.
-                 // Returning false here signals that a retry is needed.
-                 return false; 
-            }
             throw new Error(`Failed to fetch guilds: ${response.statusText}`);
         }
+
         const guilds = await response.json();
         return guilds.some((guild: any) => guild.id === GUILD_ID);
+
     } catch (error) {
         console.error("Error checking guild membership:", error);
         return false;
     }
-  }, [session, handleSignOut]);
+  }, [handleSignOut]);
   
 
   useEffect(() => {
@@ -114,11 +139,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         setSession(session);
         setUser(session.user);
-        const isAdmin = await checkAdminStatus(session.user);
-        if(isAdmin) {
-            await syncAdminUserInfo(session.user);
-        }
-
+        await Promise.all([
+          checkAdminStatus(session.user).then(isAdmin => {
+            if(isAdmin) syncAdminUserInfo(session.user);
+          }),
+          syncUserProfileInfo(session.user),
+        ]);
       } else {
         setSession(null);
         setUser(null);

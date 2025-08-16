@@ -10,28 +10,26 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function CheckoutPage() {
     const { session, isLoading: isAuthLoading, checkGuildMembership } = useAuth();
     const { language } = useLanguage();
     const t = translations[language];
+    const { toast } = useToast();
 
-    const [isGateOpen, setGateOpen] = useState(false);
     const [isVerifying, setIsVerifying] = useState(true);
 
-     const checkAccess = useCallback(async () => {
+    const checkAccess = useCallback(async () => {
         if (!session) {
             setIsVerifying(false);
             return;
         }
         setIsVerifying(true);
-        const isMember = await checkGuildMembership();
-        if (!isMember) {
-            setGateOpen(true);
-        } else {
-            setGateOpen(false); 
-        }
+        // This check is now only for initial page load, 
+        // the more critical checks are on the action buttons.
+        await checkGuildMembership();
         setIsVerifying(false);
     }, [session, checkGuildMembership]);
 
@@ -66,10 +64,7 @@ export default function CheckoutPage() {
     }
     
     return (
-        <>
-            <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={checkAccess} />
-            {!isGateOpen && <CartPageContent />}
-        </>
+        <CartPageContent />
     );
 
 }
