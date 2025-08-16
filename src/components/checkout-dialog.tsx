@@ -36,7 +36,7 @@ interface CheckoutDialogProps {
 export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDialogProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [newOrderId, setNewOrderId] = useState<string | null>(null);
+  const [newOrderDisplayId, setNewOrderDisplayId] = useState<string | null>(null);
   const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
   const [isGateOpen, setGateOpen] = useState(false);
 
@@ -85,21 +85,21 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             product_image_url: item.imageUrl,
         }));
         
-        const { data: orderId, error } = await supabase.rpc('create_new_order', {
-            p_user_id: user.id,
-            p_customer_username: user.user_metadata.full_name,
-            p_customer_email: user.email,
-            p_customer_provider_id: user.user_metadata.provider_id,
-            p_sub_total: orderSummary.subTotal,
-            p_discount_amount: orderSummary.discountAmount,
-            p_total_amount: orderSummary.total,
-            p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            p_items: orderItemsForJson
-        });
+        const { data: newOrder, error } = await supabase.from('pending_orders').insert({
+            user_id: user.id,
+            customer_username: user.user_metadata.full_name,
+            customer_email: user.email,
+            customer_provider_id: user.user_metadata.provider_id,
+            sub_total: orderSummary.subTotal,
+            discount_amount: orderSummary.discountAmount,
+            total_amount: orderSummary.total,
+            applied_coupon_code: orderSummary.appliedCoupon?.code || null,
+            items: orderItemsForJson
+        }).select('display_id').single();
 
         if (error) throw error;
         
-        setNewOrderId(orderId);
+        setNewOrderDisplayId(newOrder.display_id);
         
         // Clear the client-side cart and show success
         clearCart(); 
@@ -155,7 +155,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     setTimeout(() => {
         setIsProcessing(false);
         setIsSuccess(false);
-        setNewOrderId(null);
+        setNewOrderDisplayId(null);
     }, 300);
   }
 
@@ -206,7 +206,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                 </DialogHeader>
                 <div className="py-4 text-center">
                     <p className="text-sm text-muted-foreground">{t.checkout.orderIdLabel}</p>
-                    <p className="text-lg font-mono font-bold text-primary">{newOrderId}</p>
+                    <p className="text-lg font-mono font-bold text-primary">{newOrderDisplayId}</p>
                 </div>
                 <DialogFooter className="flex-col gap-2 sm:flex-row">
                      <Button type="button" variant="outline" onClick={handleClose} className="w-full">

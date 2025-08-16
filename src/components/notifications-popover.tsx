@@ -162,7 +162,7 @@ export function NotificationsPopover() {
                                 <div className="flex-grow">
                                         <p className="text-sm font-medium">{notification.message}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Order #{notification.order_id.substring(0,8)} &bull; {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                                            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
                                         </p>
                                 </div>
                                 {!notification.is_read && (

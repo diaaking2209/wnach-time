@@ -39,6 +39,7 @@ type OrderItem = {
 
 type Order = {
   id: string;
+  display_id: string;
   created_at: string;
   total_amount: number;
   delivery_details: string | null;
@@ -165,8 +166,8 @@ export function OrdersTab() {
                             <AccordionTrigger>
                                 <div className="flex justify-between items-center w-full pr-4">
                                     <div className="flex flex-col text-left">
-                                        <span className="font-mono text-xs text-muted-foreground">#{order.id.substring(0,8)}</span>
-                                        <span className="text-sm">{new Date(order.created_at).toLocaleDateString()}</span>
+                                        <span className="font-mono text-sm font-semibold text-foreground">{order.display_id || `#${order.id.substring(0,8)}`}</span>
+                                        <span className="text-xs text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'} className="whitespace-nowrap">

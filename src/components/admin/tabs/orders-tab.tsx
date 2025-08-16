@@ -55,6 +55,7 @@ export type OrderItem = {
 
 export type Order = {
   id: string;
+  display_id: string;
   created_at: string;
   total_amount: number;
   user_id: string;
@@ -163,8 +164,8 @@ export function OrdersTab() {
         };
 
         let message = '';
-        if(to === 'processing') message = 'Your order is now being processed.';
-        if(to === 'cancelled') message = 'Your order has been cancelled by the administration.';
+        if(to === 'processing') message = `Your order ${fullOrder.display_id || ''} is now being processed.`;
+        if(to === 'cancelled') message = `Your order ${fullOrder.display_id || ''} has been cancelled.`;
         
         await createNotification(fullOrder.user_id, orderId, message);
         
@@ -231,7 +232,7 @@ export function OrdersTab() {
                             </TableCell>
                             <TableCell>
                                 <div className="flex flex-col gap-1">
-                                    <div><Badge variant="outline" className="font-mono">{order.id.substring(0, 8)}</Badge></div>
+                                    <div><Badge variant="outline" className="font-mono">{order.display_id || order.id.substring(0, 8)}</Badge></div>
                                     <div className="font-semibold">{formatPrice(order.total_amount)}</div>
                                 </div>
                             </TableCell>
