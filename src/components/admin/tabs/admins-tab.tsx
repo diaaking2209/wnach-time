@@ -23,6 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -279,7 +280,7 @@ export function AdminsTab() {
               <CardTitle>{t.title}</CardTitle>
               <CardDescription>{t.description}</CardDescription>
             </div>
-             <AddAdminDialog onAdd={fetchAdmins} />
+             <AlertDialogTrigger>Add Admin</AlertDialogTrigger>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
