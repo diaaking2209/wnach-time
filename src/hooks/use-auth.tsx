@@ -76,14 +76,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isSigningIn) return;
     setIsSigningIn(true);
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
-        options: { scopes: 'identify email' },
+        options: { scopes: 'identify email guilds.join' },
       });
       if(error) throw error;
-      if (data.user) {
-        await syncUserProfileInfo(data.user);
-      }
+      // Note: The user object is handled in the onAuthStateChange listener
     } catch (error: any) {
       toast({variant: "destructive", title: "Sign in error", description: error.message});
       console.error("Sign in error", error);
@@ -119,7 +117,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user ?? null;
       
       if (currentUser) {
-        await syncUserProfileInfo(currentUser);
+        // Ensure profile exists before setting user state
+        await syncUserProfileInfo(currentUser); 
         await checkAdminStatus(currentUser);
       } else {
         setIsUserAdmin(false);
