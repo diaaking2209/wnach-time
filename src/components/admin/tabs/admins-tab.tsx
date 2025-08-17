@@ -42,6 +42,14 @@ type AdminUser = {
   role: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship';
 };
 
+const roleHierarchy = {
+    'owner_ship': 4,
+    'super_owner': 3,
+    'owner': 2,
+    'product_adder': 1,
+};
+
+
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
     const { language } = useLanguage();
@@ -268,7 +276,7 @@ export function AdminsTab() {
     );
   }
   
-  const isOwnerShip = userRole === 'owner_ship';
+  const currentUserLevel = userRole ? roleHierarchy[userRole] : 0;
 
   return (
     <div className="space-y-8">
@@ -305,11 +313,25 @@ export function AdminsTab() {
             </div>
             {admins.length > 0 ? (
                 admins.map((admin) => {
-                    const isTargetOwnerShip = admin.role === 'owner_ship';
-                    const isTargetSuperOwner = admin.role === 'super_owner';
-                    
-                    const canEditRole = isOwnerShip && !isTargetOwnerShip;
-                    const canDelete = isOwnerShip && !isTargetOwnerShip && admin.provider_id !== user?.user_metadata.provider_id;
+                    const targetUserLevel = roleHierarchy[admin.role];
+
+                    // Determine if the current user can edit the target user's role.
+                    let canEditRole = false;
+                    if (userRole === 'owner_ship') {
+                        // owner_ship can edit anyone except themselves.
+                        canEditRole = admin.role !== 'owner_ship';
+                    } else if (userRole === 'super_owner') {
+                        // super_owner can only edit roles strictly below them.
+                        canEditRole = targetUserLevel < roleHierarchy.super_owner;
+                    } else if (userRole === 'owner') {
+                        // owner can only edit roles strictly below them.
+                        canEditRole = targetUserLevel < roleHierarchy.owner;
+                    }
+
+                    // Determine if the current user can delete the target user.
+                    // Same logic as editing role.
+                    const canDelete = canEditRole;
+
 
                     return (
                         <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
@@ -334,9 +356,9 @@ export function AdminsTab() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="owner_ship" disabled>{t.roles.owner_ship}</SelectItem>
-                                        <SelectItem value="super_owner" disabled={!isOwnerShip}>{t.roles.super_owner}</SelectItem>
-                                        <SelectItem value="owner">{t.roles.owner}</SelectItem>
-                                        <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
+                                        <SelectItem value="super_owner" disabled={currentUserLevel < roleHierarchy.owner_ship}>{t.roles.super_owner}</SelectItem>
+                                        <SelectItem value="owner" disabled={currentUserLevel < roleHierarchy.super_owner}>{t.roles.owner}</SelectItem>
+                                        <SelectItem value="product_adder" disabled={currentUserLevel < roleHierarchy.owner}>{t.roles.product_adder}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <AlertDialog>
@@ -371,3 +393,5 @@ export function AdminsTab() {
     </div>
   );
 }
+
+    
