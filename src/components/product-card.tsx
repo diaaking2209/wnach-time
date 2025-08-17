@@ -14,6 +14,7 @@ import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/hooks/use-auth";
 import { ServerGateDialog } from "./server-gate-dialog";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export type Product = {
   id?: string;
@@ -151,7 +152,10 @@ export function ProductCard({ product }: { product: Product }) {
               </div>
               <Button 
                 size="icon"
-                className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
+                className={cn(
+                    "h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 transition-all",
+                    "group-hover:bg-pink-500 group-hover:text-white group-hover:shadow-[0_0_15px_2px_#BF00FF]"
+                )}
                 disabled={isOutOfStock || isChecking}
                 onClick={handleAddToCart}
               >

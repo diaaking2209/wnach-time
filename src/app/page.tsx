@@ -59,7 +59,7 @@ function HeroCarousel() {
     const [current, setCurrent] = useState(0)
 
     const plugin = useRef(
-        Autoplay({ delay: 5000, stopOnInteraction: true, stopOnMouseEnter: true })
+        Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
     
     useEffect(() => {
