@@ -42,8 +42,8 @@ type AdminUser = {
   role: 'owner' | 'product_adder' | 'super_owner';
 };
 
-// IMPORTANT: Replace this with the actual Discord provider_id of the ultimate owner.
-const GOD_OWNER_PROVIDER_ID = "PUT_YOUR_DISCORD_ID_HERE";
+// The God Owner's Discord ID, provided by the user. This user cannot be edited or deleted from the UI.
+const GOD_OWNER_PROVIDER_ID = "815920922141392918";
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
@@ -330,7 +330,7 @@ export function AdminsTab() {
                                 <Select 
                                     value={admin.role}
                                     onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
-                                    disabled={isSaving || admin.provider_id === currentUserProviderId || !canEdit}
+                                    disabled={isSaving || !canEdit}
                                 >
                                     <SelectTrigger className="w-full sm:w-[180px]">
                                         <SelectValue placeholder={t.selectRole} />
@@ -343,7 +343,7 @@ export function AdminsTab() {
                                 </Select>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId || !canEdit}>
+                                        <Button variant="destructive" size="icon" disabled={isSaving || !canEdit}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
