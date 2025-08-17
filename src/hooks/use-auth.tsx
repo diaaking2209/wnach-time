@@ -35,33 +35,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
   }, []);
-
-  const checkAdminStatus = useCallback(async (user: User | null) => {
-    if (!user?.user_metadata?.provider_id) {
-      setIsUserAdmin(false);
-      setUserRole(null);
-      return;
-    }
-    const { data } = await supabase.from('admins').select('role').eq('provider_id', user.user_metadata.provider_id).single();
-    const isAdmin = !!data;
-    setIsUserAdmin(isAdmin);
-    setUserRole(isAdmin ? (data.role as UserRole) : null);
-    
-    if (isAdmin) {
-        const { provider_id, full_name, avatar_url } = user.user_metadata;
-        await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
-    }
-  }, []);
   
   const syncUserProfileInfo = useCallback(async (user: User): Promise<boolean> => {
-    const { id, raw_user_meta_data } = user;
-    if (!id || !raw_user_meta_data) return false;
+    const { id, user_metadata } = user;
+    if (!id || !user_metadata?.full_name) return false;
 
     const { error } = await supabase.from('user_profiles')
       .upsert({
         user_id: id,
-        username: raw_user_meta_data.full_name,
-        avatar_url: raw_user_meta_data.avatar_url
+        username: user_metadata.full_name,
+        avatar_url: user_metadata.avatar_url
       }, { onConflict: 'user_id' });
     
     if (error) {
@@ -72,6 +55,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
 
+  const checkAdminStatus = useCallback(async (user: User | null) => {
+    if (!user?.user_metadata?.provider_id) {
+      setIsUserAdmin(false);
+      setUserRole(null);
+      return;
+    }
+
+    const { data, error } = await supabase.from('admins').select('role').eq('provider_id', user.user_metadata.provider_id).single();
+    if(error && error.code !== 'PGRST116') {
+        console.error("Error fetching admin status:", error);
+        setIsUserAdmin(false);
+        setUserRole(null);
+        return;
+    }
+    
+    const isAdmin = !!data;
+    setIsUserAdmin(isAdmin);
+    setUserRole(isAdmin ? (data.role as UserRole) : null);
+    
+    if (isAdmin) {
+        const { provider_id, full_name, avatar_url } = user.user_metadata;
+        await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
+    }
+  }, []);
+
   const handleSignIn = async () => {
     if (isSigningIn) return;
     setIsSigningIn(true);
@@ -81,7 +89,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: { scopes: 'identify email guilds.join' },
       });
       if(error) throw error;
-      // Note: The user object is handled in the onAuthStateChange listener
     } catch (error: any) {
       toast({variant: "destructive", title: "Sign in error", description: error.message});
       console.error("Sign in error", error);
@@ -117,7 +124,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user ?? null;
       
       if (currentUser) {
-        // Ensure profile exists before setting user state
         await syncUserProfileInfo(currentUser); 
         await checkAdminStatus(currentUser);
       } else {
