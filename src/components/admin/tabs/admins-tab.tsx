@@ -280,7 +280,7 @@ export function AdminsTab() {
               <CardTitle>{t.title}</CardTitle>
               <CardDescription>{t.description}</CardDescription>
             </div>
-             <AlertDialogTrigger>Add Admin</AlertDialogTrigger>
+             <AddAdminDialog onAdd={fetchAdmins} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -321,7 +321,7 @@ export function AdminsTab() {
                             <Select 
                                 value={admin.role}
                                 onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
-                                disabled={isSaving || admin.provider_id === currentUserProviderId}
+                                disabled={isSaving || admin.provider_id === currentUserProviderId || admin.role === 'super_owner'}
                             >
                                 <SelectTrigger className="w-full sm:w-[180px]">
                                     <SelectValue placeholder={t.selectRole} />
@@ -334,7 +334,7 @@ export function AdminsTab() {
                             </Select>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId}>
+                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId || admin.role === 'super_owner'}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
