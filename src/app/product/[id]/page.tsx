@@ -286,9 +286,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
-                    <Input id="quantity" type="number" value={quantity} readOnly className="h-11 w-16 text-center text-lg" />
                     <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
+                    <Input id="quantity" type="number" value={quantity} readOnly className="h-11 w-16 text-center text-lg" />
+                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
                   </div>
                   <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto flex-grow text-lg py-6">
                     <ShoppingCart className="mr-2 h-5 w-5" />
@@ -403,4 +403,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
