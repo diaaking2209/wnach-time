@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -12,13 +12,27 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star, User } from "lucide-react";
+import { Loader2, ShoppingCart, Star, User, MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, type UserRole } from "@/hooks/use-auth";
 import { ReviewForm } from "@/components/review-form";
 import { StarRating } from "@/components/star-rating";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ReplyForm } from "@/components/reply-form";
+import { AdminBadge } from "@/components/admin-badge";
+
+type ReviewReply = {
+    id: string;
+    created_at: string;
+    comment: string;
+    user_id: string;
+    user_profiles: {
+        username: string | null;
+        avatar_url: string | null;
+        admins: { role: UserRole }[]
+    } | null;
+}
 
 type ReviewWithProfile = {
     id: string;
@@ -29,6 +43,7 @@ type ReviewWithProfile = {
         username: string | null;
         avatar_url: string | null;
     } | null;
+    review_replies: ReviewReply[];
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
@@ -44,93 +59,98 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session } = useAuth();
+  const { user, session, isUserAdmin, userRole } = useAuth();
 
   const productId = params.id;
 
-  useEffect(() => {
-    const fetchProductAndReviews = async () => {
-      if (!productId) return;
+  const fetchProductData = useCallback(async () => {
+    if (!productId) return;
 
-      setLoading(true);
-      
-      // Fetch product details
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single();
-      
-      if (productError || !productData) {
-        console.error("Error fetching product:", productError);
-        setLoading(false);
-        return notFound();
-      }
-
-      const formattedProduct: Product = {
-          id: productData.id,
-          name: productData.name,
-          price: productData.price,
-          originalPrice: productData.original_price,
-          discount: productData.discount,
-          platforms: productData.platforms || [],
-          tags: productData.tags || [],
-          imageUrl: productData.image_url,
-          bannerUrl: productData.banner_url,
-          description: productData.description,
-          category: productData.category,
-          stockStatus: productData.stock_status,
-          isActive: productData.is_active,
-      };
-      setProduct(formattedProduct);
-
-      // Fetch approved reviews for the product
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select(`*, user_profiles (username, avatar_url)`)
-        .eq('product_id', productId)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false });
-
-      if (reviewsError) {
-        console.error("Error fetching reviews:", reviewsError);
-      } else {
-        setReviews(reviewsData as ReviewWithProfile[]);
-      }
-
-      // Check if logged-in user has purchased and/or reviewed this product
-      if(user) {
-        const { data: purchaseData, error: purchaseError } = await supabase
-          .from('completed_orders')
-          .select('id, items')
-          .eq('user_id', user.id);
-          
-        if (purchaseError) {
-            console.error("Error checking purchase history:", purchaseError);
-        } else {
-            const hasPurchasedProduct = purchaseData.some(order => 
-                order.items.some((item: any) => item.product_id === productId)
-            );
-            setHasPurchased(hasPurchasedProduct);
-        }
-
-
-        const { data: reviewData, error: reviewError } = await supabase
-          .from('reviews')
-          .select('id')
-          .eq('product_id', productId)
-          .eq('user_id', user.id)
-          .limit(1);
-          
-        if (reviewError) console.error("Error checking review history:", reviewError);
-        setHasReviewed(reviewData && reviewData.length > 0);
-      }
-
+    setLoading(true);
+    
+    // Fetch product details
+    const { data: productData, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+    
+    if (productError || !productData) {
+      console.error("Error fetching product:", productError);
       setLoading(false);
-    };
+      return notFound();
+    }
 
-    fetchProductAndReviews();
-  }, [productId, user]);
+    const formattedProduct: Product = {
+        id: productData.id,
+        name: productData.name,
+        price: productData.price,
+        originalPrice: productData.original_price,
+        discount: productData.discount,
+        platforms: productData.platforms || [],
+        tags: productData.tags || [],
+        imageUrl: productData.image_url,
+        bannerUrl: productData.banner_url,
+        description: productData.description,
+        category: productData.category,
+        stockStatus: productData.stock_status,
+        isActive: productData.is_active,
+    };
+    setProduct(formattedProduct);
+
+    // Fetch approved reviews with replies
+    const { data: reviewsData, error: reviewsError } = await supabase
+      .from('reviews')
+      .select(`
+        *, 
+        user_profiles (username, avatar_url),
+        review_replies ( *, user_profiles (username, avatar_url, admins(role)) )
+      `)
+      .eq('product_id', productId)
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false });
+
+    if (reviewsError) {
+      console.error("Error fetching reviews:", reviewsError);
+    } else {
+      // @ts-ignore
+      setReviews(reviewsData as ReviewWithProfile[]);
+    }
+
+    // Check if logged-in user has purchased and/or reviewed this product
+    if(user && session) {
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .from('completed_orders')
+        .select('id, items')
+        .eq('user_id', user.id);
+        
+      if (purchaseError) {
+          console.error("Error checking purchase history:", purchaseError);
+      } else {
+          const hasPurchasedProduct = purchaseData.some(order => 
+              order.items.some((item: any) => item.product_id === productId)
+          );
+          setHasPurchased(hasPurchasedProduct);
+      }
+
+      const { data: reviewData, error: reviewError } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('product_id', productId)
+        .eq('user_id', user.id)
+        .limit(1);
+        
+      if (reviewError) console.error("Error checking review history:", reviewError);
+      setHasReviewed(reviewData && reviewData.length > 0);
+    }
+
+    setLoading(false);
+  }, [productId, user, session]);
+
+
+  useEffect(() => {
+    fetchProductData();
+  }, [fetchProductData]);
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
@@ -210,24 +230,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const onReviewSubmitted = () => {
     setHasReviewed(true);
     toast({ title: "Review Submitted!", description: "Thank you for your feedback. Your review is pending approval."});
-    // Re-fetch reviews to show the new one if it's auto-approved
-    if(productId) {
-         const fetchNewReviews = async () => {
-            const { data: reviewsData, error: reviewsError } = await supabase
-                .from('reviews')
-                .select(`*, user_profiles (username, avatar_url)`)
-                .eq('product_id', productId)
-                .eq('is_approved', true)
-                .order('created_at', { ascending: false });
-
-            if (reviewsError) {
-                console.error("Error fetching reviews:", reviewsError);
-            } else {
-                setReviews(reviewsData as ReviewWithProfile[]);
-            }
-        }
-        fetchNewReviews();
-    }
+    fetchProductData(); // Refetch everything
   }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
@@ -334,8 +337,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 </h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                <div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                <div className="lg:col-span-1">
                     <Card>
                         <CardHeader>
                             <CardTitle>Leave a review</CardTitle>
@@ -358,25 +361,52 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     </Card>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-6 lg:col-span-2">
                     {reviews.length > 0 ? (
                         reviews.map(review => (
-                            <div key={review.id} className="flex gap-4 border-b pb-6 last:border-b-0">
-                                <Avatar>
-                                    <AvatarImage src={review.user_profiles?.avatar_url ?? undefined} />
-                                    <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-semibold">{review.user_profiles?.username ?? 'Anonymous'}</p>
-                                        <StarRating rating={review.rating} />
+                            <Card key={review.id} className="p-6">
+                                <div className="flex gap-4">
+                                    <Avatar>
+                                        <AvatarImage src={review.user_profiles?.avatar_url ?? undefined} />
+                                        <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-semibold">{review.user_profiles?.username ?? 'Anonymous'}</p>
+                                            <StarRating rating={review.rating} />
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mt-2 italic">"{review.comment}"</p>
+                                        
+                                        {isUserAdmin && <ReplyForm reviewId={review.id} onReplySubmitted={fetchProductData} />}
+
+                                        {review.review_replies && review.review_replies.length > 0 && (
+                                            <div className="mt-4 space-y-4 border-t pt-4">
+                                                {review.review_replies.map(reply => (
+                                                    <div key={reply.id} className="flex gap-3">
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src={reply.user_profiles?.avatar_url ?? undefined} />
+                                                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                                        </Avatar>
+                                                         <div className="flex-1">
+                                                            <div className="flex items-center gap-1">
+                                                                <p className="font-semibold text-sm">{reply.user_profiles?.username ?? 'Admin'}</p>
+                                                                {reply.user_profiles?.admins?.[0]?.role && <AdminBadge role={reply.user_profiles.admins[0].role} />}
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">{reply.comment}</p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-2 italic">"{review.comment}"</p>
                                 </div>
-                            </div>
+                            </Card>
                         ))
                     ) : (
-                        <p className="text-center text-muted-foreground py-10">No reviews yet. Be the first to leave one!</p>
+                        <Card className="text-center text-muted-foreground py-10 lg:col-span-2">
+                            No reviews yet. Be the first to leave one!
+                        </Card>
                     )}
                 </div>
             </div>
