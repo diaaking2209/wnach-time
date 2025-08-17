@@ -11,7 +11,6 @@ import { DiscordIcon } from "./icons/discord-icon";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
 import { useCart } from "@/context/cart-context";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { ServerGateDialog } from "./server-gate-dialog";
 import { useState } from "react";
@@ -43,8 +42,7 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const { addToCart, isAddingToCart } = useCart();
-  const { toast } = useToast();
+  const { addToCart } = useCart();
   const { handleSignIn, session, checkGuildMembership } = useAuth();
   const [isGateOpen, setGateOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -64,18 +62,7 @@ export function ProductCard({ product }: { product: Product }) {
     e.stopPropagation();
     
     if (!session) {
-        toast({
-            title: 'Please sign in',
-            description: 'You must be signed in to add items to your cart.',
-            action: (
-                <button
-                    onClick={() => handleSignIn()}
-                    className="bg-primary text-primary-foreground py-1 px-3 rounded-md text-sm"
-                >
-                    Sign In
-                </button>
-            ),
-        });
+        handleSignIn();
         return;
     }
 
@@ -165,10 +152,10 @@ export function ProductCard({ product }: { product: Product }) {
               <Button 
                 size="icon"
                 className="h-9 w-9 shrink-0 bg-secondary text-secondary-foreground hover:bg-accent/20 group-hover:bg-pink-500 group-hover:text-white" 
-                disabled={isOutOfStock || isAddingToCart || isChecking}
+                disabled={isOutOfStock || isChecking}
                 onClick={handleAddToCart}
               >
-                  {isAddingToCart || isChecking ? (
+                  {isChecking ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <ShoppingCart className="h-4 w-4" />
@@ -188,3 +175,5 @@ export function ProductCard({ product }: { product: Product }) {
     </>
   );
 }
+
+    

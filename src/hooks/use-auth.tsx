@@ -32,56 +32,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setIsUserAdmin(false);
-    setUserRole(null);
   }, []);
 
-  const checkAdminStatus = useCallback(async (user: User) => {
-    if (!user.user_metadata.provider_id) {
+  const checkAdminStatus = useCallback(async (user: User | null) => {
+    if (!user?.user_metadata?.provider_id) {
       setIsUserAdmin(false);
       setUserRole(null);
-      return false;
+      return;
     }
     const { data } = await supabase.from('admins').select('role').eq('provider_id', user.user_metadata.provider_id).single();
     const isAdmin = !!data;
     setIsUserAdmin(isAdmin);
     setUserRole(isAdmin ? (data.role as UserRole) : null);
-    return isAdmin;
+    
+    // Sync user info if they are an admin
+    if (isAdmin) {
+        const { provider_id, full_name, avatar_url } = user.user_metadata;
+        await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
+    }
   }, []);
-
-  const syncAdminUserInfo = async (user: User) => {
-    if (!user?.user_metadata?.provider_id) return;
-    const { provider_id, full_name, avatar_url } = user.user_metadata;
-    await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
-  };
   
-  const syncUserProfileInfo = async (user: User) => {
+  const syncUserProfileInfo = useCallback(async (user: User) => {
     const { id, raw_user_meta_data } = user;
     if (!id || !raw_user_meta_data) return;
 
-    const { data, error } = await supabase.from('user_profiles')
+    await supabase.from('user_profiles')
       .upsert({
         user_id: id,
         username: raw_user_meta_data.full_name,
         avatar_url: raw_user_meta_data.avatar_url
       }, { onConflict: 'user_id' });
-    
-    if(error) {
-        console.error("Error syncing user profile:", error);
-    }
-  }
+  }, []);
+
 
   const handleSignIn = async () => {
     if (isSigningIn) return;
     setIsSigningIn(true);
     try {
-      await supabase.auth.signInWithOAuth({
+      const {error} = await supabase.auth.signInWithOAuth({
         provider: 'discord',
-        options: { scopes: 'identify email guilds' },
+        options: { scopes: 'identify email' },
       });
-    } catch (error) {
+      if(error) throw error;
+    } catch (error: any) {
+      toast({variant: "destructive", title: "Sign in error", description: error.message});
       console.error("Sign in error", error);
     } finally {
       setIsSigningIn(false);
@@ -90,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkGuildMembership = useCallback(async (): Promise<boolean> => {
     if (!user) {
+        toast({variant: "destructive", title: "You must be signed in."})
         return false;
     }
     const providerId = user.user_metadata.provider_id;
@@ -109,24 +104,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     return !!data;
-  }, [user]);
+  }, [user, toast]);
 
   useEffect(() => {
+    setIsLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsLoading(true);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      setSession(session);
       
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
+      if (currentUser) {
         await Promise.all([
-          checkAdminStatus(session.user).then(isAdmin => {
-            if(isAdmin) syncAdminUserInfo(session.user);
-          }),
-          syncUserProfileInfo(session.user),
+          checkAdminStatus(currentUser),
+          syncUserProfileInfo(currentUser),
         ]);
       } else {
-        setSession(null);
-        setUser(null);
         setIsUserAdmin(false);
         setUserRole(null);
       }
@@ -136,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus]);
+  }, [checkAdminStatus, syncUserProfileInfo]);
 
 
   return (
@@ -163,3 +155,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

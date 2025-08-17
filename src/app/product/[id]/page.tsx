@@ -12,12 +12,31 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, ShoppingCart, Star, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
+import { ReviewForm } from "@/components/review-form";
+import { StarRating } from "@/components/star-rating";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+type ReviewWithProfile = {
+    id: string;
+    created_at: string;
+    rating: number;
+    comment: string | null;
+    user_profiles: {
+        username: string | null;
+        avatar_url: string | null;
+    } | null;
+}
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<ReviewWithProfile[]>([]);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [hasReviewed, setHasReviewed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   
@@ -25,45 +44,87 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
+  const { user, session } = useAuth();
+
+  const productId = params.id;
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      const productId = params.id;
+    const fetchProductAndReviews = async () => {
       if (!productId) return;
 
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch product details
+      const { data: productData, error: productError } = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
         .single();
       
-      if (error || !data) {
-        console.error("Error fetching product:", error);
-        setProduct(null);
-      } else {
-        const formattedProduct: Product = {
-            id: data.id,
-            name: data.name,
-            price: data.price,
-            originalPrice: data.original_price,
-            discount: data.discount,
-            platforms: data.platforms || [],
-            tags: data.tags || [],
-            imageUrl: data.image_url,
-            bannerUrl: data.banner_url,
-            description: data.description,
-            category: data.category,
-            stockStatus: data.stock_status,
-            isActive: data.is_active,
-        };
-        setProduct(formattedProduct);
+      if (productError || !productData) {
+        console.error("Error fetching product:", productError);
+        setLoading(false);
+        return notFound();
       }
+
+      const formattedProduct: Product = {
+          id: productData.id,
+          name: productData.name,
+          price: productData.price,
+          originalPrice: productData.original_price,
+          discount: productData.discount,
+          platforms: productData.platforms || [],
+          tags: productData.tags || [],
+          imageUrl: productData.image_url,
+          bannerUrl: productData.banner_url,
+          description: productData.description,
+          category: productData.category,
+          stockStatus: productData.stock_status,
+          isActive: productData.is_active,
+      };
+      setProduct(formattedProduct);
+
+      // Fetch approved reviews for the product
+      const { data: reviewsData, error: reviewsError } = await supabase
+        .from('reviews')
+        .select(`*, user_profiles (username, avatar_url)`)
+        .eq('product_id', productId)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (reviewsError) {
+        console.error("Error fetching reviews:", reviewsError);
+      } else {
+        setReviews(reviewsData as ReviewWithProfile[]);
+      }
+
+      // Check if logged-in user has purchased and/or reviewed this product
+      if(user) {
+        const { data: purchaseData, error: purchaseError } = await supabase
+          .from('completed_orders')
+          .select('id, items')
+          .eq('user_id', user.id)
+          .contains('items', `[{"product_id":"${productId}"}]`);
+        
+        if (purchaseError) console.error("Error checking purchase history:", purchaseError);
+        setHasPurchased(purchaseData && purchaseData.length > 0);
+
+        const { data: reviewData, error: reviewError } = await supabase
+          .from('reviews')
+          .select('id')
+          .eq('product_id', productId)
+          .eq('user_id', user.id)
+          .limit(1);
+          
+        if (reviewError) console.error("Error checking review history:", reviewError);
+        setHasReviewed(reviewData && reviewData.length > 0);
+      }
+
       setLoading(false);
     };
 
-    fetchProduct();
-  }, [params]);
+    fetchProductAndReviews();
+  }, [productId, user]);
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
@@ -137,12 +198,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             imageUrl: product.imageUrl,
             quantity: quantity,
         });
-        toast({
-            title: t.cart.addToCart,
-            description: `${quantity} x ${product.name}`,
-        });
     }
   };
+
+  const onReviewSubmitted = () => {
+    setHasReviewed(true);
+    toast({ title: "Review Submitted!", description: "Thank you for your feedback. Your review is pending approval."});
+  }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
 
@@ -167,7 +229,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
-                    {/* Add rating and platform icons here if available in your data */}
+                    {reviews.length > 0 && (
+                        <div className="mt-2 flex items-center gap-2">
+                            <StarRating rating={reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length} />
+                            <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
+                        </div>
+                    )}
                     <Separator className="my-6" />
 
                     <div className="flex items-baseline gap-3">
@@ -234,6 +301,59 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <p className="whitespace-pre-wrap" dir="auto">{product.description || "No description available."}</p>
             </div>
         </div>
+        
+        {/* Reviews Section */}
+        <div className="mt-12">
+             <div className="mb-8 flex items-baseline gap-4">
+                <div className="h-8 w-1 bg-primary"></div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    Ratings & Reviews
+                </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {/* Leave a review */}
+                <div>
+                    <h3 className="text-lg font-semibold mb-4">Leave a review</h3>
+                    {session ? (
+                        hasPurchased ? (
+                            hasReviewed ? (
+                                <Card><CardContent className="p-4 text-center text-muted-foreground">You have already reviewed this product. Thank you!</CardContent></Card>
+                            ) : (
+                                <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitted} />
+                            )
+                        ) : (
+                           <Card><CardContent className="p-4 text-center text-muted-foreground">You must purchase this product to leave a review.</CardContent></Card>
+                        )
+                    ) : (
+                        <Card><CardContent className="p-4 text-center text-muted-foreground">Please <Button variant="link" className="p-0 h-auto" onClick={() => {}}>sign in</Button> to leave a review.</CardContent></Card>
+                    )}
+                </div>
+
+                {/* Existing reviews */}
+                <div className="space-y-6">
+                    {reviews.length > 0 ? (
+                        reviews.map(review => (
+                            <div key={review.id} className="flex gap-4">
+                                <Avatar>
+                                    <AvatarImage src={review.user_profiles?.avatar_url ?? undefined} />
+                                    <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold">{review.user_profiles?.username ?? 'Anonymous'}</p>
+                                        <StarRating rating={review.rating} />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">{review.comment}</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground">No reviews yet. Be the first to leave one!</p>
+                    )}
+                </div>
+            </div>
+        </div>
 
       {/* Related Products Section */}
       {relatedProducts.length > 0 && (
@@ -256,3 +376,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+
+    
