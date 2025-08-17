@@ -17,8 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, Trash2, Check, X, Star, ThumbsUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Loader2, Trash2, Star } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   AlertDialog,
@@ -33,9 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 export type Review = {
   id: string;
@@ -49,11 +46,11 @@ export type Review = {
   products: {
     name: string;
     image_url: string;
-  };
+  } | null;
   user_profiles: {
     username: string;
     avatar_url: string;
-  }
+  } | null;
 };
 
 
@@ -64,6 +61,7 @@ export function ReviewsTab() {
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
+    // Corrected query to explicitly join with user_profiles
     const { data, error } = await supabase.from('reviews')
         .select(`
             *,
@@ -78,6 +76,7 @@ export function ReviewsTab() {
         title: "Error fetching reviews",
         description: error.message,
       });
+      console.error("Reviews fetch error:", error)
     } else {
       setReviews(data as Review[]);
     }
