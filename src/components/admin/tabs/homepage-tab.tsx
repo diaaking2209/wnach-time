@@ -23,7 +23,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 type CarouselSlide = {
   id: string;
@@ -43,6 +44,9 @@ type TopProductLink = {
 
 export function HomePageTab() {
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.homepageTab;
+
   const [loading, setLoading] = useState(true);
   const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([]);
   const [topProducts, setTopProducts] = useState<TopProductLink[]>([]);
@@ -74,7 +78,7 @@ export function HomePageTab() {
 
 
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to load content", description: error.message });
+      toast({ variant: "destructive", title: t.loadError, description: error.message });
     } finally {
       setLoading(false);
     }
@@ -99,10 +103,10 @@ export function HomePageTab() {
     }]).select();
 
     if(error) {
-        toast({ variant: "destructive", title: "Failed to add slide", description: error.message });
+        toast({ variant: "destructive", title: t.addSlideError, description: error.message });
     } else if(data) {
         setCarouselSlides(prev => [...prev, data[0]]);
-        toast({ title: "Slide Added" });
+        toast({ title: t.addSlideSuccess });
     }
     setIsSaving(false);
   }
@@ -111,17 +115,17 @@ export function HomePageTab() {
     setIsSaving(true);
     const { error } = await supabase.from('homepage_carousel').delete().match({ id });
      if(error) {
-        toast({ variant: "destructive", title: "Failed to delete slide", description: error.message });
+        toast({ variant: "destructive", title: t.deleteSlideError, description: error.message });
     } else {
         setCarouselSlides(prev => prev.filter(s => s.id !== id));
-        toast({ title: "Slide Deleted" });
+        toast({ title: t.deleteSlideSuccess });
     }
     setIsSaving(false);
   }
 
   const handleAddTopProduct = async (productId: string) => {
      if(topProducts.some(p => p.product_id === productId)) {
-        toast({ variant: "destructive", title: "Product already added" });
+        toast({ variant: "destructive", title: t.productExistsError });
         return;
     }
     setIsSaving(true);
@@ -131,10 +135,10 @@ export function HomePageTab() {
     }]).select('*, products(*)').single();
 
      if(error) {
-        toast({ variant: "destructive", title: "Failed to add product", description: error.message });
+        toast({ variant: "destructive", title: t.addProductError, description: error.message });
     } else if(data) {
         setTopProducts(prev => [...prev, data as TopProductLink]);
-        toast({ title: "Top Product Added" });
+        toast({ title: t.addProductSuccess });
     }
     setIsSaving(false);
     setAddProductDialogOpen(false);
@@ -144,10 +148,10 @@ export function HomePageTab() {
     setIsSaving(true);
     const { error } = await supabase.from('homepage_top_products').delete().match({ id });
     if(error) {
-        toast({ variant: "destructive", title: "Failed to remove product", description: error.message });
+        toast({ variant: "destructive", title: t.removeProductError, description: error.message });
     } else {
         setTopProducts(prev => prev.filter(p => p.id !== id));
-        toast({ title: "Top Product Removed" });
+        toast({ title: t.removeProductSuccess });
     }
     setIsSaving(false);
   }
@@ -173,9 +177,9 @@ export function HomePageTab() {
         const { error: settingsError } = await supabase.from('app_settings').update({ value: discordUrl }).eq('key', 'discord_ticket_url');
         if (settingsError) throw settingsError;
 
-        toast({ title: "Success", description: "Home page and settings content have been saved." });
+        toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
     } catch (error: any) {
-         toast({ variant: "destructive", title: "Failed to save content", description: error.message });
+         toast({ variant: "destructive", title: t.saveError, description: error.message });
     } finally {
         setIsSaving(false);
     }
@@ -194,8 +198,8 @@ export function HomePageTab() {
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Home Page Carousel</CardTitle>
-          <CardDescription>Manage the slides in the main carousel on the home page. Drag to reorder.</CardDescription>
+          <CardTitle>{t.carousel.title}</CardTitle>
+          <CardDescription>{t.carousel.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             {carouselSlides.map(slide => (
@@ -203,23 +207,23 @@ export function HomePageTab() {
                     <GripVertical className="h-5 w-5 mt-2 text-muted-foreground cursor-grab" />
                     <div className="flex-grow space-y-2">
                         <Input 
-                            placeholder="Title" 
+                            placeholder={t.carousel.titlePlaceholder}
                             value={slide.title} 
                             onChange={e => handleCarouselChange(slide.id, 'title', e.target.value)}
                         />
                          <Input 
-                            placeholder="Image URL" 
+                            placeholder={t.carousel.imageUrlPlaceholder}
                             value={slide.image_url} 
                             onChange={e => handleCarouselChange(slide.id, 'image_url', e.target.value)}
                         />
                         <div className="flex gap-2">
                              <Input 
-                                placeholder="Link URL" 
+                                placeholder={t.carousel.linkPlaceholder}
                                 value={slide.link} 
                                 onChange={e => handleCarouselChange(slide.id, 'link', e.target.value)}
                             />
                             <Input 
-                                placeholder="AI Image Hint" 
+                                placeholder={t.carousel.aiHintPlaceholder}
                                 value={slide.ai_hint} 
                                 onChange={e => handleCarouselChange(slide.id, 'ai_hint', e.target.value)}
                             />
@@ -231,21 +235,21 @@ export function HomePageTab() {
                 </div>
             ))}
              <Button variant="outline" onClick={handleAddCarouselSlide} disabled={isSaving}>
-                <Plus className="mr-2 h-4 w-4" /> Add Slide
+                <Plus className="mr-2 h-4 w-4" /> {t.carousel.addSlide}
             </Button>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Top Products</CardTitle>
-          <CardDescription>Select which products appear in the "Top Products" section on the home page.</CardDescription>
+          <CardTitle>{t.topProducts.title}</CardTitle>
+          <CardDescription>{t.topProducts.description}</CardDescription>
         </CardHeader>
          <CardContent className="space-y-4">
             {topProducts.map(p => (
                 <div key={p.id} className="flex items-center gap-4 p-3 border rounded-lg bg-background">
                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                     <p className="flex-grow font-medium">{p.products?.name ?? "Product not found"}</p>
+                     <p className="flex-grow font-medium">{p.products?.name ?? t.topProducts.notFound}</p>
                      <Button variant="ghost" size="icon" onClick={() => handleDeleteTopProduct(p.id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -255,12 +259,12 @@ export function HomePageTab() {
             <Dialog open={isAddProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" disabled={isSaving}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Top Product
+                  <Plus className="mr-2 h-4 w-4" /> {t.topProducts.addProduct}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Select a product to add</DialogTitle>
+                  <DialogTitle>{t.topProducts.selectProduct}</DialogTitle>
                 </DialogHeader>
                 <div className="max-h-[60vh] overflow-y-auto">
                    <ul className="space-y-1">
@@ -282,12 +286,12 @@ export function HomePageTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Store Settings</CardTitle>
-          <CardDescription>Manage general store settings.</CardDescription>
+          <CardTitle>{t.settings.title}</CardTitle>
+          <CardDescription>{t.settings.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="discordUrl">Discord Ticket URL</Label>
+                <Label htmlFor="discordUrl">{t.settings.discordUrlLabel}</Label>
                 <Input 
                     id="discordUrl"
                     value={discordUrl}
@@ -295,7 +299,7 @@ export function HomePageTab() {
                     placeholder="https://discord.com/channels/..."
                 />
                 <p className="text-sm text-muted-foreground">
-                    This is the link users will be directed to after a successful purchase.
+                    {t.settings.discordUrlDesc}
                 </p>
             </div>
         </CardContent>
@@ -304,7 +308,7 @@ export function HomePageTab() {
       <div className="flex justify-end">
         <Button onClick={handleSaveAll} disabled={isSaving}>
             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save All Changes
+            {t.saveAll}
         </Button>
       </div>
     </div>

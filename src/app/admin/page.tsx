@@ -11,9 +11,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export default function AdminPage() {
   const { isUserAdmin, userRole, isLoading } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language];
+
 
   if (isLoading) {
     return (
@@ -26,12 +31,12 @@ export default function AdminPage() {
   if (!isUserAdmin) {
     return (
       <div className="container mx-auto flex h-screen flex-col items-center justify-center text-center p-4">
-        <h1 className="text-3xl font-bold">Access Denied</h1>
+        <h1 className="text-3xl font-bold">{t.admin.accessDenied}</h1>
         <p className="text-muted-foreground">
-          You do not have permission to view this page.
+          {t.admin.noPermission}
         </p>
          <Button asChild className="mt-4">
-            <Link href="/">Go to Homepage</Link>
+            <Link href="/">{t.admin.goToHomepage}</Link>
         </Button>
       </div>
     );
@@ -41,19 +46,19 @@ export default function AdminPage() {
   const isOwner = userRole === 'owner' || isSuperOwner;
 
   const tabs = [
-    { value: "products", label: "Products", visible: true },
-    { value: "orders", label: "Orders", visible: isOwner },
-    { value: "reviews", label: "Reviews", visible: isOwner },
-    { value: "homepage", label: "Home Page", visible: isOwner },
-    { value: "coupons", label: "Coupons", visible: isOwner },
-    { value: "admins", label: "Admins", visible: isSuperOwner },
+    { value: "products", label: t.admin.tabs.products, visible: true },
+    { value: "orders", label: t.admin.tabs.orders, visible: isOwner },
+    { value: "reviews", label: t.admin.tabs.reviews, visible: isOwner },
+    { value: "homepage", label: t.admin.tabs.homepage, visible: isOwner },
+    { value: "coupons", label: t.admin.tabs.coupons, visible: isOwner },
+    { value: "admins", label: t.admin.tabs.admins, visible: isSuperOwner },
   ].filter(tab => tab.visible);
 
   return (
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Panel</h1>
-        <p className="text-muted-foreground">Manage your store's content, products, and settings.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t.admin.title}</h1>
+        <p className="text-muted-foreground">{t.admin.description}</p>
       </div>
 
       <Tabs defaultValue="products" className="w-full">

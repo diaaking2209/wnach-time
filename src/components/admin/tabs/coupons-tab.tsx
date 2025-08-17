@@ -41,6 +41,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { CouponDialog } from "../coupon-dialog";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export type Coupon = {
   id: string;
@@ -59,6 +61,8 @@ export function CouponsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.couponsTab;
 
   const fetchCoupons = useCallback(async () => {
     setLoading(true);
@@ -66,14 +70,14 @@ export function CouponsTab() {
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error fetching coupons",
+        title: t.loadError,
         description: error.message,
       });
     } else {
       setCoupons(data as Coupon[]);
     }
     setLoading(false);
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchCoupons();
@@ -94,13 +98,13 @@ export function CouponsTab() {
     if(error) {
       toast({
         variant: "destructive",
-        title: "Error deleting coupon",
+        title: t.deleteError,
         description: error.message,
       });
     } else {
       toast({
-        title: "Coupon Deleted",
-        description: "The coupon has been successfully deleted.",
+        title: t.deleteSuccess,
+        description: t.deleteSuccessDesc,
       });
       fetchCoupons(); // Refresh the list
     }
@@ -123,12 +127,12 @@ export function CouponsTab() {
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Manage Coupons</CardTitle>
-                <CardDescription>View, add, edit, or delete discount coupons.</CardDescription>
+                <CardTitle>{t.title}</CardTitle>
+                <CardDescription>{t.description}</CardDescription>
             </div>
              <Button onClick={handleAddCoupon} className="hidden sm:inline-flex">
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Add Coupon
+                {t.addCoupon}
             </Button>
              <div className="sm:hidden">
                  <DropdownMenu>
@@ -140,7 +144,7 @@ export function CouponsTab() {
                     <DropdownMenuContent align="end">
                          <DropdownMenuItem onClick={handleAddCoupon}>
                             <PlusCircle className="mr-2 h-4 w-4" />
-                            <span>Add Coupon</span>
+                            <span>{t.addCoupon}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -152,12 +156,12 @@ export function CouponsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>{t.table.code}</TableHead>
+                <TableHead>{t.table.discount}</TableHead>
+                <TableHead>{t.table.usage}</TableHead>
+                <TableHead>{t.table.status}</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t.table.actions}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -166,7 +170,7 @@ export function CouponsTab() {
                 <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                        <p className="mt-2 text-muted-foreground">Loading coupons...</p>
+                        <p className="mt-2 text-muted-foreground">{t.loading}</p>
                     </TableCell>
                 </TableRow>
               ) : coupons.length > 0 ? (
@@ -179,7 +183,7 @@ export function CouponsTab() {
                     <TableCell>{coupon.times_used} / {coupon.max_uses ?? '∞'}</TableCell>
                     <TableCell>
                         <Badge variant={coupon.is_active ? "default" : "secondary"} className={cn(coupon.is_active ? "bg-green-600" : "bg-gray-500")}>
-                            {coupon.is_active ? 'Active' : 'Inactive'}
+                            {coupon.is_active ? t.active : t.inactive}
                         </Badge>
                     </TableCell>
                     <TableCell>
@@ -191,28 +195,26 @@ export function CouponsTab() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t.table.actions}</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleEditCoupon(coupon)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            Edit
+                            {t.edit}
                           </DropdownMenuItem>
                           <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
                                       <Trash2 className="mr-2 h-4 w-4" />
-                                      Delete
+                                      {t.delete}
                                     </DropdownMenuItem>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete this coupon.
-                                    </AlertDialogDescription>
+                                    <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
+                                    <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteCoupon(coupon.id!)}>Continue</AlertDialogAction>
+                                    <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteCoupon(coupon.id!)}>{t.confirm.continue}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -224,7 +226,7 @@ export function CouponsTab() {
               ) : (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
-                        <p className="text-muted-foreground">No coupons found. Add your first one!</p>
+                        <p className="text-muted-foreground">{t.noCoupons}</p>
                     </TableCell>
                 </TableRow>
               )}

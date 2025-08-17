@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, MoreVertical, Star } from "lucide-react"
+import { Loader2, User, Mail, Shield, LogOut, LayoutDashboard, Copy, Package, MoreVertical, Star, Bell, Send, UserCog } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
@@ -59,7 +59,7 @@ export default function ProfilePage() {
                 <aside className="lg:col-span-1 space-y-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-lg">Profile</CardTitle>
+                            <CardTitle className="text-lg">{t.profile.title}</CardTitle>
                              <div className="lg:hidden">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -150,9 +150,6 @@ export default function ProfilePage() {
                             <TabsList className="inline-flex h-auto">
                                 <TabsTrigger value="orders" className="whitespace-nowrap"><Package className="mr-2 h-4 w-4" />{t.profile.tabs.orders}</TabsTrigger>
                                 <TabsTrigger value="ratings" className="whitespace-nowrap"><Star className="mr-2 h-4 w-4" />{t.profile.tabs.ratings}</TabsTrigger>
-                                <TabsTrigger value="submissions" className="whitespace-nowrap">{t.profile.tabs.submissions}</TabsTrigger>
-                                <TabsTrigger value="account-log" className="whitespace-nowrap">{t.profile.tabs.accountLog}</TabsTrigger>
-                                <TabsTrigger value="characters" className="whitespace-nowrap">{t.profile.tabs.characters}</TabsTrigger>
                             </TabsList>
                         </div>
                          <TabsContent value="orders" className="mt-6">
@@ -160,36 +157,6 @@ export default function ProfilePage() {
                         </TabsContent>
                         <TabsContent value="ratings" className="mt-6">
                             <RatingsTab />
-                        </TabsContent>
-                        <TabsContent value="account-log" className="mt-6">
-                            <Card>
-                                <CardHeader>
-                                    <h3 className="text-lg font-semibold">{t.profile.tabs.accountLog}</h3>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground">{t.profile.noActivity}</p>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                        <TabsContent value="submissions" className="mt-6">
-                            <Card>
-                                <CardHeader>
-                                <h3 className="text-lg font-semibold">{t.profile.tabs.submissions}</h3>
-                                </CardHeader>
-                                <CardContent>
-                                <p className="text-muted-foreground">{t.profile.noSubmissions}</p>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                        <TabsContent value="characters" className="mt-6">
-                            <Card>
-                                <CardHeader>
-                                <h3 className="text-lg font-semibold">{t.profile.tabs.characters}</h3>
-                                </CardHeader>
-                                <CardContent>
-                                <p className="text-muted-foreground">{t.profile.noCharacters}</p>
-                                </CardContent>
-                            </Card>
                         </TabsContent>
                     </Tabs>
                 </main>

@@ -17,6 +17,8 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 
 type Rating = {
@@ -35,6 +37,9 @@ type Rating = {
 export function RatingsTab() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].profile.ratings;
+
   const [loading, setLoading] = useState(true);
   const [ratings, setRatings] = useState<Rating[]>([]);
 
@@ -73,13 +78,13 @@ export function RatingsTab() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to load your ratings",
+        title: t.loadError,
         description: error.message,
       });
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [toast, user, t]);
 
   useEffect(() => {
     fetchRatings();
@@ -97,10 +102,8 @@ export function RatingsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Ratings</CardTitle>
-        <CardDescription>
-          Here are all the ratings you have submitted for products.
-        </CardDescription>
+        <CardTitle>{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
         {ratings.length > 0 ? (
@@ -125,7 +128,7 @@ export function RatingsTab() {
                             {rating.comment && <p className="text-sm text-muted-foreground italic">"{rating.comment}"</p>}
                             <div className="mt-2">
                                 <Badge variant={rating.is_approved ? "default" : "secondary"}>
-                                    {rating.is_approved ? "Approved" : "Pending Approval"}
+                                    {rating.is_approved ? t.approved : t.pending}
                                 </Badge>
                             </div>
                          </div>
@@ -133,7 +136,7 @@ export function RatingsTab() {
                 ))}
             </div>
         ) : (
-             <p className="text-muted-foreground text-center py-10">You have not rated any products yet.</p>
+             <p className="text-muted-foreground text-center py-10">{t.noRatings}</p>
         )}
       </CardContent>
     </Card>

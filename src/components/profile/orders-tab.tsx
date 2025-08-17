@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
@@ -57,6 +59,9 @@ const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: st
 export function OrdersTab() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].profile.orders;
+  
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
@@ -103,13 +108,13 @@ export function OrdersTab() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to load orders",
+        title: t.loadError,
         description: error.message,
       });
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [toast, user, t]);
 
   useEffect(() => {
     fetchOrders();
@@ -135,10 +140,8 @@ export function OrdersTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Orders</CardTitle>
-        <CardDescription>
-          Here you can find the history of all your past orders.
-        </CardDescription>
+        <CardTitle>{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
         {orders.length > 0 ? (
@@ -159,7 +162,7 @@ export function OrdersTab() {
                                         <Badge variant={order.status === 'Completed' ? 'default' : 'secondary'} className="whitespace-nowrap">
                                           <div className="flex items-center gap-1.5">
                                             <StatusIcon className={cn("h-4 w-4", statusColor, order.status === 'Processing' && 'animate-spin')} />
-                                            <span>{order.status}</span>
+                                            <span>{t.statuses[order.status]}</span>
                                           </div>
                                         </Badge>
                                     </div>
@@ -191,7 +194,7 @@ export function OrdersTab() {
                                     <div className="space-y-2 rounded-md bg-green-950/50 border border-green-500/20 p-4">
                                         <div className="flex items-center gap-2 text-green-400">
                                             <KeySquare className="h-5 w-5" />
-                                            <h4 className="font-semibold">Your Delivered Items</h4>
+                                            <h4 className="font-semibold">{t.deliveredItems}</h4>
                                         </div>
                                         <div className="whitespace-pre-wrap rounded-md bg-background/50 p-3 font-mono text-sm text-green-300">
                                             {order.delivery_details}
@@ -205,7 +208,7 @@ export function OrdersTab() {
                                         <div className="flex items-center justify-end gap-2 mt-4">
                                             <Button size="sm" asChild>
                                                 <a href={discordTicketUrl} target="_blank" rel="noopener noreferrer">
-                                                    Create a Ticket for Support
+                                                    {t.createTicket}
                                                 </a>
                                             </Button>
                                         </div>
@@ -218,7 +221,7 @@ export function OrdersTab() {
                 })}
             </Accordion>
         ) : (
-             <p className="text-muted-foreground text-center py-10">You haven't placed any orders yet.</p>
+             <p className="text-muted-foreground text-center py-10">{t.noOrders}</p>
         )}
       </CardContent>
     </Card>

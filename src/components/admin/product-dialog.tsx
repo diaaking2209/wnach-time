@@ -27,6 +27,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Switch } from "../ui/switch";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -55,6 +57,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.dialogs;
 
   useEffect(() => {
     if (product) {
@@ -145,13 +149,13 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error saving product",
+        title: t.products.errorTitle,
         description: error.message,
       });
     } else {
       toast({
-        title: product ? "Product Updated" : "Product Created",
-        description: `The product "${name}" has been saved.`,
+        title: product ? t.products.updateTitle : t.products.createTitle,
+        description: `${t.products.successDesc} "${name}"`,
       });
       onSave();
     }
@@ -162,32 +166,32 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       <DialogContent className="sm:max-w-[625px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{product ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogTitle>{product ? t.products.editTitle : t.products.addTitle}</DialogTitle>
             <DialogDescription>
-              {product ? "Edit the details of your product." : "Fill in the details for your new product."}
+              {product ? t.products.editDesc : t.products.addDesc}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Name</Label>
+              <Label htmlFor="name" className="text-right">{t.products.name}</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="isActive" className="text-right">Status</Label>
+              <Label htmlFor="isActive" className="text-right">{t.products.visibility}</Label>
               <div className="col-span-3 flex items-center gap-2">
                 <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
-                <span className="text-sm text-muted-foreground">{isActive ? "On (Visible in store)" : "Off (Hidden from store)"}</span>
+                <span className="text-sm text-muted-foreground">{isActive ? t.products.visible : t.products.hidden}</span>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Description</Label>
+              <Label htmlFor="description" className="text-right">{t.products.description}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">Category</Label>
+                <Label htmlFor="category" className="text-right">{t.products.category}</Label>
                 <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder={t.products.selectCategory} />
                     </SelectTrigger>
                     <SelectContent>
                         {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
@@ -195,26 +199,27 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="originalPrice" className="text-right">Price (USD)</Label>
-              <Input id="originalPrice" type="number" placeholder="Original price in USD" value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-3" required />
+              <Label htmlFor="originalPrice" className="text-right">{t.products.price}</Label>
+              <Input id="originalPrice" type="number" placeholder={t.products.pricePlaceholder} value={price} onChange={(e) => setPrice(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="discount" className="text-right">Discount (%)</Label>
-              <Input id="discount" type="number" placeholder="e.g. 10" value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
+              <Label htmlFor="discount" className="text-right">{t.products.discount}</Label>
+              <Input id="discount" type="number" placeholder={t.products.discountPlaceholder} value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stockStatus" className="text-right">Stock</Label>
+                <Label htmlFor="stockStatus" className="text-right">{t.products.stock}</Label>
                 <Select value={stockStatus} onValueChange={setStockStatus}>
                     <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select stock status" />
+                        <SelectValue placeholder={t.products.selectStock} />
                     </SelectTrigger>
                     <SelectContent>
-                        {stockStatusOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                        <SelectItem value="In Stock">{t.products.inStock}</SelectItem>
+                        <SelectItem value="Out of Stock">{t.products.outOfStock}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="platforms" className="text-right">Platforms</Label>
+                <Label htmlFor="platforms" className="text-right">{t.products.platforms}</Label>
                  <div className="col-span-3">
                     <div className="flex flex-wrap gap-2">
                         {platformOptions.map((opt) => (
@@ -238,7 +243,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                 </div>
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="tags" className="text-right">Tags</Label>
+                <Label htmlFor="tags" className="text-right">{t.products.tags}</Label>
                 <div className="col-span-3">
                     <div className="flex flex-wrap gap-1 mb-2">
                         {tags.map(tag => (
@@ -249,7 +254,7 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
                     </div>
                     <Input 
                         id="tags" 
-                        placeholder="Add tags (press Enter)"
+                        placeholder={t.products.tagsPlaceholder}
                         value={currentTagInput}
                         onChange={(e) => setCurrentTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
@@ -258,19 +263,19 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
+              <Label htmlFor="imageUrl" className="text-right">{t.products.imageUrl}</Label>
               <Input id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="bannerUrl" className="text-right">Banner URL</Label>
+              <Label htmlFor="bannerUrl" className="text-right">{t.products.bannerUrl}</Label>
               <Input id="bannerUrl" value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} className="col-span-3" />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>{t.products.cancel}</Button>
             <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save changes
+                {t.products.save}
             </Button>
           </DialogFooter>
         </form>

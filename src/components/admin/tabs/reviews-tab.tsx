@@ -33,6 +33,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export type Review = {
   id: string;
@@ -58,10 +60,11 @@ export function ReviewsTab() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.reviewsTab;
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    // Corrected query to explicitly join with user_profiles
     const { data, error } = await supabase.from('reviews')
         .select(`
             *,
@@ -73,7 +76,7 @@ export function ReviewsTab() {
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error fetching reviews",
+        title: t.loadError,
         description: error.message,
       });
       console.error("Reviews fetch error:", error)
@@ -81,7 +84,7 @@ export function ReviewsTab() {
       setReviews(data as Review[]);
     }
     setLoading(false);
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchReviews();
@@ -92,12 +95,12 @@ export function ReviewsTab() {
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error updating review",
+        title: t.updateError,
         description: error.message,
       });
     } else {
       toast({
-        title: "Review Updated",
+        title: t.updateSuccess,
       });
       fetchReviews();
     }
@@ -109,12 +112,12 @@ export function ReviewsTab() {
     if(error) {
       toast({
         variant: "destructive",
-        title: "Error deleting review",
+        title: t.deleteError,
         description: error.message,
       });
     } else {
       toast({
-        title: "Review Deleted",
+        title: t.deleteSuccess,
       });
       fetchReviews();
     }
@@ -127,8 +130,8 @@ export function ReviewsTab() {
       <CardHeader>
         <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Manage Reviews</CardTitle>
-                <CardDescription>Approve, feature, or delete customer reviews.</CardDescription>
+                <CardTitle>{t.title}</CardTitle>
+                <CardDescription>{t.description}</CardDescription>
             </div>
         </div>
       </CardHeader>
@@ -137,13 +140,13 @@ export function ReviewsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[350px]">Review</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Approved</TableHead>
-                <TableHead>Featured</TableHead>
+                <TableHead className="w-[350px]">{t.table.review}</TableHead>
+                <TableHead>{t.table.product}</TableHead>
+                <TableHead>{t.table.author}</TableHead>
+                <TableHead>{t.table.approved}</TableHead>
+                <TableHead>{t.table.featured}</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t.table.actions}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -195,14 +198,12 @@ export function ReviewsTab() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                               <AlertDialogHeader>
-                              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                  This will permanently delete this review.
-                              </AlertDialogDescription>
+                              <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
+                              <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteReview(review.id!)}>Continue</AlertDialogAction>
+                              <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteReview(review.id!)}>{t.confirm.continue}</AlertDialogAction>
                               </AlertDialogFooter>
                           </AlertDialogContent>
                       </AlertDialog>
@@ -212,7 +213,7 @@ export function ReviewsTab() {
               ) : (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-20">
-                        <p className="text-muted-foreground">No reviews submitted yet.</p>
+                        <p className="text-muted-foreground">{t.noReviews}</p>
                     </TableCell>
                 </TableRow>
               )}

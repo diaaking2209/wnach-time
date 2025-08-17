@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { Order } from "./tabs/orders-tab";
 import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 interface DeliveryDialogProps {
   isOpen: boolean;
@@ -31,6 +33,8 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].admin.dialogs;
 
   useEffect(() => {
     if (order) {
@@ -83,15 +87,15 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
 
 
         toast({
-            title: "Order Delivered",
-            description: `Delivery details have been saved and order marked as complete.`,
+            title: t.delivery.successTitle,
+            description: t.delivery.successDesc,
         });
         onSave(); // This will close the dialog and refresh the orders list
 
     } catch (error: any) {
         toast({
             variant: "destructive",
-            title: "Error Delivering Order",
+            title: t.delivery.errorTitle,
             description: error.message,
         });
     } finally {
@@ -109,31 +113,31 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Deliver Order</DialogTitle>
+            <DialogTitle>{t.delivery.title}</DialogTitle>
             <DialogDescription>
-              Enter the delivery details below. Saving will move the order to 'Completed'.
+              {t.delivery.description}
               <br />
-              Order ID: <span className="font-mono text-primary">{order?.id.substring(0,8)}</span>
+              {t.delivery.orderId}: <span className="font-mono text-primary">{order?.id.substring(0,8)}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="deliveryDetails">Delivery Details</Label>
+              <Label htmlFor="deliveryDetails">{t.delivery.detailsLabel}</Label>
               <Textarea 
                 id="deliveryDetails" 
                 value={deliveryDetails} 
                 onChange={(e) => setDeliveryDetails(e.target.value)} 
                 className="col-span-3 min-h-[150px] font-mono"
-                placeholder="Enter product key(s), links, or other delivery information here..." 
+                placeholder={t.delivery.placeholder} 
                 required 
               />
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>{t.delivery.cancel}</Button>
             <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save & Mark as Completed
+                {t.delivery.save}
             </Button>
           </DialogFooter>
         </form>

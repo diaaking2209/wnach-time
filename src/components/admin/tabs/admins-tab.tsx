@@ -23,13 +23,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 type AdminUser = {
   id: string;
@@ -42,6 +43,10 @@ type AdminUser = {
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
+    const { language } = useLanguage();
+    const t = translations[language].admin.adminsTab;
+    const tDialog = translations[language].admin.dialogs.admins;
+
     const [isSaving, setIsSaving] = useState(false);
     const [newAdminId, setNewAdminId] = useState("");
     const [isOpen, setIsOpen] = useState(false);
@@ -49,12 +54,12 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const handleAddAdmin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAdminId.trim()) {
-            toast({ variant: "destructive", title: "Admin ID cannot be empty." });
+            toast({ variant: "destructive", title: t.idEmpty });
             return;
         }
         
         if (!/^\d+$/.test(newAdminId.trim())) {
-            toast({ variant: "destructive", title: "Invalid Discord ID", description: "Please enter a valid numeric Discord user ID." });
+            toast({ variant: "destructive", title: t.invalidId, description: t.invalidIdDesc });
             return;
         }
 
@@ -63,7 +68,7 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
             const { error: checkError } = await supabase.from('admins').select('id').eq('provider_id', newAdminId.trim()).single();
             if(checkError && checkError.code !== 'PGRST116') throw checkError;
             if(!checkError) {
-                 toast({ variant: "destructive", title: "Admin already exists." });
+                 toast({ variant: "destructive", title: t.alreadyExists });
                  setIsSaving(false);
                  return;
             }
@@ -76,13 +81,13 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 
             if (error) throw error;
             
-            toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added.` });
+            toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
             onAdd();
             setIsOpen(false);
             setNewAdminId("");
 
         } catch (error: any) {
-            toast({ variant: "destructive", title: "Failed to add admin", description: error.message });
+            toast({ variant: "destructive", title: t.addError, description: error.message });
         } finally {
             setIsSaving(false);
         }
@@ -101,11 +106,11 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
                         <DropdownMenuContent align="end">
                             <DropdownMenuItem onSelect={() => setIsOpen(true)}>
                                 <PlusCircle className="mr-2 h-4 w-4" />
-                                <span>Add Admin</span>
+                                <span>{t.addAdmin}</span>
                             </DropdownMenuItem>
                              <DropdownMenuItem onSelect={onAdd}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
-                                <span>Refresh List</span>
+                                <span>{t.refresh}</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -114,24 +119,22 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
             <DialogContent>
                 <form onSubmit={handleAddAdmin}>
                     <DialogHeader>
-                        <DialogTitle>Add New Admin</DialogTitle>
-                        <DialogDescription>
-                            Enter the Discord User ID of the user you want to add as a Product Adder.
-                        </DialogDescription>
+                        <DialogTitle>{tDialog.title}</DialogTitle>
+                        <DialogDescription>{tDialog.description}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
                         <Input
-                            placeholder="Enter Discord User ID"
+                            placeholder={tDialog.placeholder}
                             value={newAdminId}
                             onChange={(e) => setNewAdminId(e.target.value)}
                             disabled={isSaving}
                         />
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>Cancel</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>{tDialog.cancel}</Button>
                         <Button type="submit" disabled={isSaving}>
                             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Add Admin
+                            {tDialog.add}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -143,6 +146,9 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 export function AdminsTab() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].admin.adminsTab;
+
   const [loading, setLoading] = useState(true);
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -157,13 +163,13 @@ export function AdminsTab() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to load admins",
+        title: t.loadError,
         description: error.message,
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchAdmins();
@@ -172,17 +178,17 @@ export function AdminsTab() {
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAdminId.trim()) {
-      toast({ variant: "destructive", title: "Admin ID cannot be empty." });
+      toast({ variant: "destructive", title: t.idEmpty });
       return;
     }
     
     if (!/^\d+$/.test(newAdminId.trim())) {
-        toast({ variant: "destructive", title: "Invalid Discord ID", description: "Please enter a valid numeric Discord user ID." });
+        toast({ variant: "destructive", title: t.invalidId, description: t.invalidIdDesc });
         return;
     }
 
     if (admins.some(admin => admin.provider_id === newAdminId.trim())) {
-        toast({ variant: "destructive", title: "Admin already exists." });
+        toast({ variant: "destructive", title: t.alreadyExists });
         return;
     }
 
@@ -201,12 +207,12 @@ export function AdminsTab() {
       
       setAdmins(prev => [...prev, data as AdminUser]);
       setNewAdminId("");
-      toast({ title: "Admin Added", description: `User ${newAdminId.trim()} has been added. They need to sign in to activate their permissions.` });
+      toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
 
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to add admin",
+        title: t.addError,
         description: error.message,
       });
     } finally {
@@ -221,12 +227,12 @@ export function AdminsTab() {
         if (error) throw error;
 
         setAdmins(prev => prev.filter(admin => admin.id !== adminId));
-        toast({ title: "Admin Removed", description: `User ${providerId} is no longer an admin.`});
+        toast({ title: t.removeSuccess, description: `${t.user} ${providerId} ${t.removeSuccessDesc}`});
 
     } catch (error: any) {
         toast({
         variant: "destructive",
-        title: "Failed to remove admin",
+        title: t.removeError,
         description: error.message,
       });
     } finally {
@@ -241,11 +247,11 @@ export function AdminsTab() {
       if (error) throw error;
       
       setAdmins(prev => prev.map(admin => admin.id === adminId ? data as AdminUser : admin));
-      toast({ title: "Role Updated", description: "Admin role has been successfully updated." });
+      toast({ title: t.roleUpdateSuccess, description: t.roleUpdateSuccessDesc });
     } catch (error: any) {
        toast({
         variant: "destructive",
-        title: "Failed to update role",
+        title: t.roleUpdateError,
         description: error.message,
       });
     } finally {
@@ -270,10 +276,8 @@ export function AdminsTab() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Manage Admins</CardTitle>
-              <CardDescription>
-                Add or remove administrators and assign their roles.
-              </CardDescription>
+              <CardTitle>{t.title}</CardTitle>
+              <CardDescription>{t.description}</CardDescription>
             </div>
              <AddAdminDialog onAdd={fetchAdmins} />
           </div>
@@ -281,20 +285,20 @@ export function AdminsTab() {
         <CardContent className="space-y-6">
           <form onSubmit={handleAddAdmin} className="hidden sm:flex items-center gap-2">
             <Input
-              placeholder="Enter Discord User ID to add admin"
+              placeholder={t.placeholder}
               value={newAdminId}
               onChange={(e) => setNewAdminId(e.target.value)}
               disabled={isSaving}
             />
             <Button type="submit" disabled={isSaving}>
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Admin
+              <PlusCircle className="mr-2 h-4 w-4" /> {t.addAdmin}
             </Button>
           </form>
 
           <div className="space-y-4">
              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium">Current Admins</h3>
+                <h3 className="text-lg font-medium">{t.currentAdmins}</h3>
                 <Button variant="ghost" size="icon" onClick={() => fetchAdmins()} disabled={loading} className="hidden sm:inline-flex">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -308,8 +312,8 @@ export function AdminsTab() {
                                 <AvatarFallback><User /></AvatarFallback>
                             </Avatar>
                             <div>
-                                <p className="font-semibold">{admin.username || `User (Pending Sign-in)`}</p>
-                                <p className="text-sm text-muted-foreground">Discord ID: {admin.provider_id}</p>
+                                <p className="font-semibold">{admin.username || `${t.user} (${t.pendingSignIn})`}</p>
+                                <p className="text-sm text-muted-foreground">{t.discordId}: {admin.provider_id}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -319,12 +323,12 @@ export function AdminsTab() {
                                 disabled={isSaving || admin.provider_id === currentUserProviderId}
                             >
                                 <SelectTrigger className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder="Select a role" />
+                                    <SelectValue placeholder={t.selectRole} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="super_owner">Super Owner</SelectItem>
-                                    <SelectItem value="owner">Owner</SelectItem>
-                                    <SelectItem value="product_adder">Product Adder</SelectItem>
+                                    <SelectItem value="super_owner">{t.roles.super_owner}</SelectItem>
+                                    <SelectItem value="owner">{t.roles.owner}</SelectItem>
+                                    <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
                                 </SelectContent>
                             </Select>
                             <AlertDialog>
@@ -335,15 +339,13 @@ export function AdminsTab() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action will remove admin privileges from this user. They will no longer be able to access the admin panel.
-                                        </AlertDialogDescription>
+                                        <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
+                                        <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
                                         <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id, admin.provider_id)}>
-                                            Continue
+                                            {t.confirm.continue}
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -352,7 +354,7 @@ export function AdminsTab() {
                     </div>
                 ))
             ) : (
-                <p className="text-muted-foreground text-center py-4">No additional admins found.</p>
+                <p className="text-muted-foreground text-center py-4">{t.noAdmins}</p>
             )}
           </div>
         </CardContent>

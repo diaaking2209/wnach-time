@@ -44,6 +44,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 export type OrderItem = {
     product_id: string;
@@ -86,6 +88,9 @@ export function OrdersTab() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].admin.ordersTab;
+
   const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
     Pending: 1,
     Processing: 1,
@@ -114,13 +119,13 @@ export function OrdersTab() {
     } catch (error: any) {
         toast({
             variant: "destructive",
-            title: "Error fetching orders",
+            title: t.loadError,
             description: error.message || "Could not retrieve the list of orders.",
         });
         console.error("Fetch orders error:", error);
     }
     setLoading(false);
-  }, [toast]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchOrders();
@@ -164,16 +169,16 @@ export function OrdersTab() {
         };
 
         let message = '';
-        if(to === 'processing') message = `Your order ${fullOrder.display_id || ''} is now being processed.`;
-        if(to === 'cancelled') message = `Your order ${fullOrder.display_id || ''} has been cancelled.`;
+        if(to === 'processing') message = `${t.notification.processing} ${fullOrder.display_id || ''}.`;
+        if(to === 'cancelled') message = `${t.notification.cancelled} ${fullOrder.display_id || ''}.`;
         
         await createNotification(fullOrder.user_id, orderId, message);
         
-        toast({ title: "Order Status Updated" });
+        toast({ title: t.statusUpdated });
         fetchOrders();
 
     } catch(error: any) {
-         toast({ variant: "destructive", title: "Failed to update status", description: error.message });
+         toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
     }
   }
 
@@ -207,12 +212,12 @@ export function OrdersTab() {
                 <Table>
                     <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[200px] sm:w-[250px]">Customer</TableHead>
-                        <TableHead>Details</TableHead>
-                        <TableHead className="hidden sm:table-cell">Date</TableHead>
-                        {status !== 'Pending' && <TableHead className="hidden lg:table-cell">Modified By</TableHead>}
+                        <TableHead className="w-[200px] sm:w-[250px]">{t.table.customer}</TableHead>
+                        <TableHead>{t.table.details}</TableHead>
+                        <TableHead className="hidden sm:table-cell">{t.table.date}</TableHead>
+                        {status !== 'Pending' && <TableHead className="hidden lg:table-cell">{t.table.modifiedBy}</TableHead>}
                         <TableHead>
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t.table.actions}</span>
                         </TableHead>
                     </TableRow>
                     </TableHeader>
@@ -258,7 +263,7 @@ export function OrdersTab() {
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuLabel>Order Items</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t.actions.items}</DropdownMenuLabel>
                                 {order.items.map(item => (
                                         <DropdownMenuItem key={item.product_id} disabled>
                                             <div className="flex items-center justify-between w-full gap-2">
@@ -271,19 +276,19 @@ export function OrdersTab() {
                                         </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t.actions.title}</DropdownMenuLabel>
                                 
                                 {order.status === 'Pending' && (
                                         <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'pending', 'processing')}>
                                             <Play className="mr-2 h-4 w-4" />
-                                            <span>Start Processing</span>
+                                            <span>{t.actions.process}</span>
                                         </DropdownMenuItem>
                                 )}
 
                                 {order.status === 'Processing' && (
                                         <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
                                             <Send className="mr-2 h-4 w-4" />
-                                            <span>Deliver Order</span>
+                                            <span>{t.actions.deliver}</span>
                                         </DropdownMenuItem>
                                 )}
 
@@ -295,20 +300,18 @@ export function OrdersTab() {
                                                     onSelect={(e) => e.preventDefault()}
                                                 >
                                                     <PackageX className="mr-2 h-4 w-4" />
-                                                    <span>Cancel Order</span>
+                                                    <span>{t.actions.cancel}</span>
                                                 </DropdownMenuItem>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        This action will move the order to 'Cancelled'. This cannot be undone.
-                                                    </AlertDialogDescription>
+                                                    <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
+                                                    <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Close</AlertDialogCancel>
+                                                <AlertDialogFooter className="gap-2">
+                                                    <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => handleMoveOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
-                                                        Confirm Cancellation
+                                                        {t.confirm.continue}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
@@ -323,7 +326,7 @@ export function OrdersTab() {
                     ) : (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-10">
-                                <p className="text-muted-foreground">No {status.toLowerCase()} orders.</p>
+                                <p className="text-muted-foreground">{t.noOrders} {t.statuses[status].toLowerCase()}.</p>
                             </TableCell>
                         </TableRow>
                     )}
@@ -338,10 +341,10 @@ export function OrdersTab() {
                             onClick={() => handlePageChange(status, 'prev')}
                             disabled={currentPage === 1}
                         >
-                            Previous
+                            {t.previous}
                         </Button>
                         <span className="text-sm text-muted-foreground">
-                            Page {currentPage} of {totalPages}
+                            {t.page} {currentPage} / {totalPages}
                         </span>
                         <Button
                              variant="outline"
@@ -349,7 +352,7 @@ export function OrdersTab() {
                             onClick={() => handlePageChange(status, 'next')}
                             disabled={currentPage === totalPages}
                         >
-                            Next
+                            {t.next}
                         </Button>
                     </div>
                 )}
@@ -368,8 +371,8 @@ export function OrdersTab() {
     />
     <Card>
       <CardHeader>
-        <CardTitle>Manage Orders</CardTitle>
-        <CardDescription>View and manage all customer orders, organized by status.</CardDescription>
+        <CardTitle>{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
          <Tabs defaultValue="Pending" className="w-full">
@@ -377,19 +380,19 @@ export function OrdersTab() {
                 <TabsList className="inline-flex h-auto">
                     <TabsTrigger value="Pending">
                         <Hourglass className="mr-2 h-4 w-4" />
-                        <span>Pending</span>
+                        <span>{t.statuses.Pending}</span>
                     </TabsTrigger>
                     <TabsTrigger value="Processing">
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        <span>Processing</span>
+                        <span>{t.statuses.Processing}</span>
                     </TabsTrigger>
                     <TabsTrigger value="Completed">
                         <PackageCheck className="mr-2 h-4 w-4" />
-                        <span>Completed</span>
+                        <span>{t.statuses.Completed}</span>
                     </TabsTrigger>
                     <TabsTrigger value="Cancelled">
                         <PackageX className="mr-2 h-4 w-4" />
-                        <span>Cancelled</span>
+                        <span>{t.statuses.Cancelled}</span>
                     </TabsTrigger>
                 </TabsList>
             </div>

@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Switch } from "../ui/switch";
 import type { Coupon } from "./tabs/coupons-tab";
+import { useLanguage } from "@/context/language-context";
+import { translations } from "@/lib/translations";
 
 interface CouponDialogProps {
   isOpen: boolean;
@@ -33,6 +35,8 @@ export function CouponDialog({ isOpen, setIsOpen, coupon, onSave }: CouponDialog
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.dialogs;
 
   useEffect(() => {
     if (coupon) {
@@ -56,8 +60,8 @@ export function CouponDialog({ isOpen, setIsOpen, coupon, onSave }: CouponDialog
     if (!code || !discount) {
         toast({
             variant: "destructive",
-            title: "Missing required fields",
-            description: "Code and Discount Percentage are required.",
+            title: t.coupons.missingFields,
+            description: t.coupons.missingFieldsDesc,
         });
         setIsSaving(false);
         return;
@@ -86,15 +90,15 @@ export function CouponDialog({ isOpen, setIsOpen, coupon, onSave }: CouponDialog
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error saving coupon",
+        title: t.coupons.errorTitle,
         description: error.message.includes('duplicate key value violates unique constraint "coupons_code_key"')
-            ? "This coupon code already exists. Please use a different one."
+            ? t.coupons.duplicateError
             : error.message,
       });
     } else {
       toast({
-        title: coupon ? "Coupon Updated" : "Coupon Created",
-        description: `The coupon "${couponData.code}" has been saved.`,
+        title: coupon ? t.coupons.updateTitle : t.coupons.createTitle,
+        description: `${t.coupons.successDesc} "${couponData.code}"`,
       });
       onSave();
     }
@@ -105,37 +109,37 @@ export function CouponDialog({ isOpen, setIsOpen, coupon, onSave }: CouponDialog
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{coupon ? "Edit Coupon" : "Add New Coupon"}</DialogTitle>
+            <DialogTitle>{coupon ? t.coupons.editTitle : t.coupons.addTitle}</DialogTitle>
             <DialogDescription>
-              {coupon ? "Edit the details of your coupon." : "Fill in the details for your new coupon."}
+              {coupon ? t.coupons.editDesc : t.coupons.addDesc}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="code" className="text-right">Code</Label>
+              <Label htmlFor="code" className="text-right">{t.coupons.code}</Label>
               <Input id="code" value={code} onChange={(e) => setCode(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="discount" className="text-right">Discount (%)</Label>
-              <Input id="discount" type="number" min="1" max="100" placeholder="e.g. 15" value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" required />
+              <Label htmlFor="discount" className="text-right">{t.coupons.discount}</Label>
+              <Input id="discount" type="number" min="1" max="100" placeholder={t.coupons.discountPlaceholder} value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" required />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="maxUses" className="text-right">Max Uses</Label>
-              <Input id="maxUses" type="number" min="1" placeholder="Leave blank for unlimited" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="col-span-3" />
+              <Label htmlFor="maxUses" className="text-right">{t.coupons.maxUses}</Label>
+              <Input id="maxUses" type="number" min="1" placeholder={t.coupons.maxUsesPlaceholder} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="isActive" className="text-right">Status</Label>
+              <Label htmlFor="isActive" className="text-right">{t.coupons.status}</Label>
               <div className="col-span-3 flex items-center gap-2">
                 <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
-                <span className="text-sm text-muted-foreground">{isActive ? "Active" : "Inactive"}</span>
+                <span className="text-sm text-muted-foreground">{isActive ? t.coupons.active : t.coupons.inactive}</span>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSaving}>{t.coupons.cancel}</Button>
             <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save
+                {t.coupons.save}
             </Button>
           </DialogFooter>
         </form>
