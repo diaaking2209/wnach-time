@@ -21,7 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GUILD_ID = '11403414827686170747'; // Specific guild ID
+const GUILD_ID = '1403414827686170747';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -53,11 +53,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
   
-  const syncUserProfileInfo = useCallback(async (user: User) => {
+  const syncUserProfileInfo = useCallback(async (user: User): Promise<boolean> => {
     const { id, raw_user_meta_data } = user;
-    if (!id || !raw_user_meta_data) return;
+    if (!id || !raw_user_meta_data) return false;
 
-    // Use upsert to prevent race conditions or errors if the profile already exists.
     const { error } = await supabase.from('user_profiles')
       .upsert({
         user_id: id,
@@ -67,7 +66,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     if (error) {
         console.error("Error syncing user profile:", error);
+        return false;
     }
+    return true;
   }, []);
 
 
@@ -75,11 +76,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (isSigningIn) return;
     setIsSigningIn(true);
     try {
-      const {error} = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: { scopes: 'identify email' },
       });
       if(error) throw error;
+      if (data.user) {
+        await syncUserProfileInfo(data.user);
+      }
     } catch (error: any) {
       toast({variant: "destructive", title: "Sign in error", description: error.message});
       console.error("Sign in error", error);
