@@ -7,8 +7,6 @@ import { useToast } from './use-toast';
 
 type UserRole = 'super_owner' | 'owner' | 'product_adder';
 
-const GUILD_ID = "1403414827686170747";
-
 interface AuthContextType {
     session: Session | null;
     user: User | null;
@@ -89,49 +87,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsSigningIn(false);
     }
   };
-  
-  const checkGuildMembership = useCallback(async (): Promise<boolean> => {
-    // This function will now be called directly by actions that need it.
-    // It performs a fresh check every time.
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError || !session?.provider_token) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "Your session seems to be invalid. Please try signing in again." });
-        // IMPORTANT: Do NOT sign out the user here automatically. Let them decide.
+  const checkGuildMembership = useCallback(async (): Promise<boolean> => {
+    if (!user) {
+        return false;
+    }
+    const providerId = user.user_metadata.provider_id;
+    if (!providerId) {
+        return false;
+    }
+
+    const { data, error } = await supabase
+        .from('guild_members')
+        .select('provider_id')
+        .eq('provider_id', providerId)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') { //PGRST116 = no rows found
+        console.error("Error checking guild membership:", error);
         return false;
     }
     
-    try {
-        const response = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
-            headers: { Authorization: `Bearer ${session.provider_token}` },
-        });
-
-        if (response.status === 200) {
-          return true; // User is a member
-        }
-        
-        if (response.status === 404) {
-          return false; // User is not a member
-        }
-
-        // Token expired or revoked. The user needs to sign in again.
-        if (response.status === 401) {
-             toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again to verify your server membership." });
-             return false;
-        }
-        
-        // Handle other potential API errors
-        console.error(`Discord API Error: ${response.status} ${response.statusText}`);
-        toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership due to an API error." });
-        return false;
-
-    } catch (error) {
-        console.error("Network error during guild check:", error);
-        toast({ variant: "destructive", title: "Network Error", description: "Could not connect to Discord to verify membership." });
-        return false;
-    }
-  }, [toast]);
-  
+    return !!data;
+  }, [user]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -160,6 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [checkAdminStatus]);
 
+
   return (
     <AuthContext.Provider value={{ 
         session, 
@@ -184,5 +163,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
