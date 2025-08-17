@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { toast } from "./ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReplyFormProps {
   reviewId: string;
@@ -18,6 +18,7 @@ export function ReplyForm({ reviewId, onReplySubmitted }: ReplyFormProps) {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
