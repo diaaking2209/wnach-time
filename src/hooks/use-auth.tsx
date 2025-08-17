@@ -21,6 +21,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const GUILD_ID = '11403414827686170747'; // Specific guild ID
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -45,7 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsUserAdmin(isAdmin);
     setUserRole(isAdmin ? (data.role as UserRole) : null);
     
-    // Sync user info if they are an admin
     if (isAdmin) {
         const { provider_id, full_name, avatar_url } = user.user_metadata;
         await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
@@ -56,12 +57,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { id, raw_user_meta_data } = user;
     if (!id || !raw_user_meta_data) return;
 
-    await supabase.from('user_profiles')
+    // Use upsert to prevent race conditions or errors if the profile already exists.
+    const { error } = await supabase.from('user_profiles')
       .upsert({
         user_id: id,
         username: raw_user_meta_data.full_name,
         avatar_url: raw_user_meta_data.avatar_url
       }, { onConflict: 'user_id' });
+    
+    if (error) {
+        console.error("Error syncing user profile:", error);
+    }
   }, []);
 
 
@@ -87,19 +93,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast({variant: "destructive", title: "You must be signed in."})
         return false;
     }
-    const providerId = user.user_metadata.provider_id;
-    if (!providerId) {
-        return false;
-    }
-
+    
     const { data, error } = await supabase
         .from('guild_members')
         .select('provider_id')
-        .eq('provider_id', providerId)
+        .eq('provider_id', user.user_metadata.provider_id)
         .single();
     
     if (error && error.code !== 'PGRST116') { //PGRST116 = no rows found
         console.error("Error checking guild membership:", error);
+        toast({ variant: 'destructive', title: 'Error', description: "Could not verify server membership."});
         return false;
     }
     
@@ -110,18 +113,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      setSession(session);
       
       if (currentUser) {
-        await Promise.all([
-          checkAdminStatus(currentUser),
-          syncUserProfileInfo(currentUser),
-        ]);
+        await syncUserProfileInfo(currentUser);
+        await checkAdminStatus(currentUser);
       } else {
         setIsUserAdmin(false);
         setUserRole(null);
       }
+      
+      setUser(currentUser);
+      setSession(session);
       setIsLoading(false);
     });
 
@@ -155,5 +157,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { Label } from "./ui/label";
 
 interface ReviewFormProps {
   productId: string;
@@ -37,22 +38,23 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
         product_id: productId,
         user_id: userId,
         rating: rating,
-        comment: comment,
+        comment: comment || null, // Ensure empty string becomes null
       });
 
     setIsSubmitting(false);
 
     if (submitError) {
       setError(submitError.message);
+      console.error("Review Submission Error:", submitError);
     } else {
       onReviewSubmitted();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border bg-card p-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-2 block text-sm font-medium">Your Rating</label>
+        <Label className="mb-2 block">Your Rating</Label>
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <Star
@@ -71,9 +73,9 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
         </div>
       </div>
       <div>
-        <label htmlFor="comment" className="mb-2 block text-sm font-medium">
+        <Label htmlFor="comment" className="mb-2 block">
           Your Review (Optional)
-        </label>
+        </Label>
         <Textarea
           id="comment"
           value={comment}
@@ -90,5 +92,3 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
     </form>
   );
 }
-
-    

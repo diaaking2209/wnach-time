@@ -17,7 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { ReviewForm } from "@/components/review-form";
 import { StarRating } from "@/components/star-rating";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type ReviewWithProfile = {
@@ -103,11 +103,17 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         const { data: purchaseData, error: purchaseError } = await supabase
           .from('completed_orders')
           .select('id, items')
-          .eq('user_id', user.id)
-          .contains('items', `[{"product_id":"${productId}"}]`);
-        
-        if (purchaseError) console.error("Error checking purchase history:", purchaseError);
-        setHasPurchased(purchaseData && purchaseData.length > 0);
+          .eq('user_id', user.id);
+          
+        if (purchaseError) {
+            console.error("Error checking purchase history:", purchaseError);
+        } else {
+            const hasPurchasedProduct = purchaseData.some(order => 
+                order.items.some((item: any) => item.product_id === productId)
+            );
+            setHasPurchased(hasPurchasedProduct);
+        }
+
 
         const { data: reviewData, error: reviewError } = await supabase
           .from('reviews')
@@ -204,9 +210,28 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const onReviewSubmitted = () => {
     setHasReviewed(true);
     toast({ title: "Review Submitted!", description: "Thank you for your feedback. Your review is pending approval."});
+    // Re-fetch reviews to show the new one if it's auto-approved
+    if(productId) {
+         const fetchNewReviews = async () => {
+            const { data: reviewsData, error: reviewsError } = await supabase
+                .from('reviews')
+                .select(`*, user_profiles (username, avatar_url)`)
+                .eq('product_id', productId)
+                .eq('is_approved', true)
+                .order('created_at', { ascending: false });
+
+            if (reviewsError) {
+                console.error("Error fetching reviews:", reviewsError);
+            } else {
+                setReviews(reviewsData as ReviewWithProfile[]);
+            }
+        }
+        fetchNewReviews();
+    }
   }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
+  const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -229,12 +254,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2">
                     <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
-                    {reviews.length > 0 && (
-                        <div className="mt-2 flex items-center gap-2">
-                            <StarRating rating={reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length} />
-                            <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
-                        </div>
-                    )}
+                     <div className="mt-2 flex items-center gap-2">
+                        <StarRating rating={averageRating} />
+                        <span className="text-sm text-muted-foreground">({reviews.length} reviews)</span>
+                    </div>
+
                     <Separator className="my-6" />
 
                     <div className="flex items-baseline gap-3">
@@ -314,20 +338,26 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  {/* Leave a review */}
                 <div>
-                    <h3 className="text-lg font-semibold mb-4">Leave a review</h3>
-                    {session ? (
-                        hasPurchased ? (
-                            hasReviewed ? (
-                                <Card><CardContent className="p-4 text-center text-muted-foreground">You have already reviewed this product. Thank you!</CardContent></Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Leave a review</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             {session ? (
+                                hasPurchased ? (
+                                    hasReviewed ? (
+                                        <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
+                                    ) : (
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitted} />
+                                    )
+                                ) : (
+                                   <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
+                                )
                             ) : (
-                                <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitted} />
-                            )
-                        ) : (
-                           <Card><CardContent className="p-4 text-center text-muted-foreground">You must purchase this product to leave a review.</CardContent></Card>
-                        )
-                    ) : (
-                        <Card><CardContent className="p-4 text-center text-muted-foreground">Please <Button variant="link" className="p-0 h-auto" onClick={() => {}}>sign in</Button> to leave a review.</CardContent></Card>
-                    )}
+                                <p className="text-center text-muted-foreground">Please sign in to leave a review.</p>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Existing reviews */}
@@ -376,6 +406,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-
-    
