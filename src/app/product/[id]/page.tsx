@@ -30,7 +30,7 @@ type ReviewReply = {
     user_profiles: {
         username: string | null;
         avatar_url: string | null;
-        admins: { role: UserRole }[]
+        admins: { role: UserRole }[] | null;
     } | null;
 }
 
@@ -104,7 +104,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       .select(`
         *, 
         user_profiles (username, avatar_url),
-        review_replies ( *, user_profiles (username, avatar_url, admins(role)) )
+        review_replies ( *, user_profiles!inner(username, avatar_url, admins(role)) )
       `)
       .eq('product_id', productId)
       .eq('is_approved', true)
@@ -113,7 +113,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     if (reviewsError) {
       console.error("Error fetching reviews:", reviewsError);
     } else {
-      // @ts-ignore
       setReviews(reviewsData as ReviewWithProfile[]);
     }
 
