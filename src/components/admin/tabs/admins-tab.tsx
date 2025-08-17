@@ -315,23 +315,9 @@ export function AdminsTab() {
                 admins.map((admin) => {
                     const targetUserLevel = roleHierarchy[admin.role];
 
-                    // Determine if the current user can edit the target user's role.
-                    let canEditRole = false;
-                    if (userRole === 'owner_ship') {
-                        // owner_ship can edit anyone except themselves.
-                        canEditRole = admin.role !== 'owner_ship';
-                    } else if (userRole === 'super_owner') {
-                        // super_owner can only edit roles strictly below them.
-                        canEditRole = targetUserLevel < roleHierarchy.super_owner;
-                    } else if (userRole === 'owner') {
-                        // owner can only edit roles strictly below them.
-                        canEditRole = targetUserLevel < roleHierarchy.owner;
-                    }
-
-                    // Determine if the current user can delete the target user.
-                    // Same logic as editing role.
-                    const canDelete = canEditRole;
-
+                    const canEditRole = currentUserLevel > targetUserLevel;
+                    const canDelete = currentUserLevel > targetUserLevel && admin.role !== 'owner_ship';
+                    const isOwnerShip = admin.role === 'owner_ship';
 
                     return (
                         <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
@@ -349,21 +335,21 @@ export function AdminsTab() {
                                 <Select 
                                     value={admin.role}
                                     onValueChange={(value: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => handleRoleChange(admin.id, value)}
-                                    disabled={isSaving || !canEditRole}
+                                    disabled={isSaving || !canEditRole || isOwnerShip}
                                 >
                                     <SelectTrigger className="w-full sm:w-[180px]">
                                         <SelectValue placeholder={t.selectRole} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="owner_ship" disabled>{t.roles.owner_ship}</SelectItem>
-                                        <SelectItem value="super_owner" disabled={currentUserLevel < roleHierarchy.owner_ship}>{t.roles.super_owner}</SelectItem>
-                                        <SelectItem value="owner" disabled={currentUserLevel < roleHierarchy.super_owner}>{t.roles.owner}</SelectItem>
-                                        <SelectItem value="product_adder" disabled={currentUserLevel < roleHierarchy.owner}>{t.roles.product_adder}</SelectItem>
+                                        <SelectItem value="super_owner" disabled={currentUserLevel <= roleHierarchy.super_owner}>{t.roles.super_owner}</SelectItem>
+                                        <SelectItem value="owner" disabled={currentUserLevel <= roleHierarchy.owner}>{t.roles.owner}</SelectItem>
+                                        <SelectItem value="product_adder" disabled={currentUserLevel <= roleHierarchy.product_adder}>{t.roles.product_adder}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" disabled={isSaving || !canDelete}>
+                                        <Button variant="destructive" size="icon" disabled={isSaving || !canDelete || isOwnerShip}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>
@@ -393,5 +379,3 @@ export function AdminsTab() {
     </div>
   );
 }
-
-    

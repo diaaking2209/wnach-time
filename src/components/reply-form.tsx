@@ -71,4 +71,3 @@ export function ReplyForm({ reviewId, onReplySubmitted }: ReplyFormProps) {
     </form>
   );
 }
-

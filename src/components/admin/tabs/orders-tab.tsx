@@ -308,7 +308,7 @@ export function OrdersTab() {
                                                     <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
                                                     <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
                                                 </AlertDialogHeader>
-                                                <AlertDialogFooter className="gap-2">
+                                                <AlertDialogFooter className="gap-2 sm:flex-row sm:justify-end sm:space-x-2">
                                                     <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => handleMoveOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
                                                         {t.confirm.continue}
