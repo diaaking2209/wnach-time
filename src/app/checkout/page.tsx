@@ -4,42 +4,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, ShoppingCart } from "lucide-react";
-import { ServerGateDialog } from "@/components/server-gate-dialog";
 import { CartPageContent } from "./cart-page-content";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
 
 
 export default function CheckoutPage() {
-    const { session, isLoading: isAuthLoading, checkGuildMembership } = useAuth();
+    const { session, isLoading: isAuthLoading } = useAuth();
     const { language } = useLanguage();
     const t = translations[language];
-    const { toast } = useToast();
 
-    const [isVerifying, setIsVerifying] = useState(true);
-
-    const checkAccess = useCallback(async () => {
-        if (!session) {
-            setIsVerifying(false);
-            return;
-        }
-        setIsVerifying(true);
-        // This check is now only for initial page load, 
-        // the more critical checks are on the action buttons.
-        await checkGuildMembership();
-        setIsVerifying(false);
-    }, [session, checkGuildMembership]);
-
-    useEffect(() => {
-        if (!isAuthLoading) {
-            checkAccess();
-        }
-    }, [isAuthLoading, session, checkAccess]);
-
-    if(isAuthLoading || isVerifying) {
+    if(isAuthLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />

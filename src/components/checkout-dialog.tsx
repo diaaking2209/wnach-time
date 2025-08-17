@@ -126,28 +126,9 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         await placeOrder();
     } else {
         setGateOpen(true);
-        // Do not close the main checkout dialog, just open the gate dialog on top.
-        // Also stop the processing spinner as we wait for user action.
         setIsProcessing(false); 
     }
   };
-  
-  const handleGatePass = async () => {
-    setGateOpen(false); // Close gate dialog
-    setIsProcessing(true);
-    const isMember = await checkGuildMembership(); // Re-check
-    if (isMember) {
-        await placeOrder(); // If now a member, proceed with order
-    } else {
-        setIsProcessing(false); // If still not a member, stop spinner
-        toast({
-            variant: "destructive",
-            title: "Membership Required",
-            description: "You must join the server to complete your purchase.",
-        })
-    }
-  }
-
 
   const handleClose = () => {
     if (isProcessing) return;
@@ -162,7 +143,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
 
   return (
     <>
-    <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={handleGatePass} />
+    <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} />
     <Dialog open={isOpen} onOpenChange={!isProcessing ? handleClose : undefined}>
       <DialogContent className="sm:max-w-md">
         {!isSuccess ? (

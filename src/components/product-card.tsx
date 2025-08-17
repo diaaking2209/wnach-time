@@ -97,38 +97,13 @@ export function ProductCard({ product }: { product: Product }) {
     setIsChecking(false);
   };
   
-  const handleGatePass = async () => {
-    setGateOpen(false); // Close gate dialog
-    setIsChecking(true);
-    const isMember = await checkGuildMembership(); // Re-check
-    if (isMember) {
-        if (product.id) {
-            addToCart({
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                imageUrl: product.imageUrl,
-                quantity: 1,
-            });
-        }
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Membership Required",
-            description: "You must join the server to complete your purchase.",
-        })
-    }
-    setIsChecking(false);
-  }
-
-  
   const priceToDisplay = product.price;
   const isOutOfStock = product.stockStatus === 'Out of Stock';
   const hasDiscount = product.discount && product.discount > 0 && !isOutOfStock;
 
   return (
     <>
-    <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} onGatePass={handleGatePass} />
+    <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} />
     <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg h-full">
       <Card 
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-1 cursor-pointer"

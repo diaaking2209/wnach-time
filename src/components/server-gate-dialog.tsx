@@ -1,10 +1,9 @@
 
 "use client"
 
-import React, { useState } from "react";
+import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Loader2 } from "lucide-react";
 import { DiscordIcon } from "./icons/discord-icon";
 
 const GUILD_INVITE_URL = "https://discord.gg/7up";
@@ -12,25 +11,14 @@ const GUILD_INVITE_URL = "https://discord.gg/7up";
 interface ServerGateDialogProps {
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
-    onGatePass: () => void;
 }
 
-export function ServerGateDialog({ isOpen, setIsOpen, onGatePass }: ServerGateDialogProps) {
-    const [isRechecking, setIsRechecking] = useState(false);
-
-    const handleRecheck = async () => {
-        setIsRechecking(true);
-        // This tells the parent component to re-run the check logic.
-        await onGatePass();
-        setIsRechecking(false);
-        // The parent component is responsible for closing the dialog on success.
-    };
+export function ServerGateDialog({ isOpen, setIsOpen }: ServerGateDialogProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent 
                 className="sm:max-w-md" 
-                onInteractOutside={(e) => e.preventDefault()}
             >
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl">Join Our Server</DialogTitle>
@@ -45,15 +33,9 @@ export function ServerGateDialog({ isOpen, setIsOpen, onGatePass }: ServerGateDi
                             Join Server
                         </a>
                      </Button>
-                      <Button onClick={handleRecheck} disabled={isRechecking} variant="secondary" className="w-full">
-                        {isRechecking ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
-                        I've Joined, Continue
-                    </Button>
                 </div>
                  <DialogFooter className="text-center text-xs text-muted-foreground">
-                    After joining, click "Continue" to proceed.
+                    After joining, try your action again.
                 </DialogFooter>
             </DialogContent>
         </Dialog>
