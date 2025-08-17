@@ -353,6 +353,7 @@ export const translations = {
             roleUpdateError: 'Failed to update role',
             loadError: 'Failed to load admins',
             roles: {
+                owner_ship: 'Owner Ship',
                 super_owner: 'Super Owner',
                 owner: 'Owner',
                 product_adder: 'Product Adder',
@@ -795,6 +796,7 @@ export const translations = {
             roleUpdateError: 'فشل في تحديث الدور',
             loadError: 'فشل في تحميل المسؤولين',
             roles: {
+                owner_ship: 'ملكية',
                 super_owner: 'مالك خارق',
                 owner: 'مالك',
                 product_adder: 'مضيف منتجات',

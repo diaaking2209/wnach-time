@@ -39,11 +39,8 @@ type AdminUser = {
   username: string | null;
   avatar_url: string | null;
   created_at: string;
-  role: 'owner' | 'product_adder' | 'super_owner';
+  role: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship';
 };
-
-// The God Owner's Discord ID, provided by the user. This user cannot be edited or deleted from the UI.
-const GOD_OWNER_PROVIDER_ID = "815920922141392918";
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
@@ -149,7 +146,7 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 
 export function AdminsTab() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.adminsTab;
 
@@ -244,7 +241,7 @@ export function AdminsTab() {
     }
   }
 
-  const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder' | 'super_owner') => {
+  const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => {
     setIsSaving(true);
     try {
       const { data, error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
@@ -271,8 +268,7 @@ export function AdminsTab() {
     );
   }
   
-  const currentUserProviderId = user?.user_metadata?.provider_id;
-  const isGodOwner = currentUserProviderId === GOD_OWNER_PROVIDER_ID;
+  const isUltimateOwner = userRole === 'owner_ship';
 
   return (
     <div className="space-y-8">
@@ -309,10 +305,12 @@ export function AdminsTab() {
             </div>
             {admins.length > 0 ? (
                 admins.map((admin) => {
-                    const isTargetGodOwner = admin.provider_id === GOD_OWNER_PROVIDER_ID;
+                    const isTargetOwnerShip = admin.role === 'owner_ship';
                     const isTargetSuperOwner = admin.role === 'super_owner';
                     
-                    const canEdit = isGodOwner ? !isTargetGodOwner : !isTargetSuperOwner && !isTargetGodOwner;
+                    const canEdit = isUltimateOwner ? !isTargetOwnerShip : !isTargetSuperOwner && !isTargetOwnerShip;
+                    const canDelete = canEdit && admin.provider_id !== user?.user_metadata.provider_id;
+
 
                     return (
                         <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
@@ -329,21 +327,22 @@ export function AdminsTab() {
                             <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <Select 
                                     value={admin.role}
-                                    onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
+                                    onValueChange={(value: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => handleRoleChange(admin.id, value)}
                                     disabled={isSaving || !canEdit}
                                 >
                                     <SelectTrigger className="w-full sm:w-[180px]">
                                         <SelectValue placeholder={t.selectRole} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="super_owner" disabled={!isGodOwner}>{t.roles.super_owner}</SelectItem>
+                                        <SelectItem value="owner_ship" disabled>{t.roles.owner_ship}</SelectItem>
+                                        <SelectItem value="super_owner" disabled={!isUltimateOwner}>{t.roles.super_owner}</SelectItem>
                                         <SelectItem value="owner">{t.roles.owner}</SelectItem>
                                         <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon" disabled={isSaving || !canEdit}>
+                                        <Button variant="destructive" size="icon" disabled={isSaving || !canDelete}>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </AlertDialogTrigger>

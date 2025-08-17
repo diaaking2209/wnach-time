@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { useToast } from './use-toast';
 
-type UserRole = 'super_owner' | 'owner' | 'product_adder';
+type UserRole = 'super_owner' | 'owner' | 'product_adder' | 'owner_ship';
 
 interface AuthContextType {
     session: Session | null;
