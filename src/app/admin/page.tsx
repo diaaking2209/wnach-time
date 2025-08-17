@@ -42,7 +42,8 @@ export default function AdminPage() {
     );
   }
 
-  const isSuperOwner = userRole === 'super_owner';
+  const isOwnerShip = userRole === 'owner_ship';
+  const isSuperOwner = userRole === 'super_owner' || isOwnerShip;
   const isOwner = userRole === 'owner' || isSuperOwner;
 
   const tabs = [
