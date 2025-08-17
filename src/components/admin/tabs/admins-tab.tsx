@@ -268,7 +268,7 @@ export function AdminsTab() {
     );
   }
   
-  const isUltimateOwner = userRole === 'owner_ship';
+  const isOwnerShip = userRole === 'owner_ship';
 
   return (
     <div className="space-y-8">
@@ -308,9 +308,8 @@ export function AdminsTab() {
                     const isTargetOwnerShip = admin.role === 'owner_ship';
                     const isTargetSuperOwner = admin.role === 'super_owner';
                     
-                    const canEdit = isUltimateOwner ? !isTargetOwnerShip : !isTargetSuperOwner && !isTargetOwnerShip;
-                    const canDelete = canEdit && admin.provider_id !== user?.user_metadata.provider_id;
-
+                    const canEditRole = isOwnerShip && !isTargetOwnerShip;
+                    const canDelete = isOwnerShip && !isTargetOwnerShip && admin.provider_id !== user?.user_metadata.provider_id;
 
                     return (
                         <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
@@ -328,14 +327,14 @@ export function AdminsTab() {
                                 <Select 
                                     value={admin.role}
                                     onValueChange={(value: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => handleRoleChange(admin.id, value)}
-                                    disabled={isSaving || !canEdit}
+                                    disabled={isSaving || !canEditRole}
                                 >
                                     <SelectTrigger className="w-full sm:w-[180px]">
                                         <SelectValue placeholder={t.selectRole} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="owner_ship" disabled>{t.roles.owner_ship}</SelectItem>
-                                        <SelectItem value="super_owner" disabled={!isUltimateOwner}>{t.roles.super_owner}</SelectItem>
+                                        <SelectItem value="super_owner" disabled={!isOwnerShip}>{t.roles.super_owner}</SelectItem>
                                         <SelectItem value="owner">{t.roles.owner}</SelectItem>
                                         <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
                                     </SelectContent>
