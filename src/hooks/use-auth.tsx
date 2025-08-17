@@ -91,10 +91,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const checkGuildMembership = useCallback(async (): Promise<boolean> => {
+    // This function will now be called directly by actions that need it.
+    // It performs a fresh check every time.
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
     if (sessionError || !session?.provider_token) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "Could not verify your session. Please sign in again." });
+        toast({ variant: "destructive", title: "Authentication Error", description: "Your session seems to be invalid. Please try signing in again." });
+        // IMPORTANT: Do NOT sign out the user here automatically. Let them decide.
         return false;
     }
     
@@ -111,18 +114,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return false; // User is not a member
         }
 
+        // Token expired or revoked. The user needs to sign in again.
         if (response.status === 401) {
              toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again to verify your server membership." });
              return false;
         }
         
-        // Handle other potential errors without causing crashes
+        // Handle other potential API errors
         console.error(`Discord API Error: ${response.status} ${response.statusText}`);
         toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership due to an API error." });
         return false;
 
     } catch (error) {
-        console.error("Error checking guild membership:", error);
+        console.error("Network error during guild check:", error);
         toast({ variant: "destructive", title: "Network Error", description: "Could not connect to Discord to verify membership." });
         return false;
     }
@@ -180,3 +184,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
