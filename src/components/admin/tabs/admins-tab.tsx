@@ -42,6 +42,9 @@ type AdminUser = {
   role: 'owner' | 'product_adder' | 'super_owner';
 };
 
+// IMPORTANT: Replace this with the actual Discord provider_id of the ultimate owner.
+const GOD_OWNER_PROVIDER_ID = "PUT_YOUR_DISCORD_ID_HERE";
+
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
     const { language } = useLanguage();
@@ -260,7 +263,6 @@ export function AdminsTab() {
     }
   }
 
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -270,6 +272,7 @@ export function AdminsTab() {
   }
   
   const currentUserProviderId = user?.user_metadata?.provider_id;
+  const isGodOwner = currentUserProviderId === GOD_OWNER_PROVIDER_ID;
 
   return (
     <div className="space-y-8">
@@ -305,55 +308,62 @@ export function AdminsTab() {
                 </Button>
             </div>
             {admins.length > 0 ? (
-                admins.map((admin) => (
-                    <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
-                        <div className="flex items-center gap-3">
-                            <Avatar>
-                                <AvatarImage src={admin.avatar_url || undefined} alt={admin.username || 'admin'} />
-                                <AvatarFallback><User /></AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-semibold">{admin.username || `${t.user} (${t.pendingSignIn})`}</p>
-                                <p className="text-sm text-muted-foreground">{t.discordId}: {admin.provider_id}</p>
+                admins.map((admin) => {
+                    const isTargetGodOwner = admin.provider_id === GOD_OWNER_PROVIDER_ID;
+                    const isTargetSuperOwner = admin.role === 'super_owner';
+                    
+                    const canEdit = isGodOwner ? !isTargetGodOwner : !isTargetSuperOwner && !isTargetGodOwner;
+
+                    return (
+                        <div key={admin.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 border rounded-lg bg-background">
+                            <div className="flex items-center gap-3">
+                                <Avatar>
+                                    <AvatarImage src={admin.avatar_url || undefined} alt={admin.username || 'admin'} />
+                                    <AvatarFallback><User /></AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <p className="font-semibold">{admin.username || `${t.user} (${t.pendingSignIn})`}</p>
+                                    <p className="text-sm text-muted-foreground">{t.discordId}: {admin.provider_id}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Select 
+                                    value={admin.role}
+                                    onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
+                                    disabled={isSaving || admin.provider_id === currentUserProviderId || !canEdit}
+                                >
+                                    <SelectTrigger className="w-full sm:w-[180px]">
+                                        <SelectValue placeholder={t.selectRole} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="super_owner" disabled={!isGodOwner}>{t.roles.super_owner}</SelectItem>
+                                        <SelectItem value="owner">{t.roles.owner}</SelectItem>
+                                        <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId || !canEdit}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
+                                            <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id, admin.provider_id)}>
+                                                {t.confirm.continue}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <Select 
-                                value={admin.role}
-                                onValueChange={(value: 'owner' | 'product_adder' | 'super_owner') => handleRoleChange(admin.id, value)}
-                                disabled={isSaving || admin.provider_id === currentUserProviderId || admin.role === 'super_owner'}
-                            >
-                                <SelectTrigger className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder={t.selectRole} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="super_owner">{t.roles.super_owner}</SelectItem>
-                                    <SelectItem value="owner">{t.roles.owner}</SelectItem>
-                                    <SelectItem value="product_adder">{t.roles.product_adder}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" disabled={isSaving || admin.provider_id === currentUserProviderId || admin.role === 'super_owner'}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>{t.confirm.title}</AlertDialogTitle>
-                                        <AlertDialogDescription>{t.confirm.description}</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteAdmin(admin.id, admin.provider_id)}>
-                                            {t.confirm.continue}
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    </div>
-                ))
+                    )
+                })
             ) : (
                 <p className="text-muted-foreground text-center py-4">{t.noAdmins}</p>
             )}
