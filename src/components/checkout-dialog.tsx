@@ -75,6 +75,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const placeOrder = async () => {
      if (!user) return; 
 
+    // This part runs only if the user is a member
     setIsProcessing(true);
     try {
         const orderItemsForJson = cart.map(item => ({
@@ -122,11 +123,12 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const handleConfirmCheckout = async () => {
     setIsProcessing(true);
     const isMember = await checkGuildMembership();
+    setIsProcessing(false); 
+
     if (isMember) {
         await placeOrder();
     } else {
         setGateOpen(true);
-        setIsProcessing(false); 
     }
   };
 

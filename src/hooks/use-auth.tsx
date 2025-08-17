@@ -93,9 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkGuildMembership = useCallback(async (): Promise<boolean> => {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (sessionError || !session?.provider_token || !session.user?.user_metadata?.provider_id) {
-        console.error("Session fetch error, no provider token, or no provider ID.");
-        // Do not sign out here as it causes issues. Let the user sign out manually if needed.
+    if (sessionError || !session?.provider_token) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "Could not verify your session. Please sign in again." });
         return false;
     }
     
@@ -104,26 +103,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             headers: { Authorization: `Bearer ${session.provider_token}` },
         });
 
-        if (response.status === 404) { // Not a member
-          return false;
+        if (response.status === 200) {
+          return true; // User is a member
+        }
+        
+        if (response.status === 404) {
+          return false; // User is not a member
         }
 
-        if (response.status === 401) { // Token expired
-             toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again." });
-             // Don't auto-sign out, let user do it.
+        if (response.status === 401) {
+             toast({ variant: "destructive", title: "Session Expired", description: "Please sign in again to verify your server membership." });
              return false;
         }
         
-        if (!response.ok) { // Other errors
-            throw new Error(`Failed to fetch guild member: ${response.statusText}`);
-        }
-        
-        // If response is ok (200), the user is a member.
-        return true;
+        // Handle other potential errors without causing crashes
+        console.error(`Discord API Error: ${response.status} ${response.statusText}`);
+        toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership due to an API error." });
+        return false;
 
     } catch (error) {
         console.error("Error checking guild membership:", error);
-        toast({ variant: "destructive", title: "Verification Error", description: "Could not verify server membership." });
+        toast({ variant: "destructive", title: "Network Error", description: "Could not connect to Discord to verify membership." });
         return false;
     }
   }, [toast]);
