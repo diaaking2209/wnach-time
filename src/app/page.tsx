@@ -10,7 +10,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { supabase } from "@/lib/supabase";
-import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
+import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
@@ -20,6 +20,8 @@ import Autoplay from "embla-carousel-autoplay"
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type CarouselDeal = {
     title: string;
@@ -218,6 +220,80 @@ function TopProducts() {
     );
 }
 
+type FeaturedReview = {
+  id: string;
+  rating: number;
+  comment: string;
+  products: {
+    name: string;
+  } | null;
+  user_profiles: {
+    username: string;
+    avatar_url: string;
+  } | null;
+};
+
+
+function FeaturedReviews() {
+    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
+    
+    useEffect(() => {
+        const getFeaturedReviews = async () => {
+            const { data, error } = await supabase
+                .from('reviews')
+                .select(`
+                    id,
+                    rating,
+                    comment,
+                    products ( name ),
+                    user_profiles ( username, avatar_url )
+                `)
+                .eq('is_featured', true)
+                .limit(3);
+            
+            if (error) {
+                console.error("Error fetching featured reviews:", error);
+                return;
+            }
+            setReviews(data as FeaturedReview[]);
+        }
+        getFeaturedReviews();
+    }, []);
+
+    if (reviews.length === 0) {
+        return null; // Don't render the section if there are no featured reviews
+    }
+    
+    return (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map(review => (
+                <Card key={review.id} className="bg-card/50">
+                    <CardContent className="p-6">
+                        <div className="flex items-center gap-4 mb-4">
+                            <Avatar className="h-12 w-12">
+                                <AvatarImage src={review.user_profiles?.avatar_url} alt={review.user_profiles?.username || 'user'} />
+                                <AvatarFallback><User /></AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
+                                <p className="text-sm text-muted-foreground">{translations.en.productPage.about} {review.products?.name || ''}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 mb-4">
+                            {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400' : 'text-gray-500'}`} fill="currentColor" />
+                            ))}
+                        </div>
+                        <p className="text-muted-foreground text-sm line-clamp-3">
+                           &quot;{review.comment}&quot;
+                        </p>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    )
+}
+
 export default function HomePage() {
   const { language } = useLanguage();
   const t = translations[language];
@@ -272,6 +348,20 @@ export default function HomePage() {
             <TopProducts />
         </Suspense>
       </section>
+
+       <section className="mb-12">
+        <div className="mb-8 flex items-baseline gap-4">
+            <div className="w-1 bg-primary h-8"></div>
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                    {t.home.featuredReviews}
+                </h2>
+            </div>
+        </div>
+        <Suspense fallback={<TopProductsSkeleton />}>
+            <FeaturedReviews />
+        </Suspense>
+      </section>
       
       <section className="mb-12">
         <div className="relative overflow-hidden rounded-lg bg-card p-8 sm:p-12">
@@ -305,3 +395,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
