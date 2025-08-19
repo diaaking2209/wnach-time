@@ -65,12 +65,13 @@ export function HomePageTab() {
 
 
   const fetchHomePageContent = useCallback(async () => {
+    setLoading(true);
     if (cache.has(CACHE_KEY)) {
-        setData(cache.get(CACHE_KEY));
+        setData(cache.get(CACHE_KEY)!);
         setLoading(false);
         return;
     }
-    setLoading(true);
+    
     try {
       const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
       const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');

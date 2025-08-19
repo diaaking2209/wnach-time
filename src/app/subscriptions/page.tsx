@@ -18,7 +18,7 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     async function getSubscriptionProducts() {
       if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         return;
       }
       
@@ -53,7 +53,7 @@ export default function SubscriptionsPage() {
       setProducts(formattedProducts);
     }
     getSubscriptionProducts();
-  }, [])
+  }, []);
 
 
   return (

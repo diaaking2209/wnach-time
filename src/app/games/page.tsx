@@ -18,7 +18,7 @@ export default function GamesPage() {
   useEffect(() => {
     async function getGameProducts() {
       if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         return;
       }
       
@@ -53,7 +53,7 @@ export default function GamesPage() {
       setProducts(formattedProducts);
     }
     getGameProducts();
-  }, [])
+  }, []);
 
 
   return (

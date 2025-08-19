@@ -167,12 +167,13 @@ export function AdminsTab() {
   const [newAdminId, setNewAdminId] = useState("");
 
   const fetchAdmins = useCallback(async (force = false) => {
+    setLoading(true);
     if (cache.has(CACHE_KEY) && !force) {
-        setAdmins(cache.get(CACHE_KEY));
+        setAdmins(cache.get(CACHE_KEY)!);
         setLoading(false);
         return;
     };
-    setLoading(true);
+    
     try {
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;

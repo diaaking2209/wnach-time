@@ -18,20 +18,20 @@ function SearchResults() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSearchResults = async () => {
+    async function fetchSearchResults() {
       if (!query) {
         setProducts([]);
         setLoading(false);
         return;
       }
       
+      setLoading(true);
       if (cache.has(cacheKey)) {
         setProducts(cache.get(cacheKey)!);
         setLoading(false);
         return;
       }
 
-      setLoading(true);
       try {
         const { data, error } = await supabase
           .from('products')

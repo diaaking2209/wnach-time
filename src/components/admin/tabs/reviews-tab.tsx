@@ -74,12 +74,13 @@ export function ReviewsTab() {
   const t = translations[language].admin.reviewsTab;
   
   const fetchReviews = useCallback(async () => {
+    setLoading(true);
     if (cache.has(CACHE_KEY)) {
-        setReviews(cache.get(CACHE_KEY));
+        setReviews(cache.get(CACHE_KEY)!);
         setLoading(false);
         return;
     }
-    setLoading(true);
+    
     const { data, error } = await supabase
       .from('reviews')
       .select(`

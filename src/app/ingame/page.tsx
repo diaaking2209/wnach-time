@@ -18,7 +18,7 @@ export default function InGamePage() {
   useEffect(() => {
     async function getInGameProducts() {
        if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         return;
        }
 
@@ -53,7 +53,7 @@ export default function InGamePage() {
       setProducts(formattedProducts);
     }
     getInGameProducts();
-  }, [])
+  }, []);
 
 
   return (

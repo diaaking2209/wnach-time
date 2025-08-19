@@ -58,12 +58,13 @@ export function ProductsTab() {
   const t = translations[language].admin.productsTab;
   
   const fetchProducts = useCallback(async () => {
+    setLoading(true);
     if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         setLoading(false);
         return;
     }
-    setLoading(true);
+    
     const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (error) {
       console.error("Error fetching products:", error);

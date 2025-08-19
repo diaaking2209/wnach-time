@@ -49,15 +49,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const t = translations[language];
 
   const fetchProductData = useCallback(async () => {
-    if (!productId) return;
-
+    setLoading(true);
     if (cache.has(cacheKey)) {
         setProductData(cache.get(cacheKey)!);
         setLoading(false);
         return;
     }
-
-    setLoading(true);
 
     try {
         // Fetch product details

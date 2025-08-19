@@ -67,12 +67,13 @@ export function CouponsTab() {
   const t = translations[language].admin.couponsTab;
 
   const fetchCoupons = useCallback(async () => {
+    setLoading(true);
     if (cache.has(CACHE_KEY)) {
-        setCoupons(cache.get(CACHE_KEY));
+        setCoupons(cache.get(CACHE_KEY)!);
         setLoading(false);
         return;
     }
-    setLoading(true);
+    
     const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (error) {
       toast({

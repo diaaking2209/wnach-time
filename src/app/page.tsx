@@ -62,9 +62,9 @@ function HeroCarousel() {
     );
     
     useEffect(() => {
-        const getCarouselDeals = async () => {
+        async function getCarouselDeals() {
             if (cache.has(CACHE_KEY_DEALS)) {
-                setBestDeals(cache.get(CACHE_KEY_DEALS));
+                setBestDeals(cache.get(CACHE_KEY_DEALS)!);
                 return;
             }
             const { data: dealsData, error: dealsError } = await supabase
@@ -186,9 +186,9 @@ function TopProducts() {
     const t = translations[language];
     
     useEffect(() => {
-        const getTopProducts = async () => {
+        async function getTopProducts() {
             if (cache.has(CACHE_KEY_TOP_PRODUCTS)) {
-                setTopProducts(cache.get(CACHE_KEY_TOP_PRODUCTS));
+                setTopProducts(cache.get(CACHE_KEY_TOP_PRODUCTS)!);
                 return;
             }
 
@@ -257,9 +257,9 @@ function FeaturedReviews() {
     const [reviews, setReviews] = useState<FeaturedReview[]>([]);
     
     useEffect(() => {
-        const getFeaturedReviews = async () => {
+        async function getFeaturedReviews() {
             if (cache.has(CACHE_KEY_REVIEWS)) {
-                setReviews(cache.get(CACHE_KEY_REVIEWS));
+                setReviews(cache.get(CACHE_KEY_REVIEWS)!);
                 return;
             }
 

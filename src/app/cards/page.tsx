@@ -18,7 +18,7 @@ export default function CardsPage() {
   useEffect(() => {
     async function getCardProducts() {
       if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         return;
       }
 
@@ -53,7 +53,7 @@ export default function CardsPage() {
       setProducts(formattedProducts);
     }
     getCardProducts();
-  }, [])
+  }, []);
 
 
   return (

@@ -18,7 +18,7 @@ export default function ProgramsPage() {
   useEffect(() => {
     async function getProgramProducts() {
       if (cache.has(CACHE_KEY)) {
-        setProducts(cache.get(CACHE_KEY));
+        setProducts(cache.get(CACHE_KEY)!);
         return;
       }
       
@@ -53,7 +53,7 @@ export default function ProgramsPage() {
       setProducts(formattedProducts);
     }
     getProgramProducts();
-  }, [])
+  }, []);
 
 
   return (
