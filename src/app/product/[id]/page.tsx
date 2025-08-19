@@ -233,18 +233,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         });
     }
   };
-
-  const onActionSuccess = () => {
-    toast({ title: "Success!", description: "Your action was successful."});
-    fetchProductData();
-  }
   
   const onReplySubmitSuccess = (newReply: Reply) => {
     toast({ title: "Reply Posted!", description: "Your reply has been posted successfully."});
     setReviews(currentReviews => {
       return currentReviews.map(review => {
         if (review.id === newReply.review_id) {
-          // Add new reply, ensuring it's an array
           const updatedReplies = review.review_replies ? [...review.review_replies, newReply] : [newReply];
           return {
             ...review,
@@ -375,7 +369,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={fetchProductData} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>

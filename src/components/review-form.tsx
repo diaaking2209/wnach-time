@@ -47,6 +47,7 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
       toast({ variant: "destructive", title: "Error submitting review", description: submitError.message});
       console.error("Review Submission Error:", submitError);
     } else {
+      toast({ title: "Review Submitted!", description: "Thank you for your feedback."});
       onReviewSubmitted();
     }
   };
@@ -91,5 +92,3 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
     </form>
   );
 }
-
-    
