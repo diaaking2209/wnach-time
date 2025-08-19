@@ -104,7 +104,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       .select(`
         id, created_at, rating, comment,
         user_profiles ( username, avatar_url ),
-        review_replies ( id, created_at, comment, user_id, user_profiles ( username, avatar_url, admins!inner ( role ) ) )
+        review_replies ( id, created_at, comment, user_id, user_profiles(username, avatar_url, admins(role)) )
       `)
       .eq('product_id', productId)
       .eq('is_approved', true)
