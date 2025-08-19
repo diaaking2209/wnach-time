@@ -1,3 +1,6 @@
+
+"use client"
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/header';
@@ -6,23 +9,30 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import { CartProvider } from '@/context/cart-context';
 import { LanguageProvider } from '@/context/language-context';
-import { QueryClientProvider } from '@tanstack/react-query';
-import queryClient from '@/lib/cache';
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+import React from 'react';
 
-export const metadata: Metadata = {
-  title: 'Wnash time',
-  description: 'Your one-stop shop for digital games, cards, and more.',
-};
+// export const metadata: Metadata = {
+//   title: 'Wnash time',
+//   description: 'Your one-stop shop for digital games, cards, and more.',
+// };
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [queryClient] = React.useState(() => new QueryClient())
+
   return (
     <LanguageProvider>
       <html lang="en" className="dark">
         <head>
+          <title>Wnash time</title>
+          <meta name="description" content="Your one-stop shop for digital games, cards, and more." />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
