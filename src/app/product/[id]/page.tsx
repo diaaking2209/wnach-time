@@ -99,38 +99,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         };
         setProduct(formattedProduct);
 
-        // Fetch approved reviews for the product
+        // Fetch approved reviews for the product with replies
         const { data: reviewsData, error: reviewsError } = await supabase
-            .from('reviews')
-            .select(`
-                id, created_at, rating, comment,
-                user_profiles ( username, avatar_url )
-            `)
-            .eq('product_id', productId)
-            .eq('is_approved', true)
-            .order('created_at', { ascending: false });
+          .from('reviews')
+          .select(`
+            id, created_at, rating, comment,
+            user_profiles ( username, avatar_url ),
+            review_replies ( *, user_profiles(username, avatar_url) )
+          `)
+          .eq('product_id', productId)
+          .eq('is_approved', true)
+          .order('created_at', { ascending: false });
 
-        if (reviewsError) throw reviewsError;
-        
-        const reviewIds = reviewsData.map(r => r.id);
-        let allReplies: Reply[] = [];
-
-        if(reviewIds.length > 0) {
-             const { data: repliesData, error: repliesError } = await supabase
-                .from('review_replies')
-                .select(`*, user_profiles(username, avatar_url)`)
-                .in('review_id', reviewIds);
-
-            if (repliesError) throw repliesError;
-            allReplies = repliesData as Reply[];
+        if (reviewsError) {
+          console.error('Error fetching reviews and replies:', reviewsError);
+          throw reviewsError;
         }
-        
-        const reviewsWithReplies = reviewsData.map(review => ({
-            ...review,
-            review_replies: allReplies.filter(reply => reply.review_id === review.id)
-        }));
 
-        setReviews(reviewsWithReplies as ReviewWithReplies[]);
+        setReviews(reviewsData as ReviewWithReplies[]);
 
         // Check if logged-in user has purchased and/or reviewed this product
         if(user && session) {
@@ -248,8 +234,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const onReviewSubmitSuccess = () => {
-    toast({ title: "Success!", description: "Your review has been submitted for approval."});
+  const onActionSuccess = () => {
+    toast({ title: "Success!", description: "Your action was successful."});
     fetchProductData();
   }
   
@@ -258,9 +244,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setReviews(currentReviews => {
       return currentReviews.map(review => {
         if (review.id === newReply.review_id) {
+          // Add new reply, ensuring it's an array
+          const updatedReplies = review.review_replies ? [...review.review_replies, newReply] : [newReply];
           return {
             ...review,
-            review_replies: [...review.review_replies, newReply]
+            review_replies: updatedReplies
           };
         }
         return review;
@@ -387,7 +375,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitSuccess} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
@@ -470,5 +458,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
