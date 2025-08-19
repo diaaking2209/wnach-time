@@ -12,7 +12,7 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star, User, ShieldCheck } from "lucide-react";
+import { Loader2, ShoppingCart, Star, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { ReviewForm } from "@/components/review-form";
@@ -235,7 +235,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
               reviews.map(review => (
                 <Card key={review.id} className="p-4 sm:p-6">
                   <div className="flex gap-4">
-                    <Avatar><AvatarImage src={review.user_profiles?.avatar_url ?? undefined} /><AvatarFallback><User className="h-5 w-5" /></AvatarFallback></Avatar>
+                    <Avatar><AvatarImage src={review.user_profiles?.avatar_url ?? undefined} /><AvatarFallback>{review.user_profiles?.username?.charAt(0) ?? 'U'}</AvatarFallback></Avatar>
                     <div className="flex-1">
                       <div className="flex items-center justify-between"><p className="font-semibold">{review.user_profiles?.username ?? 'Anonymous'}</p><StarRating rating={review.rating} /></div>
                       <p className="text-sm text-muted-foreground mt-2 italic">"{review.comment}"</p>
@@ -274,5 +274,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    
 
     
