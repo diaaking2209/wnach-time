@@ -1,25 +1,21 @@
 
 'use client'
 
-import { useEffect, useState, Suspense, useMemo } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
-import { useLanguage } from "@/context/language-context";
-import { translations } from "@/lib/translations";
 import { ScrollToTop } from "@/components/scroll-to-top";
-
-const searchCache = new Map<string, Product[]>();
+import { cache } from "@/lib/cache";
 
 function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q');
   
+  const cacheKey = `search-${query}`;
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { language } = useLanguage();
-  const t = translations[language];
 
   useEffect(() => {
     const fetchSearchResults = async () => {
@@ -29,8 +25,8 @@ function SearchResults() {
         return;
       }
       
-      if (searchCache.has(query)) {
-        setProducts(searchCache.get(query)!);
+      if (cache.has(cacheKey)) {
+        setProducts(cache.get(cacheKey)!);
         setLoading(false);
         return;
       }
@@ -63,7 +59,7 @@ function SearchResults() {
             stockStatus: item.stock_status,
             isActive: item.is_active,
         }));
-        searchCache.set(query, formattedProducts);
+        cache.set(cacheKey, formattedProducts);
         setProducts(formattedProducts);
       } catch (error: any) {
         console.error("Error fetching search results:", error);
@@ -73,7 +69,7 @@ function SearchResults() {
     };
 
     fetchSearchResults();
-  }, [query]);
+  }, [query, cacheKey]);
 
   if (loading) {
     return (
@@ -129,5 +125,3 @@ export default function SearchPage() {
       </div>
     );
   }
-
-    

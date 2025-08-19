@@ -5,20 +5,22 @@ import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
+import { cache } from "@/lib/cache";
 
-let cachedProducts: Product[] | null = null;
+const CACHE_KEY = 'products-cards';
 
 export default function CardsPage() {
-  const [products, setProducts] = useState<Product[]>(cachedProducts || []);
+  const [products, setProducts] = useState<Product[]>(cache.get(CACHE_KEY) || []);
   const { language } = useLanguage();
   const t = translations[language];
 
-  const hasFetched = useMemo(() => !!cachedProducts, []);
-
   useEffect(() => {
     async function getCardProducts() {
-      if (hasFetched) return;
+      if (cache.has(CACHE_KEY)) {
+        setProducts(cache.get(CACHE_KEY));
+        return;
+      }
 
       const { data, error } = await supabase
         .from('products')
@@ -47,11 +49,11 @@ export default function CardsPage() {
         isActive: item.is_active,
       }));
       
-      cachedProducts = formattedProducts;
+      cache.set(CACHE_KEY, formattedProducts);
       setProducts(formattedProducts);
     }
     getCardProducts();
-  }, [hasFetched])
+  }, [])
 
 
   return (

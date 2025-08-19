@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, PlusCircle, User, RefreshCw, MoreHorizontal } from "lucide-react";
@@ -32,6 +32,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
 
 type AdminUser = {
   id: string;
@@ -49,7 +50,7 @@ const roleHierarchy = {
     'product_adder': 1,
 };
 
-let cachedAdmins: AdminUser[] | null = null;
+const CACHE_KEY = "admin-admins";
 
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
@@ -160,21 +161,23 @@ export function AdminsTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.adminsTab;
 
-  const [loading, setLoading] = useState(!cachedAdmins);
-  const [admins, setAdmins] = useState<AdminUser[]>(cachedAdmins || []);
+  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
+  const [admins, setAdmins] = useState<AdminUser[]>(cache.get(CACHE_KEY) || []);
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 
-  const hasFetched = useMemo(() => !!cachedAdmins, []);
-
   const fetchAdmins = useCallback(async (force = false) => {
-    if (hasFetched && !force) return;
+    if (cache.has(CACHE_KEY) && !force) {
+        setAdmins(cache.get(CACHE_KEY));
+        setLoading(false);
+        return;
+    };
     setLoading(true);
     try {
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;
       setAdmins(data as AdminUser[]);
-      cachedAdmins = data as AdminUser[];
+      cache.set(CACHE_KEY, data as AdminUser[]);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -184,14 +187,14 @@ export function AdminsTab() {
     } finally {
       setLoading(false);
     }
-  }, [toast, t, hasFetched]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchAdmins();
   }, [fetchAdmins]);
 
   const handleRefresh = () => {
-    cachedAdmins = null;
+    cache.delete(CACHE_KEY);
     fetchAdmins(true);
   }
 
@@ -225,10 +228,9 @@ export function AdminsTab() {
 
       if (error) throw error;
       
-      setAdmins(prev => [...prev, data as AdminUser]);
-      cachedAdmins = [...admins, data as AdminUser];
       setNewAdminId("");
       toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
+      handleRefresh();
 
     } catch (error: any) {
       toast({
@@ -247,9 +249,8 @@ export function AdminsTab() {
         const { error } = await supabase.from('admins').delete().eq('id', adminId);
         if (error) throw error;
 
-        setAdmins(prev => prev.filter(admin => admin.id !== adminId));
-        cachedAdmins = admins.filter(admin => admin.id !== adminId);
         toast({ title: t.removeSuccess, description: `${t.user} ${providerId} ${t.removeSuccessDesc}`});
+        handleRefresh();
 
     } catch (error: any) {
         toast({
@@ -265,13 +266,11 @@ export function AdminsTab() {
   const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => {
     setIsSaving(true);
     try {
-      const { data, error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
+      const { error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
       if (error) throw error;
       
-      const updatedAdmins = admins.map(admin => admin.id === adminId ? data as AdminUser : admin);
-      setAdmins(updatedAdmins);
-      cachedAdmins = updatedAdmins;
       toast({ title: t.roleUpdateSuccess, description: t.roleUpdateSuccessDesc });
+      handleRefresh();
     } catch (error: any) {
        toast({
         variant: "destructive",
@@ -394,5 +393,3 @@ export function AdminsTab() {
     </div>
   );
 }
-
-    

@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import Autoplay from "embla-carousel-autoplay"
@@ -22,6 +22,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY_DEALS = 'homepage-deals';
+const CACHE_KEY_TOP_PRODUCTS = 'homepage-top-products';
+const CACHE_KEY_REVIEWS = 'homepage-reviews';
 
 type CarouselDeal = {
     title: string;
@@ -38,10 +43,6 @@ const categories = [
     { nameKey: "computerPrograms", icon: Code, href: "/programs" },
 ];
 
-let cachedDeals: CarouselDeal[] | null = null;
-let cachedTopProducts: Product[] | null = null;
-let cachedReviews: FeaturedReview[] | null = null;
-
 function CarouselSkeleton() {
     return (
         <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80 bg-muted/30 flex items-center justify-center">
@@ -51,7 +52,7 @@ function CarouselSkeleton() {
 }
 
 function HeroCarousel() {
-    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>(cachedDeals || []);
+    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>(cache.get(CACHE_KEY_DEALS) || []);
     const { language } = useLanguage();
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
@@ -59,12 +60,13 @@ function HeroCarousel() {
     const plugin = useRef(
         Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
-
-    const hasFetched = useMemo(() => !!cachedDeals, []);
     
     useEffect(() => {
         const getCarouselDeals = async () => {
-            if (hasFetched) return;
+            if (cache.has(CACHE_KEY_DEALS)) {
+                setBestDeals(cache.get(CACHE_KEY_DEALS));
+                return;
+            }
             const { data: dealsData, error: dealsError } = await supabase
                 .from('homepage_carousel')
                 .select('*')
@@ -81,11 +83,11 @@ function HeroCarousel() {
                 aiHint: d.ai_hint,
                 link: d.link,
             }));
-            cachedDeals = fetchedDeals;
+            cache.set(CACHE_KEY_DEALS, fetchedDeals);
             setBestDeals(fetchedDeals);
         }
         getCarouselDeals();
-    }, [language, hasFetched]);
+    }, [language]);
 
      useEffect(() => {
         if (!api) {
@@ -179,14 +181,16 @@ function TopProductsSkeleton() {
 }
 
 function TopProducts() {
-    const [topProducts, setTopProducts] = useState<Product[]>(cachedTopProducts || []);
+    const [topProducts, setTopProducts] = useState<Product[]>(cache.get(CACHE_KEY_TOP_PRODUCTS) || []);
     const { language } = useLanguage();
     const t = translations[language];
-    const hasFetched = useMemo(() => !!cachedTopProducts, []);
     
     useEffect(() => {
         const getTopProducts = async () => {
-            if (hasFetched) return;
+            if (cache.has(CACHE_KEY_TOP_PRODUCTS)) {
+                setTopProducts(cache.get(CACHE_KEY_TOP_PRODUCTS));
+                return;
+            }
 
             const { data: topProductsData, error: topProductsError } = await supabase
                 .from('homepage_top_products')
@@ -216,11 +220,11 @@ function TopProducts() {
                     isActive: item.is_active,
                 }));
             
-            cachedTopProducts = fetchedProducts;
+            cache.set(CACHE_KEY_TOP_PRODUCTS, fetchedProducts);
             setTopProducts(fetchedProducts);
         }
         getTopProducts();
-    }, [language, hasFetched])
+    }, [language])
 
     return topProducts.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
@@ -250,12 +254,14 @@ type FeaturedReview = {
 
 
 function FeaturedReviews() {
-    const [reviews, setReviews] = useState<FeaturedReview[]>(cachedReviews || []);
-    const hasFetched = useMemo(() => !!cachedReviews, []);
+    const [reviews, setReviews] = useState<FeaturedReview[]>(cache.get(CACHE_KEY_REVIEWS) || []);
     
     useEffect(() => {
         const getFeaturedReviews = async () => {
-            if (hasFetched) return;
+            if (cache.has(CACHE_KEY_REVIEWS)) {
+                setReviews(cache.get(CACHE_KEY_REVIEWS));
+                return;
+            }
 
             const { data, error } = await supabase
                 .from('reviews')
@@ -273,11 +279,11 @@ function FeaturedReviews() {
                 console.error("Error fetching featured reviews:", error);
                 return;
             }
-            cachedReviews = data as FeaturedReview[];
+            cache.set(CACHE_KEY_REVIEWS, data as FeaturedReview[]);
             setReviews(data as FeaturedReview[]);
         }
         getFeaturedReviews();
-    }, [hasFetched]);
+    }, []);
 
     if (reviews.length === 0) {
         return null; // Don't render the section if there are no featured reviews
@@ -414,7 +420,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    
-
-    

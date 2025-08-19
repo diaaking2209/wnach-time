@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -44,22 +44,25 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
 
-let cachedProducts: Product[] | null = null;
+const CACHE_KEY = "admin-products";
 
 export function ProductsTab() {
-  const [products, setProducts] = useState<Product[]>(cachedProducts || []);
-  const [loading, setLoading] = useState(!cachedProducts);
+  const [products, setProducts] = useState<Product[]>(cache.get(CACHE_KEY) || []);
+  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.productsTab;
   
-  const hasFetched = useMemo(() => !!cachedProducts, []);
-
   const fetchProducts = useCallback(async () => {
-    if (hasFetched) return;
+    if (cache.has(CACHE_KEY)) {
+        setProducts(cache.get(CACHE_KEY));
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (error) {
@@ -86,10 +89,10 @@ export function ProductsTab() {
         isActive: item.is_active,
       }));
       setProducts(formattedProducts);
-      cachedProducts = formattedProducts;
+      cache.set(CACHE_KEY, formattedProducts);
     }
     setLoading(false);
-  }, [hasFetched, t.loadError, toast]);
+  }, [t.loadError, toast]);
 
   useEffect(() => {
     fetchProducts();
@@ -118,14 +121,14 @@ export function ProductsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      cachedProducts = null; // Invalidate cache
+      cache.delete(CACHE_KEY); // Invalidate cache
       fetchProducts(); // Refresh the list
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    cachedProducts = null; // Invalidate cache
+    cache.delete(CACHE_KEY); // Invalidate cache
     fetchProducts(); // Refresh products after add/edit
   }
 
@@ -273,5 +276,3 @@ export function ProductsTab() {
     </>
   );
 }
-
-    

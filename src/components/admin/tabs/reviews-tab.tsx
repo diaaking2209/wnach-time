@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { MoreHorizontal, Loader2, Trash2, CheckCircle, Star, Sparkles, User } from "lucide-react";
+import { MoreHorizontal, Loader2, Trash2, Star, User } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,7 +25,6 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import {
   AlertDialog,
@@ -45,6 +44,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cache } from "@/lib/cache";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -64,19 +64,21 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
-let cachedReviews: ReviewWithProductAndUser[] | null = null;
+const CACHE_KEY = "admin-reviews";
 
 export function ReviewsTab() {
-  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>(cachedReviews || []);
-  const [loading, setLoading] = useState(!cachedReviews);
+  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>(cache.get(CACHE_KEY) || []);
+  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
   
-  const hasFetched = useMemo(() => !!cachedReviews, []);
-
   const fetchReviews = useCallback(async () => {
-    if (hasFetched) return;
+    if (cache.has(CACHE_KEY)) {
+        setReviews(cache.get(CACHE_KEY));
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     const { data, error } = await supabase
       .from('reviews')
@@ -100,10 +102,10 @@ export function ReviewsTab() {
       });
     } else {
       setReviews(data as ReviewWithProductAndUser[]);
-      cachedReviews = data as ReviewWithProductAndUser[];
+      cache.set(CACHE_KEY, data as ReviewWithProductAndUser[]);
     }
     setLoading(false);
-  }, [toast, t, hasFetched]);
+  }, [toast, t]);
 
   useEffect(() => {
     fetchReviews();
@@ -119,7 +121,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cachedReviews = null;
+      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -134,7 +136,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cachedReviews = null;
+      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -145,7 +147,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      cachedReviews = null;
+      cache.delete(CACHE_KEY);
       fetchReviews(); // Refresh the list
     }
   }
@@ -273,5 +275,3 @@ export function ReviewsTab() {
     </Card>
   );
 }
-
-    

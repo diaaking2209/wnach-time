@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -25,6 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
 
 type CarouselSlide = {
   id: string;
@@ -49,7 +50,7 @@ type HomePageData = {
     discordUrl: string;
 };
 
-let cachedData: HomePageData | null = null;
+const CACHE_KEY = "admin-homepage";
 
 
 export function HomePageTab() {
@@ -57,18 +58,18 @@ export function HomePageTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.homepageTab;
 
-  const [loading, setLoading] = useState(!cachedData);
-  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(cachedData?.slides || []);
-  const [topProducts, setTopProducts] = useState<TopProductLink[]>(cachedData?.topProducts || []);
-  const [allProducts, setAllProducts] = useState<Product[]>(cachedData?.allProducts || []);
-  const [discordUrl, setDiscordUrl] = useState(cachedData?.discordUrl || "");
+  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
+  const [data, setData] = useState<HomePageData | null>(cache.get(CACHE_KEY) || null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
 
-  const hasFetched = useMemo(() => !!cachedData, []);
 
   const fetchHomePageContent = useCallback(async () => {
-    if (hasFetched) return;
+    if (cache.has(CACHE_KEY)) {
+        setData(cache.get(CACHE_KEY));
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     try {
       const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
@@ -88,80 +89,88 @@ export function HomePageTab() {
       if (allProdsError) throw allProdsError;
       if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-      const data: HomePageData = {
+      const fetchedData: HomePageData = {
           slides,
           topProducts: topProds as TopProductLink[],
           allProducts: allProds,
           discordUrl: settingsData?.value || ""
       };
 
-      setCarouselSlides(data.slides);
-      setTopProducts(data.topProducts);
-      setAllProducts(data.allProducts);
-      setDiscordUrl(data.discordUrl);
-      cachedData = data;
+      setData(fetchedData);
+      cache.set(CACHE_KEY, fetchedData);
 
     } catch (error: any) {
       toast({ variant: "destructive", title: t.loadError, description: error.message });
     } finally {
       setLoading(false);
     }
-  }, [hasFetched, t.loadError, toast]);
+  }, [t.loadError, toast]);
 
   useEffect(() => {
     fetchHomePageContent();
   }, [fetchHomePageContent]);
 
   const handleCarouselChange = (id: string, field: keyof CarouselSlide, value: any) => {
-    setCarouselSlides(slides => slides.map(s => s.id === id ? { ...s, [field]: value } : s));
+    if (!data) return;
+    const updatedSlides = data.slides.map(s => s.id === id ? { ...s, [field]: value } : s);
+    setData({...data, slides: updatedSlides });
   };
   
   const handleAddCarouselSlide = async () => {
+    if (!data) return;
     setIsSaving(true);
-    const { data, error } = await supabase.from('homepage_carousel').insert([{ 
+    const { data: newSlide, error } = await supabase.from('homepage_carousel').insert([{ 
         title: "New Slide", 
         image_url: "https://placehold.co/1200x400",
         ai_hint: "placeholder",
         link: "#",
-        sort_order: carouselSlides.length,
+        sort_order: data.slides.length,
     }]).select();
 
     if(error) {
         toast({ variant: "destructive", title: t.addSlideError, description: error.message });
-    } else if(data) {
-        setCarouselSlides(prev => [...prev, data[0]]);
+    } else if(newSlide) {
+        const updatedData = {...data, slides: [...data.slides, newSlide[0]]};
+        setData(updatedData);
+        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.addSlideSuccess });
     }
     setIsSaving(false);
   }
 
   const handleDeleteCarouselSlide = async (id: string) => {
+     if (!data) return;
     setIsSaving(true);
     const { error } = await supabase.from('homepage_carousel').delete().match({ id });
      if(error) {
         toast({ variant: "destructive", title: t.deleteSlideError, description: error.message });
     } else {
-        setCarouselSlides(prev => prev.filter(s => s.id !== id));
+        const updatedData = {...data, slides: data.slides.filter(s => s.id !== id)};
+        setData(updatedData);
+        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.deleteSlideSuccess });
     }
     setIsSaving(false);
   }
 
   const handleAddTopProduct = async (productId: string) => {
-     if(topProducts.some(p => p.product_id === productId)) {
+    if (!data) return;
+    if(data.topProducts.some(p => p.product_id === productId)) {
         toast({ variant: "destructive", title: t.productExistsError });
         return;
     }
     setIsSaving(true);
-    const { data, error } = await supabase.from('homepage_top_products').insert([{
+    const { data: newTopProduct, error } = await supabase.from('homepage_top_products').insert([{
         product_id: productId,
-        sort_order: topProducts.length
+        sort_order: data.topProducts.length
     }]).select('*, products(*)').single();
 
      if(error) {
         toast({ variant: "destructive", title: t.addProductError, description: error.message });
-    } else if(data) {
-        setTopProducts(prev => [...prev, data as TopProductLink]);
+    } else if(newTopProduct) {
+        const updatedData = {...data, topProducts: [...data.topProducts, newTopProduct as TopProductLink]};
+        setData(updatedData);
+        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.addProductSuccess });
     }
     setIsSaving(false);
@@ -169,28 +178,32 @@ export function HomePageTab() {
   }
 
   const handleDeleteTopProduct = async (id: string) => {
+    if (!data) return;
     setIsSaving(true);
     const { error } = await supabase.from('homepage_top_products').delete().match({ id });
     if(error) {
         toast({ variant: "destructive", title: t.removeProductError, description: error.message });
     } else {
-        setTopProducts(prev => prev.filter(p => p.id !== id));
+        const updatedData = {...data, topProducts: data.topProducts.filter(p => p.id !== id)};
+        setData(updatedData);
+        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.removeProductSuccess });
     }
     setIsSaving(false);
   }
 
   const handleSaveAll = async () => {
+    if (!data) return;
     setIsSaving(true);
     try {
-        const carouselUpsert = carouselSlides.map((slide, index) => ({
+        const carouselUpsert = data.slides.map((slide, index) => ({
             ...slide,
             sort_order: index,
         }));
         const { error: carouselError } = await supabase.from('homepage_carousel').upsert(carouselUpsert);
         if (carouselError) throw carouselError;
 
-        const topProductsUpsert = topProducts.map((prod, index) => ({
+        const topProductsUpsert = data.topProducts.map((prod, index) => ({
              id: prod.id,
              product_id: prod.product_id,
              sort_order: index,
@@ -198,10 +211,10 @@ export function HomePageTab() {
         const { error: topProductsError } = await supabase.from('homepage_top_products').upsert(topProductsUpsert);
         if (topProductsError) throw topProductsError;
 
-        const { error: settingsError } = await supabase.from('app_settings').update({ value: discordUrl }).eq('key', 'discord_ticket_url');
+        const { error: settingsError } = await supabase.from('app_settings').update({ value: data.discordUrl }).eq('key', 'discord_ticket_url');
         if (settingsError) throw settingsError;
 
-        cachedData = null; // Invalidate cache
+        cache.set(CACHE_KEY, data); // Update cache with latest saved data
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
     } catch (error: any) {
          toast({ variant: "destructive", title: t.saveError, description: error.message });
@@ -210,8 +223,13 @@ export function HomePageTab() {
     }
   }
 
+  const handleDiscordUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!data) return;
+    setData({ ...data, discordUrl: e.target.value });
+  };
 
-  if (loading) {
+
+  if (loading || !data) {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -227,7 +245,7 @@ export function HomePageTab() {
           <CardDescription>{t.carousel.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            {carouselSlides.map(slide => (
+            {data.slides.map(slide => (
                 <div key={slide.id} className="flex items-start gap-4 p-3 border rounded-lg bg-background">
                     <GripVertical className="h-5 w-5 mt-2 text-muted-foreground cursor-grab" />
                     <div className="flex-grow space-y-2">
@@ -271,7 +289,7 @@ export function HomePageTab() {
           <CardDescription>{t.topProducts.description}</CardDescription>
         </CardHeader>
          <CardContent className="space-y-4">
-            {topProducts.map(p => (
+            {data.topProducts.map(p => (
                 <div key={p.id} className="flex items-center gap-4 p-3 border rounded-lg bg-background">
                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                      <p className="flex-grow font-medium">{p.products?.name ?? t.topProducts.notFound}</p>
@@ -293,7 +311,7 @@ export function HomePageTab() {
                 </DialogHeader>
                 <div className="max-h-[60vh] overflow-y-auto">
                    <ul className="space-y-1">
-                        {allProducts.map(prod => (
+                        {data.allProducts.map(prod => (
                             <li key={prod.id} 
                                 className="p-2 rounded-md hover:bg-muted cursor-pointer"
                                 onClick={() => handleAddTopProduct(prod.id!)}
@@ -319,8 +337,8 @@ export function HomePageTab() {
                 <Label htmlFor="discordUrl">{t.settings.discordUrlLabel}</Label>
                 <Input 
                     id="discordUrl"
-                    value={discordUrl}
-                    onChange={(e) => setDiscordUrl(e.target.value)}
+                    value={data.discordUrl}
+                    onChange={handleDiscordUrlChange}
                     placeholder="https://discord.com/channels/..."
                 />
                 <p className="text-sm text-muted-foreground">
@@ -339,5 +357,3 @@ export function HomePageTab() {
     </div>
   );
 }
-
-    

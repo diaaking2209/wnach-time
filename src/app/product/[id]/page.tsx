@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cache } from "@/lib/cache";
 
 type ReviewWithUser = {
     id: string;
@@ -35,10 +36,11 @@ type ProductData = {
   relatedProducts: Product[];
 }
 
-const productCache = new Map<string, ProductData>();
-
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const [productData, setProductData] = useState<ProductData | null>(productCache.get(params.id) || null);
+  const productId = params.id;
+  const cacheKey = `product-${productId}`;
+
+  const [productData, setProductData] = useState<ProductData | null>(cache.get(cacheKey) || null);
   const [loading, setLoading] = useState(!productData);
   const [quantity, setQuantity] = useState(1);
   
@@ -46,13 +48,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { language } = useLanguage();
   const t = translations[language];
 
-  const productId = params.id;
-
   const fetchProductData = useCallback(async () => {
     if (!productId) return;
 
-    if (productCache.has(productId)) {
-        setProductData(productCache.get(productId)!);
+    if (cache.has(cacheKey)) {
+        setProductData(cache.get(cacheKey)!);
         setLoading(false);
         return;
     }
@@ -122,7 +122,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           relatedProducts: formattedRelated,
         };
 
-        productCache.set(productId, finalData);
+        cache.set(cacheKey, finalData);
         setProductData(finalData);
 
     } catch(err: any) {
@@ -133,7 +133,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     } finally {
         setLoading(false);
     }
-  }, [productId]);
+  }, [productId, cacheKey]);
 
 
   useEffect(() => {
@@ -141,14 +141,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [fetchProductData]);
   
   const onReviewSubmitted = () => {
-    productCache.delete(productId);
+    cache.delete(cacheKey); // Invalidate cache for this product
     fetchProductData();
   };
 
   if (loading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-  if (!productData) notFound();
+  if (!productData) return notFound();
 
   const { product, reviews, relatedProducts } = productData;
 
@@ -263,5 +263,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
