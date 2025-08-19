@@ -34,7 +34,7 @@ export type Reply = {
     } | null;
 }
 
-type ReviewWithReplies = {
+export type ReviewWithReplies = {
     id: string;
     created_at: string;
     rating: number;
@@ -104,7 +104,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         .from('reviews')
         .select(`
             id, created_at, rating, comment,
-            user_profiles ( username, avatar_url )
+            user_profiles ( username, avatar_url ),
+            review_replies ( id, created_at, comment, user_id, user_profiles(username, avatar_url) )
         `)
         .eq('product_id', productId)
         .eq('is_approved', true)
@@ -113,28 +114,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     if (reviewsError) {
         console.error("Error fetching reviews:", reviewsError);
     } else if (reviewsData) {
-        const reviewIds = reviewsData.map(r => r.id);
-
-        // Fetch all replies for those reviews in a separate query
-        const { data: repliesData, error: repliesError } = await supabase
-            .from('review_replies')
-            .select(`*, user_profiles (username, avatar_url)`)
-            .in('review_id', reviewIds);
-
-        if (repliesError) {
-            console.error("Error fetching replies:", repliesError);
-        }
-
-        // Map replies to their corresponding reviews
-        const reviewsWithReplies = reviewsData.map(review => {
-            const repliesForReview = repliesData ? repliesData.filter(reply => reply.review_id === review.id) : [];
-            return {
-                ...review,
-                review_replies: repliesForReview as Reply[],
-            };
-        });
-        
-        setReviews(reviewsWithReplies as ReviewWithReplies[]);
+        setReviews(reviewsData as ReviewWithReplies[]);
     }
 
 
@@ -248,8 +228,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const onReviewSubmitSuccess = () => {
-    toast({ title: "Review Submitted!", description: "Thank you for your feedback."});
+  const onActionSuccess = () => {
+    toast({ title: "Success!", description: "Your action was completed successfully."});
     fetchProductData();
   }
   
@@ -258,6 +238,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setReviews(currentReviews => {
       return currentReviews.map(review => {
         if (review.id === newReply.review_id) {
+          // Add the new reply to the specific review
           return {
             ...review,
             review_replies: [...review.review_replies, newReply]
@@ -271,7 +252,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const isOutOfStock = product.stockStatus === 'Out of Stock';
   const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
   
-  // Define which roles are allowed to reply.
   const canReply = userRole === 'owner' || userRole === 'super_owner' || userRole === 'owner_ship';
 
 
@@ -388,7 +368,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitSuccess} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
