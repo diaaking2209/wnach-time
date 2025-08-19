@@ -20,8 +20,6 @@ export const translations = {
         discordDescription: 'Be part of our Discord server to get exclusive deals, support, and connect with other gamers.',
         joinDiscord: 'Join Discord',
         featuredReviews: "What Our Customers Say",
-        reviewsDescription: "Check out some of our best reviews",
-        reviewFor: "for"
     },
     categories: {
         games: 'Games',
@@ -57,7 +55,8 @@ export const translations = {
     },
     productPage: {
         about: 'About the Product',
-        relatedProducts: 'Related Products'
+        relatedProducts: 'Related Products',
+        noReviews: 'No reviews for this product yet.'
     },
     footer: {
         description: 'A digital store that provides games, cards, subscriptions, and digital software.',
@@ -254,7 +253,7 @@ export const translations = {
                 actions: 'Actions',
             },
             confirm: {
-                title: 'Are you absolutely sure?',
+                title: 'Are you sure?',
                 description: 'This will permanently delete this review.',
                 cancel: 'Cancel',
                 continue: 'Continue',
@@ -463,8 +462,6 @@ export const translations = {
         discordDescription: 'كن جزءًا من سيرفر ديسكورد الخاص بنا للحصول على عروض حصرية ودعم والتواصل مع لاعبين آخرين.',
         joinDiscord: 'انضم إلى ديسكورد',
         featuredReviews: "ماذا يقول عملاؤنا",
-        reviewsDescription: "اطلع على بعض أفضل تقييماتنا",
-        reviewFor: "لـ"
     },
     categories: {
         games: 'الألعاب',
@@ -500,7 +497,8 @@ export const translations = {
     },
     productPage: {
         about: 'عن المنتج',
-        relatedProducts: 'منتجات ذات صلة'
+        relatedProducts: 'منتجات ذات صلة',
+        noReviews: 'لا توجد تقييمات لهذا المنتج بعد.'
     },
     footer: {
         description: 'متجر رقمي يوفر الألعاب والبطاقات والاشتراكات والبرامج الرقمية.',
@@ -697,7 +695,7 @@ export const translations = {
                 actions: 'الإجراءات',
             },
             confirm: {
-                title: 'هل أنت متأكد تمامًا؟',
+                title: 'هل أنت متأكد؟',
                 description: 'سيؤدي هذا إلى حذف هذه المراجعة بشكل دائم.',
                 cancel: 'إلغاء',
                 continue: 'متابعة',

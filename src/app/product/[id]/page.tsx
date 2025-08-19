@@ -14,17 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, ShoppingCart, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
-
-type Review = {
-    id: string;
-    rating: number;
-    comment: string;
-    created_at: string;
-    user_profiles: {
-        username: string;
-        avatar_url: string;
-    } | null;
-};
+import { ReviewForm } from "@/components/review-form";
+import type { Review } from "@/components/review-form";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -65,6 +56,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 rating,
                 comment,
                 created_at,
+                is_featured,
                 user_profiles (
                     username,
                     avatar_url
@@ -72,11 +64,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             `)
             .eq('product_id', productId)
             .eq('is_approved', true)
+            .order('is_featured', { ascending: false })
             .order('created_at', { ascending: false });
 
         if (reviewsError) {
             console.error("Error fetching reviews:", reviewsError);
-            // Don't block page load if reviews fail. An empty array is fine.
         } else {
             setReviews(reviewsData as Review[]);
         }
@@ -105,6 +97,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
     fetchRelatedProducts();
   }, [product])
+  
+  const onReviewSubmitted = (newReview: Review) => {
+    // Optimistically add the review to the list, assuming it will be approved.
+    // Or simply refetch all reviews to show the new one after approval.
+    // For now, let's refetch to keep it simple.
+    fetchProductData();
+  };
 
   if (loading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
@@ -173,36 +172,40 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <div className="prose prose-sm max-w-none rounded-lg bg-card p-6 text-muted-foreground dark:prose-invert"><p className="whitespace-pre-wrap" dir="auto">{product.description || "No description available."}</p></div>
       </div>
       
-      <div className="mt-12">
+       <div className="mt-12">
          <div className="mb-4 flex items-baseline gap-4"><div className="h-8 w-1 bg-primary"></div><h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t.home.featuredReviews}</h2></div>
-         {reviews.length > 0 ? (
-            <div className="space-y-6">
-                {reviews.map(review => (
-                     <Card key={review.id} className="p-6 bg-card border-border/60">
-                        <div className="flex items-start gap-4">
-                             <div className="flex-shrink-0">
-                                {review.user_profiles?.avatar_url && (
-                                    <Image src={review.user_profiles.avatar_url} alt={review.user_profiles.username} width={40} height={40} className="rounded-full" />
-                                )}
-                            </div>
-                            <div className="flex-grow">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
-                                    <div className="flex items-center gap-1">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-400'}`} fill="currentColor" />
-                                        ))}
-                                    </div>
+         <div className="space-y-8">
+            <ReviewForm productId={product.id!} onReviewSubmitted={onReviewSubmitted} />
+            
+            {reviews.length > 0 ? (
+                <div className="space-y-6">
+                    {reviews.map(review => (
+                        <Card key={review.id} className="p-6 bg-card border-border/60">
+                            <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                    {review.user_profiles?.avatar_url && (
+                                        <Image src={review.user_profiles.avatar_url} alt={review.user_profiles.username || 'user'} width={40} height={40} className="rounded-full" />
+                                    )}
                                 </div>
-                                <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+                                <div className="flex-grow">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
+                                        <div className="flex items-center gap-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-400'}`} fill="currentColor" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+                                </div>
                             </div>
-                        </div>
-                    </Card>
-                ))}
-            </div>
-         ) : (
-            <p className="text-muted-foreground">No reviews for this product yet.</p>
-         )}
+                        </Card>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-muted-foreground text-center py-6">{t.productPage.noReviews}</p>
+            )}
+         </div>
       </div>
 
 
@@ -217,5 +220,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
