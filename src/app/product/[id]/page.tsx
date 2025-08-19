@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ReplyForm } from "@/components/reply-form";
 import { AdminBadge } from "@/components/admin-badge";
 
-type Reply = {
+export type Reply = {
     id: string;
     created_at: string;
     comment: string;
@@ -248,9 +248,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const onActionSuccess = () => {
-    toast({ title: "Success!", description: "Your changes have been saved."});
+  const onReviewSubmitSuccess = () => {
+    toast({ title: "Review Submitted!", description: "Thank you for your feedback."});
     fetchProductData();
+  }
+  
+  const onReplySubmitSuccess = (newReply: Reply) => {
+    toast({ title: "Reply Posted!", description: "Your reply has been posted successfully."});
+    setReviews(currentReviews => {
+      return currentReviews.map(review => {
+        if (review.id === newReply.review_id) {
+          return {
+            ...review,
+            review_replies: [...review.review_replies, newReply]
+          };
+        }
+        return review;
+      });
+    });
   }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
@@ -373,7 +388,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitSuccess} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
@@ -421,7 +436,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                 )}
                                 {canReply && review.review_replies.length === 0 && (
                                      <div className="mt-4 pl-10">
-                                        <ReplyForm reviewId={review.id} userId={user!.id} onReplySubmitted={onActionSuccess} />
+                                        <ReplyForm reviewId={review.id} userId={user!.id} onReplySubmitted={onReplySubmitSuccess} />
                                     </div>
                                 )}
                             </Card>
@@ -456,5 +471,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
