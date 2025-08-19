@@ -50,31 +50,31 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setLoading(true);
     try {
         // Fetch product details
-        const { data: productData, error: productError } = await supabase
+        const { data: productResult, error: productError } = await supabase
           .from('products')
           .select('*')
           .eq('id', productId)
           .single();
         
-        if (productError || !productData) {
+        if (productError || !productResult) {
           console.error("Error fetching product:", productError);
           throw new Error("Product not found");
         }
         
         const formattedProduct: Product = {
-            id: productData.id,
-            name: productData.name,
-            price: productData.price,
-            originalPrice: productData.original_price,
-            discount: productData.discount,
-            platforms: productData.platforms || [],
-            tags: productData.tags || [],
-            imageUrl: productData.image_url,
-            bannerUrl: productData.banner_url,
-            description: productData.description,
-            category: productData.category,
-            stockStatus: productData.stock_status,
-            isActive: productData.is_active,
+            id: productResult.id,
+            name: productResult.name,
+            price: productResult.price,
+            originalPrice: productResult.original_price,
+            discount: productResult.discount,
+            platforms: productResult.platforms || [],
+            tags: productResult.tags || [],
+            imageUrl: productResult.image_url,
+            bannerUrl: productResult.banner_url,
+            description: productResult.description,
+            category: productResult.category,
+            stockStatus: productResult.stock_status,
+            isActive: productResult.is_active,
         };
 
         const { data: reviewsData, error: reviewsError } = await supabase
