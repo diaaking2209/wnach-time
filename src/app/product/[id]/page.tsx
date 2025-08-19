@@ -58,7 +58,9 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session, isUserAdmin } = useAuth();
+  const { user, session, userRole } = useAuth();
+  const isUserAdmin = userRole === 'owner' || userRole === 'super_owner' || userRole === 'owner_ship';
+
 
   const productId = params.id;
 
@@ -429,3 +431,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    
