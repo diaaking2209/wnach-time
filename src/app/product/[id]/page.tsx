@@ -99,45 +99,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         };
         setProduct(formattedProduct);
 
-        // Fetch approved reviews for the product
+        // Fetch approved reviews for the product, with their replies and user profiles.
         const { data: reviewsData, error: reviewsError } = await supabase
-          .from('reviews')
-          .select(`
-            id, created_at, rating, comment,
-            user_profiles ( username, avatar_url )
-          `)
-          .eq('product_id', productId)
-          .eq('is_approved', true)
-          .order('created_at', { ascending: false });
+            .from('reviews')
+            .select(`
+                id, created_at, rating, comment,
+                user_profiles ( username, avatar_url ),
+                review_replies ( *, user_profiles (username, avatar_url) )
+            `)
+            .eq('product_id', productId)
+            .eq('is_approved', true)
+            .order('created_at', { ascending: false });
 
         if (reviewsError) {
-          console.error('Error fetching reviews:', reviewsError);
+          console.error('Error fetching reviews and replies:', reviewsError);
           throw reviewsError;
         }
         
-        // Fetch replies for the fetched reviews
-        if (reviewsData.length > 0) {
-            const reviewIds = reviewsData.map(r => r.id);
-            const { data: repliesData, error: repliesError } = await supabase
-              .from('review_replies')
-              .select(`*, user_profiles(username, avatar_url)`)
-              .in('review_id', reviewIds);
-
-            if (repliesError) {
-              console.error('Error fetching replies:', repliesError);
-              throw repliesError;
-            }
-
-            // Map replies to their respective reviews
-            const reviewsWithReplies = reviewsData.map(review => ({
-                ...review,
-                review_replies: repliesData.filter(reply => reply.review_id === review.id) as Reply[],
-            }));
-            setReviews(reviewsWithReplies as ReviewWithReplies[]);
-        } else {
-            setReviews([]);
-        }
-
+        setReviews(reviewsData as ReviewWithReplies[]);
 
         // Check if logged-in user has purchased and/or reviewed this product
         if(user && session) {
@@ -260,10 +239,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setReviews(currentReviews => {
       return currentReviews.map(review => {
         if (review.id === newReply.review_id) {
-          // Since we only allow one reply, we replace the replies array.
+          // Add the new reply to the existing replies array.
           return {
             ...review,
-            review_replies: [newReply] 
+            review_replies: [...review.review_replies, newReply] 
           };
         }
         return review;
@@ -473,3 +452,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+
+    
