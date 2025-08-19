@@ -68,84 +68,104 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     if (!productId) return;
 
     setLoading(true);
-    
-    // Fetch product details
-    const { data: productData, error: productError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single();
-    
-    if (productError || !productData) {
-      console.error("Error fetching product:", productError);
-      setLoading(false);
-      return notFound();
-    }
 
-    const formattedProduct: Product = {
-        id: productData.id,
-        name: productData.name,
-        price: productData.price,
-        originalPrice: productData.original_price,
-        discount: productData.discount,
-        platforms: productData.platforms || [],
-        tags: productData.tags || [],
-        imageUrl: productData.image_url,
-        bannerUrl: productData.banner_url,
-        description: productData.description,
-        category: productData.category,
-        stockStatus: productData.stock_status,
-        isActive: productData.is_active,
-    };
-    setProduct(formattedProduct);
-
-    // Fetch approved reviews for the product
-    const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select(`
-            id, created_at, rating, comment,
-            user_profiles ( username, avatar_url ),
-            review_replies ( id, created_at, comment, user_id, user_profiles(username, avatar_url) )
-        `)
-        .eq('product_id', productId)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false });
-
-    if (reviewsError) {
-        console.error("Error fetching reviews:", reviewsError);
-    } else if (reviewsData) {
-        setReviews(reviewsData as ReviewWithReplies[]);
-    }
-
-
-    // Check if logged-in user has purchased and/or reviewed this product
-    if(user && session) {
-      const { data: purchaseData, error: purchaseError } = await supabase
-        .from('completed_orders')
-        .select('id, items')
-        .eq('user_id', user.id);
+    try {
+        // Fetch product details
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
         
-      if (purchaseError) {
-          console.error("Error checking purchase history:", purchaseError);
-      } else {
-          const hasPurchasedProduct = purchaseData.some(order => 
-              order.items.some((item: any) => item.product_id === productId)
-          );
-          setHasPurchased(hasPurchasedProduct);
-      }
+        if (productError || !productData) {
+          console.error("Error fetching product:", productError);
+          throw new Error("Product not found");
+        }
 
-      const { data: reviewData, error: reviewError } = await supabase
-        .from('reviews')
-        .select('id')
-        .eq('product_id', productId)
-        .eq('user_id', user.id)
-        .limit(1);
+        const formattedProduct: Product = {
+            id: productData.id,
+            name: productData.name,
+            price: productData.price,
+            originalPrice: productData.original_price,
+            discount: productData.discount,
+            platforms: productData.platforms || [],
+            tags: productData.tags || [],
+            imageUrl: productData.image_url,
+            bannerUrl: productData.banner_url,
+            description: productData.description,
+            category: productData.category,
+            stockStatus: productData.stock_status,
+            isActive: productData.is_active,
+        };
+        setProduct(formattedProduct);
+
+        // Fetch approved reviews for the product
+        const { data: reviewsData, error: reviewsError } = await supabase
+            .from('reviews')
+            .select(`
+                id, created_at, rating, comment,
+                user_profiles ( username, avatar_url )
+            `)
+            .eq('product_id', productId)
+            .eq('is_approved', true)
+            .order('created_at', { ascending: false });
+
+        if (reviewsError) throw reviewsError;
         
-      if (reviewError) console.error("Error checking review history:", reviewError);
-      setHasReviewed(reviewData && reviewData.length > 0);
-    }
+        const reviewIds = reviewsData.map(r => r.id);
+        let allReplies: Reply[] = [];
 
-    setLoading(false);
+        if(reviewIds.length > 0) {
+             const { data: repliesData, error: repliesError } = await supabase
+                .from('review_replies')
+                .select(`*, user_profiles(username, avatar_url)`)
+                .in('review_id', reviewIds);
+
+            if (repliesError) throw repliesError;
+            allReplies = repliesData as Reply[];
+        }
+        
+        const reviewsWithReplies = reviewsData.map(review => ({
+            ...review,
+            review_replies: allReplies.filter(reply => reply.review_id === review.id)
+        }));
+
+        setReviews(reviewsWithReplies as ReviewWithReplies[]);
+
+        // Check if logged-in user has purchased and/or reviewed this product
+        if(user && session) {
+          const { data: purchaseData, error: purchaseError } = await supabase
+            .from('completed_orders')
+            .select('id, items')
+            .eq('user_id', user.id);
+            
+          if (purchaseError) {
+              console.error("Error checking purchase history:", purchaseError);
+          } else {
+              const hasPurchasedProduct = purchaseData.some(order => 
+                  order.items.some((item: any) => item.product_id === productId)
+              );
+              setHasPurchased(hasPurchasedProduct);
+          }
+
+          const { data: reviewData, error: reviewError } = await supabase
+            .from('reviews')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('user_id', user.id)
+            .limit(1);
+            
+          if (reviewError) console.error("Error checking review history:", reviewError);
+          setHasReviewed(reviewData && reviewData.length > 0);
+        }
+    } catch(err: any) {
+        console.error("Error in fetchProductData:", err);
+        if(err.message === "Product not found") {
+            return notFound();
+        }
+    } finally {
+        setLoading(false);
+    }
   }, [productId, user, session]);
 
 
@@ -228,8 +248,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const onActionSuccess = () => {
-    toast({ title: "Success!", description: "Your action was completed successfully."});
+  const onReviewSubmitSuccess = () => {
+    toast({ title: "Success!", description: "Your review has been submitted for approval."});
     fetchProductData();
   }
   
@@ -238,7 +258,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     setReviews(currentReviews => {
       return currentReviews.map(review => {
         if (review.id === newReply.review_id) {
-          // Add the new reply to the specific review
           return {
             ...review,
             review_replies: [...review.review_replies, newReply]
@@ -368,7 +387,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitSuccess} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
@@ -451,3 +470,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    

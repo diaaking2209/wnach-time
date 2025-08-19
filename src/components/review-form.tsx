@@ -9,6 +9,7 @@ import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { Label } from "./ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReviewFormProps {
   productId: string;
@@ -21,15 +22,14 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) {
-      setError("Please select a rating.");
+      toast({ variant: "destructive", title: "Please select a rating."});
       return;
     }
-    setError(null);
     setIsSubmitting(true);
 
     const { error: submitError } = await supabase
@@ -38,13 +38,13 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
         product_id: productId,
         user_id: userId,
         rating: rating,
-        comment: comment || null, // Ensure empty string becomes null
+        comment: comment || null,
       });
 
     setIsSubmitting(false);
 
     if (submitError) {
-      setError(submitError.message);
+      toast({ variant: "destructive", title: "Error submitting review", description: submitError.message});
       console.error("Review Submission Error:", submitError);
     } else {
       onReviewSubmitted();
@@ -84,7 +84,6 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
           rows={4}
         />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" disabled={isSubmitting || rating === 0}>
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Submit Review
@@ -92,3 +91,5 @@ export function ReviewForm({ productId, userId, onReviewSubmitted }: ReviewFormP
     </form>
   );
 }
+
+    
