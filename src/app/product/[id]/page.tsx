@@ -11,10 +11,10 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, ShoppingCart, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 
-// Simplified Review type without replies
 type Review = {
     id: string;
     rating: number;
@@ -57,7 +57,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         }
         setProduct(productData);
 
-        // Fetch approved reviews for the product
+        // Fetch approved reviews for the product with user profiles
         const { data: reviewsData, error: reviewsError } = await supabase
             .from('reviews')
             .select(`
@@ -76,7 +76,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
         if (reviewsError) {
             console.error("Error fetching reviews:", reviewsError);
-            // Don't block page load if reviews fail
+            // Don't block page load if reviews fail. An empty array is fine.
         } else {
             setReviews(reviewsData as Review[]);
         }
@@ -173,23 +173,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         <div className="prose prose-sm max-w-none rounded-lg bg-card p-6 text-muted-foreground dark:prose-invert"><p className="whitespace-pre-wrap" dir="auto">{product.description || "No description available."}</p></div>
       </div>
       
-      {/* Simple Reviews Section */}
       <div className="mt-12">
          <div className="mb-4 flex items-baseline gap-4"><div className="h-8 w-1 bg-primary"></div><h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t.home.featuredReviews}</h2></div>
          {reviews.length > 0 ? (
             <div className="space-y-6">
                 {reviews.map(review => (
-                     <Card key={review.id} className="p-6">
+                     <Card key={review.id} className="p-6 bg-card border-border/60">
                         <div className="flex items-start gap-4">
                              <div className="flex-shrink-0">
-                                {/* Add Avatar component here if you have user avatars */}
+                                {review.user_profiles?.avatar_url && (
+                                    <Image src={review.user_profiles.avatar_url} alt={review.user_profiles.username} width={40} height={40} className="rounded-full" />
+                                )}
                             </div>
                             <div className="flex-grow">
                                 <div className="flex items-center justify-between">
                                     <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
                                     <div className="flex items-center gap-1">
                                         {[...Array(5)].map((_, i) => (
-                                            <svg key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-400'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" /></svg>
+                                            <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-400'}`} fill="currentColor" />
                                         ))}
                                     </div>
                                 </div>
@@ -216,3 +217,4 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
