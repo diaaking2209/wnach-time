@@ -1,12 +1,13 @@
 
 'use client'
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { cache } from "@/lib/cache";
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -15,53 +16,60 @@ function SearchResults() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchSearchResults() {
-      if (!query) {
-        setProducts([]);
+  const fetchSearchResults = useCallback(async () => {
+    if (!query) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    const CACHE_KEY = `search-${query}`;
+
+    try {
+      const cachedResults = cache.get<Product[]>(CACHE_KEY);
+      if (cachedResults) {
+        setProducts(cachedResults);
         setLoading(false);
         return;
       }
+
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedProducts: Product[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          discount: item.discount,
+          platforms: item.platforms || [],
+          tags: item.tags || [],
+          imageUrl: item.image_url,
+          description: item.description,
+          category: item.category,
+          stockStatus: item.stock_status,
+          isActive: item.is_active,
+      }));
       
-      setLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .ilike('name', `%${query}%`)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
-
-
-        if (error) {
-          throw error;
-        }
-
-        const formattedProducts: Product[] = data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            tags: item.tags || [],
-            imageUrl: item.image_url,
-            description: item.description,
-            category: item.category,
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-        setProducts(formattedProducts);
-      } catch (error: any) {
-        console.error("Error fetching search results:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSearchResults();
+      cache.set(CACHE_KEY, formattedProducts);
+      setProducts(formattedProducts);
+    } catch (error: any) {
+      console.error("Error fetching search results:", error);
+    } finally {
+      setLoading(false);
+    }
   }, [query]);
+
+  useEffect(() => {
+    fetchSearchResults();
+  }, [fetchSearchResults]);
 
   if (loading) {
     return (
@@ -117,3 +125,5 @@ export default function SearchPage() {
       </div>
     );
   }
+
+    

@@ -44,6 +44,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY = 'admin-products';
 
 export function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -56,33 +59,40 @@ export function ProductsTab() {
   
   const fetchProducts = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (error) {
-      console.error("Error fetching products:", error);
-      toast({
-        variant: "destructive",
-        title: t.loadError,
-        description: error.message,
-      });
-    } else {
-      const formattedProducts: Product[] = data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        discount: item.discount,
-        platforms: item.platforms || [],
-        imageUrl: item.image_url,
-        bannerUrl: item.banner_url,
-        description: item.description,
-        category: item.category,
-        tags: item.tags || [],
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
-      }));
-      setProducts(formattedProducts);
+    try {
+        const cachedProducts = cache.get<Product[]>(CACHE_KEY);
+        if (cachedProducts) {
+            setProducts(cachedProducts);
+            setLoading(false);
+            return;
+        }
+
+        const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        
+        const formattedProducts: Product[] = data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            imageUrl: item.image_url,
+            bannerUrl: item.banner_url,
+            description: item.description,
+            category: item.category,
+            tags: item.tags || [],
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+        
+        cache.set(CACHE_KEY, formattedProducts);
+        setProducts(formattedProducts);
+    } catch (error: any) {
+        toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   }, [t.loadError, toast]);
 
   useEffect(() => {
@@ -112,12 +122,14 @@ export function ProductsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
+      cache.delete(CACHE_KEY); // Invalidate cache
       fetchProducts(); // Refresh the list
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
+    cache.delete(CACHE_KEY); // Invalidate cache
     fetchProducts(); // Refresh products after add/edit
   }
 
@@ -265,3 +277,5 @@ export function ProductsTab() {
     </>
   );
 }
+
+    

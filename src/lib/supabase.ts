@@ -9,3 +9,5 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // This ensures that data is fresh when needed without causing the issues
 // of stale or missing data on navigation.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    

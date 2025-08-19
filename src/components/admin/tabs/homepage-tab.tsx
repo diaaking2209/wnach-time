@@ -25,6 +25,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY = 'admin-homepage';
 
 type CarouselSlide = {
   id: string;
@@ -63,31 +66,39 @@ export function HomePageTab() {
   const fetchHomePageContent = useCallback(async () => {
     setLoading(true);
     try {
-      const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
-      const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
-      const allProdsPromise = supabase.from('products').select('*').order('name');
-      const settingsPromise = supabase.from('app_settings').select('value').eq('key', 'discord_ticket_url').single();
+        const cachedData = cache.get<HomePageData>(CACHE_KEY);
+        if (cachedData) {
+            setData(cachedData);
+            setLoading(false);
+            return;
+        }
 
-      const [
-          {data: slides, error: slidesError},
-          {data: topProds, error: topProdsError},
-          {data: allProds, error: allProdsError},
-          {data: settingsData, error: settingsError},
-      ] = await Promise.all([slidesPromise, topProdsPromise, allProdsPromise, settingsPromise]);
+        const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
+        const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
+        const allProdsPromise = supabase.from('products').select('*').order('name');
+        const settingsPromise = supabase.from('app_settings').select('value').eq('key', 'discord_ticket_url').single();
 
-      if (slidesError) throw slidesError;
-      if (topProdsError) throw topProdsError;
-      if (allProdsError) throw allProdsError;
-      if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
+        const [
+            {data: slides, error: slidesError},
+            {data: topProds, error: topProdsError},
+            {data: allProds, error: allProdsError},
+            {data: settingsData, error: settingsError},
+        ] = await Promise.all([slidesPromise, topProdsPromise, allProdsPromise, settingsPromise]);
 
-      const fetchedData: HomePageData = {
-          slides,
-          topProducts: topProds as TopProductLink[],
-          allProducts: allProds,
-          discordUrl: settingsData?.value || ""
-      };
+        if (slidesError) throw slidesError;
+        if (topProdsError) throw topProdsError;
+        if (allProdsError) throw allProdsError;
+        if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-      setData(fetchedData);
+        const fetchedData: HomePageData = {
+            slides,
+            topProducts: topProds as TopProductLink[],
+            allProducts: allProds,
+            discordUrl: settingsData?.value || ""
+        };
+
+        cache.set(CACHE_KEY, fetchedData);
+        setData(fetchedData);
 
     } catch (error: any) {
       toast({ variant: "destructive", title: t.loadError, description: error.message });
@@ -123,6 +134,7 @@ export function HomePageTab() {
         const updatedData = {...data, slides: [...data.slides, newSlide[0]]};
         setData(updatedData);
         toast({ title: t.addSlideSuccess });
+        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -137,6 +149,7 @@ export function HomePageTab() {
         const updatedData = {...data, slides: data.slides.filter(s => s.id !== id)};
         setData(updatedData);
         toast({ title: t.deleteSlideSuccess });
+        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -159,6 +172,7 @@ export function HomePageTab() {
         const updatedData = {...data, topProducts: [...data.topProducts, newTopProduct as TopProductLink]};
         setData(updatedData);
         toast({ title: t.addProductSuccess });
+        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
     setAddProductDialogOpen(false);
@@ -174,6 +188,7 @@ export function HomePageTab() {
         const updatedData = {...data, topProducts: data.topProducts.filter(p => p.id !== id)};
         setData(updatedData);
         toast({ title: t.removeProductSuccess });
+        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -201,6 +216,7 @@ export function HomePageTab() {
         if (settingsError) throw settingsError;
 
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
+        cache.set(CACHE_KEY, data);
     } catch (error: any) {
          toast({ variant: "destructive", title: t.saveError, description: error.message });
     } finally {
@@ -342,3 +358,5 @@ export function HomePageTab() {
     </div>
   );
 }
+
+    

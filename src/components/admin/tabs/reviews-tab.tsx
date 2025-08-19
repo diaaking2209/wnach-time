@@ -44,6 +44,9 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY = 'admin-reviews';
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -72,30 +75,37 @@ export function ReviewsTab() {
   
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('reviews')
-      .select(`
-        id,
-        created_at,
-        rating,
-        comment,
-        is_approved,
-        is_featured,
-        products ( id, name, image_url ),
-        user_profiles ( username, avatar_url )
-      `)
-      .order('created_at', { ascending: false });
+    try {
+        const cachedReviews = cache.get<ReviewWithProductAndUser[]>(CACHE_KEY);
+        if (cachedReviews) {
+            setReviews(cachedReviews);
+            setLoading(false);
+            return;
+        }
 
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: t.loadError,
-        description: error.message,
-      });
-    } else {
-      setReviews(data as ReviewWithProductAndUser[]);
+        const { data, error } = await supabase
+          .from('reviews')
+          .select(`
+            id,
+            created_at,
+            rating,
+            comment,
+            is_approved,
+            is_featured,
+            products ( id, name, image_url ),
+            user_profiles ( username, avatar_url )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        cache.set(CACHE_KEY, data as ReviewWithProductAndUser[]);
+        setReviews(data as ReviewWithProductAndUser[]);
+    } catch(error: any) {
+        toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   }, [toast, t]);
 
   useEffect(() => {
@@ -112,6 +122,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -126,6 +137,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -136,6 +148,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
+      cache.delete(CACHE_KEY);
       fetchReviews(); // Refresh the list
     }
   }
@@ -263,3 +276,5 @@ export function ReviewsTab() {
     </Card>
   );
 }
+
+    

@@ -5,46 +5,61 @@ import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY = 'products-subscriptions';
 
 export default function SubscriptionsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const { language } = useLanguage();
   const t = translations[language];
 
-  useEffect(() => {
-    async function getSubscriptionProducts() {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', 'Subscriptions')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+  const getSubscriptionProducts = useCallback(async () => {
+    try {
+        const cachedProducts = cache.get<Product[]>(CACHE_KEY);
+        if (cachedProducts) {
+            setProducts(cachedProducts);
+            return;
+        }
 
-      if (error) {
-        console.error("Error fetching subscription products:", error);
-        return;
-      }
-      
-      const formattedProducts: Product[] = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          originalPrice: item.original_price,
-          discount: item.discount,
-          platforms: item.platforms || [],
-          tags: item.tags || [],
-          imageUrl: item.image_url,
-          description: item.description,
-          category: item.category,
-          stockStatus: item.stock_status,
-          isActive: item.is_active,
-      }));
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('category', 'Subscriptions')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false });
 
-      setProducts(formattedProducts);
+        if (error) {
+            console.error("Error fetching subscription products:", error);
+            return;
+        }
+        
+        const formattedProducts: Product[] = data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            tags: item.tags || [],
+            imageUrl: item.image_url,
+            description: item.description,
+            category: item.category,
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+
+        cache.set(CACHE_KEY, formattedProducts);
+        setProducts(formattedProducts);
+    } catch(e) {
+        console.error(e);
     }
-    getSubscriptionProducts();
   }, []);
+
+  useEffect(() => {
+    getSubscriptionProducts();
+  }, [getSubscriptionProducts]);
 
 
   return (
@@ -73,3 +88,5 @@ export default function SubscriptionsPage() {
     </div>
   );
 }
+
+    

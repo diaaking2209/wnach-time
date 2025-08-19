@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cache } from "@/lib/cache";
 
 type CarouselDeal = {
     title: string;
@@ -46,6 +47,8 @@ function CarouselSkeleton() {
     );
 }
 
+const CAROUSEL_CACHE_KEY = 'homepage-carousel';
+
 function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
@@ -55,46 +58,45 @@ function HeroCarousel() {
     const plugin = useRef(
         Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
+
+    const getCarouselDeals = useCallback(async () => {
+        const cachedDeals = cache.get<CarouselDeal[]>(CAROUSEL_CACHE_KEY);
+        if (cachedDeals) {
+            setBestDeals(cachedDeals);
+            return;
+        }
+
+        const { data: dealsData, error: dealsError } = await supabase
+            .from('homepage_carousel')
+            .select('*')
+            .order('sort_order');
+        
+        if (dealsError) {
+            console.error("Error fetching deals:", dealsError);
+            return;
+        }
+        
+        const fetchedDeals = dealsData.map(d => ({
+            title: d.title,
+            imageUrl: d.image_url,
+            aiHint: d.ai_hint,
+            link: d.link,
+        }));
+        
+        cache.set(CAROUSEL_CACHE_KEY, fetchedDeals);
+        setBestDeals(fetchedDeals);
+    }, []);
     
     useEffect(() => {
-        async function getCarouselDeals() {
-            const { data: dealsData, error: dealsError } = await supabase
-                .from('homepage_carousel')
-                .select('*')
-                .order('sort_order');
-            
-            if (dealsError) {
-                console.error("Error fetching deals:", dealsError);
-                return;
-            }
-            
-            const fetchedDeals = dealsData.map(d => ({
-                title: d.title,
-                imageUrl: d.image_url,
-                aiHint: d.ai_hint,
-                link: d.link,
-            }));
-            setBestDeals(fetchedDeals);
-        }
         getCarouselDeals();
-    }, [language]);
+    }, [getCarouselDeals]);
 
      useEffect(() => {
-        if (!api) {
-          return
-        }
-    
-        setCurrent(api.selectedScrollSnap())
-    
-        const handleSelect = (api: CarouselApi) => {
-          setCurrent(api.selectedScrollSnap())
-        }
-    
-        api.on('select', handleSelect)
-    
-        return () => {
-          api.off('select', handleSelect)
-        }
+        if (!api) return;
+        setCurrent(api.selectedScrollSnap());
+        const handleSelect = (api: CarouselApi) => setCurrent(api.selectedScrollSnap());
+        api.on('select', handleSelect);
+        return () => { api.off('select', handleSelect) };
       }, [api])
 
     const scrollTo = useCallback((index: number) => api && api.scrollTo(index), [api]);
@@ -170,45 +172,55 @@ function TopProductsSkeleton() {
     );
 }
 
+const TOP_PRODUCTS_CACHE_KEY = 'homepage-top-products';
+
 function TopProducts() {
     const [topProducts, setTopProducts] = useState<Product[]>([]);
     const { language } = useLanguage();
     const t = translations[language];
+
+    const getTopProducts = useCallback(async () => {
+        const cachedProducts = cache.get<Product[]>(TOP_PRODUCTS_CACHE_KEY);
+        if (cachedProducts) {
+            setTopProducts(cachedProducts);
+            return;
+        }
+
+        const { data: topProductsData, error: topProductsError } = await supabase
+            .from('homepage_top_products')
+            .select('products(*)')
+            .order('sort_order');
+        
+        if (topProductsError) {
+            console.error("Error fetching top products:", topProductsError);
+            return;
+        }
+
+        const fetchedProducts = topProductsData
+            .map(item => item.products)
+            .filter(p => p && p.is_active)
+            .map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                originalPrice: item.original_price,
+                discount: item.discount,
+                platforms: item.platforms || [],
+                tags: item.tags || [],
+                imageUrl: item.image_url,
+                description: item.description,
+                category: item.category,
+                stockStatus: item.stock_status,
+                isActive: item.is_active,
+            }));
+        
+        cache.set(TOP_PRODUCTS_CACHE_KEY, fetchedProducts);
+        setTopProducts(fetchedProducts);
+    }, []);
     
     useEffect(() => {
-        async function getTopProducts() {
-            const { data: topProductsData, error: topProductsError } = await supabase
-                .from('homepage_top_products')
-                .select('products(*)') // This joins the products table
-                .order('sort_order');
-            
-            if (topProductsError) {
-                console.error("Error fetching top products:", topProductsError);
-                return;
-            }
-
-            const fetchedProducts = topProductsData
-                .map(item => item.products) // Extract the product object
-                .filter(p => p && p.is_active) // Filter out any null products if the join failed or product is inactive
-                .map((item: any) => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    originalPrice: item.original_price,
-                    discount: item.discount,
-                    platforms: item.platforms || [],
-                    tags: item.tags || [],
-                    imageUrl: item.image_url,
-                    description: item.description,
-                    category: item.category,
-                    stockStatus: item.stock_status,
-                    isActive: item.is_active,
-                }));
-            
-            setTopProducts(fetchedProducts);
-        }
         getTopProducts();
-    }, [language])
+    }, [getTopProducts])
 
     return topProducts.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
@@ -236,32 +248,42 @@ type FeaturedReview = {
   } | null;
 };
 
+const FEATURED_REVIEWS_CACHE_KEY = 'homepage-featured-reviews';
 
 function FeaturedReviews() {
     const [reviews, setReviews] = useState<FeaturedReview[]>([]);
+
+    const getFeaturedReviews = useCallback(async () => {
+        const cachedReviews = cache.get<FeaturedReview[]>(FEATURED_REVIEWS_CACHE_KEY);
+        if (cachedReviews) {
+            setReviews(cachedReviews);
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('reviews')
+            .select(`
+                id,
+                rating,
+                comment,
+                products ( name ),
+                user_profiles ( username, avatar_url )
+            `)
+            .eq('is_featured', true)
+            .limit(3);
+        
+        if (error) {
+            console.error("Error fetching featured reviews:", error);
+            return;
+        }
+        
+        cache.set(FEATURED_REVIEWS_CACHE_KEY, data as FeaturedReview[]);
+        setReviews(data as FeaturedReview[]);
+    }, []);
     
     useEffect(() => {
-        async function getFeaturedReviews() {
-            const { data, error } = await supabase
-                .from('reviews')
-                .select(`
-                    id,
-                    rating,
-                    comment,
-                    products ( name ),
-                    user_profiles ( username, avatar_url )
-                `)
-                .eq('is_featured', true)
-                .limit(3);
-            
-            if (error) {
-                console.error("Error fetching featured reviews:", error);
-                return;
-            }
-            setReviews(data as FeaturedReview[]);
-        }
         getFeaturedReviews();
-    }, []);
+    }, [getFeaturedReviews]);
 
     if (reviews.length === 0) {
         return null; // Don't render the section if there are no featured reviews
@@ -398,3 +420,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

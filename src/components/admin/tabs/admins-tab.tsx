@@ -32,6 +32,9 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { cache } from "@/lib/cache";
+
+const CACHE_KEY = 'admin-admins';
 
 type AdminUser = {
   id: string;
@@ -165,8 +168,17 @@ export function AdminsTab() {
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
     try {
+      const cachedAdmins = cache.get<AdminUser[]>(CACHE_KEY);
+      if (cachedAdmins) {
+          setAdmins(cachedAdmins);
+          setLoading(false);
+          return;
+      }
+      
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;
+      
+      cache.set(CACHE_KEY, data as AdminUser[]);
       setAdmins(data as AdminUser[]);
     } catch (error: any) {
       toast({
@@ -184,6 +196,7 @@ export function AdminsTab() {
   }, [fetchAdmins]);
 
   const handleRefresh = () => {
+    cache.delete(CACHE_KEY);
     fetchAdmins();
   }
 
@@ -382,3 +395,5 @@ export function AdminsTab() {
     </div>
   );
 }
+
+    
