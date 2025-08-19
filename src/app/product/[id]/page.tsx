@@ -12,27 +12,13 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star, User, MessageSquare } from "lucide-react";
+import { Loader2, ShoppingCart, Star, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useAuth, type UserRole } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { ReviewForm } from "@/components/review-form";
 import { StarRating } from "@/components/star-rating";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ReplyForm } from "@/components/reply-form";
-import { AdminBadge } from "@/components/admin-badge";
-
-type ReviewReply = {
-    id: string;
-    created_at: string;
-    comment: string;
-    user_id: string;
-    user_profiles: {
-        username: string | null;
-        avatar_url: string | null;
-        admins: { role: UserRole }[] | null;
-    } | null;
-}
 
 type ReviewWithProfile = {
     id: string;
@@ -43,7 +29,6 @@ type ReviewWithProfile = {
         username: string | null;
         avatar_url: string | null;
     } | null;
-    review_replies: ReviewReply[];
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
@@ -59,7 +44,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session, isUserAdmin } = useAuth();
+  const { user, session } = useAuth();
 
   const productId = params.id;
 
@@ -98,18 +83,16 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
     setProduct(formattedProduct);
 
-    // Fetch approved reviews with replies - CORRECTED QUERY
+    // Fetch approved reviews
     const { data: reviewsData, error: reviewsError } = await supabase
       .from('reviews')
       .select(`
         id, created_at, rating, comment,
-        user_profiles ( username, avatar_url ),
-        review_replies ( id, created_at, comment, user_id, user_profiles (username, avatar_url, admins (role)) )
+        user_profiles ( username, avatar_url )
       `)
       .eq('product_id', productId)
       .eq('is_approved', true)
       .order('created_at', { ascending: false });
-
 
     if (reviewsError) {
       console.error("Error fetching reviews:", reviewsError);
@@ -230,7 +213,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const onReviewSubmitted = () => {
     setHasReviewed(true);
     toast({ title: "Review Submitted!", description: "Thank you for your feedback. Your review is pending approval."});
-    fetchProductData(); // Refetch everything
+    fetchProductData();
   }
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
@@ -376,29 +359,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                             <StarRating rating={review.rating} />
                                         </div>
                                         <p className="text-sm text-muted-foreground mt-2 italic">"{review.comment}"</p>
-                                        
-                                        {isUserAdmin && <ReplyForm reviewId={review.id} onReplySubmitted={fetchProductData} />}
-
-                                        {review.review_replies && review.review_replies.length > 0 && (
-                                            <div className="mt-4 space-y-4 border-t pt-4">
-                                                {review.review_replies.map(reply => (
-                                                    <div key={reply.id} className="flex gap-3">
-                                                        <Avatar className="h-8 w-8">
-                                                            <AvatarImage src={reply.user_profiles?.avatar_url ?? undefined} />
-                                                            <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
-                                                        </Avatar>
-                                                         <div className="flex-1">
-                                                            <div className="flex items-center gap-1">
-                                                                <p className="font-semibold text-sm">{reply.user_profiles?.username ?? 'Admin'}</p>
-                                                                {reply.user_profiles?.admins?.[0]?.role && <AdminBadge role={reply.user_profiles.admins[0].role} />}
-                                                            </div>
-                                                            <p className="text-sm text-muted-foreground">{reply.comment}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-
                                     </div>
                                 </div>
                             </Card>
@@ -433,6 +393,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-
-    
