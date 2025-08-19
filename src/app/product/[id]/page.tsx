@@ -49,14 +49,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         setProduct(productData);
 
         // Fetch approved reviews for the product with user profiles
+        // This is the simplified, correct query.
         const { data: reviewsData, error: reviewsError } = await supabase
             .from('reviews')
             .select(`
-                id,
-                rating,
-                comment,
-                created_at,
-                is_featured,
+                *,
                 user_profiles (
                     username,
                     avatar_url
@@ -220,3 +217,4 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
