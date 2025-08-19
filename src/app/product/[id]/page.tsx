@@ -21,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ReplyForm } from "@/components/reply-form";
 
-// This defines the structure of a single review, including the potential reply.
 export type ReviewWithReply = {
     id: string;
     created_at: string;
@@ -33,7 +32,6 @@ export type ReviewWithReply = {
     } | null;
     reply_comment: string | null;
     reply_created_at: string | null;
-    // This part is new: it holds the profile of the admin who replied.
     reply_admin_profile: {
         username: string | null;
         avatar_url: string | null;
@@ -75,14 +73,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
         setProduct(productData);
 
-        // This is the updated, reliable query.
-        // It fetches the review, the original author's profile, and the admin's profile for the reply.
         const { data: reviewsData, error: reviewsError } = await supabase
             .from('reviews')
             .select(`
                 id, created_at, rating, comment,
                 reply_comment, reply_created_at,
-                user_profiles ( username, avatar_url ),
+                user_profiles!reviews_user_id_fkey ( username, avatar_url ),
                 reply_admin_profile:user_profiles!reviews_reply_admin_id_fkey ( username, avatar_url )
             `)
             .eq('product_id', productId)
@@ -141,7 +137,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const handleQuantityChange = (newQuantity: number) => newQuantity >= 1 && setQuantity(newQuantity);
   const handleAddToCart = () => product?.id && addToCart({ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, quantity });
 
-  // This function now updates the UI immediately and correctly after a reply is submitted.
   const onReplySuccess = (reviewId: string, replyComment: string) => {
     toast({ title: "Reply Posted!", description: "Your reply has been posted successfully."});
     setReviews(currentReviews =>
@@ -151,7 +146,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     ...review,
                     reply_comment: replyComment,
                     reply_created_at: new Date().toISOString(),
-                    // We optimistically assume the current user's profile for the reply.
                     reply_admin_profile: {
                         username: user?.user_metadata.full_name,
                         avatar_url: user?.user_metadata.avatar_url,
@@ -164,7 +158,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
   const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
-  // This correctly checks if the user is an admin who can reply.
   const canReply = userRole === 'owner' || userRole === 'super_owner' || userRole === 'owner_ship';
 
   return (
@@ -250,7 +243,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                       </div>
                     </div></div>
                   )}
-                  {/* This now correctly shows the form only if the user is a qualified admin AND there is no existing reply */}
                   {canReply && !review.reply_comment && (
                     <div className="mt-4 pl-10"><ReplyForm reviewId={review.id} userId={user!.id} onReplySubmitted={onReplySuccess} /></div>
                   )}
@@ -274,7 +266,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    
 
     
