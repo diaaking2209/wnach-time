@@ -16,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
 
 type ReviewWithUser = {
     id: string;
@@ -38,7 +37,6 @@ type ProductData = {
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const productId = params.id;
-  const cacheKey = `product-${productId}`;
 
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,12 +48,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const fetchProductData = useCallback(async () => {
     setLoading(true);
-    if (cache.has(cacheKey)) {
-        setProductData(cache.get(cacheKey)!);
-        setLoading(false);
-        return;
-    }
-
     try {
         // Fetch product details
         const { data: productData, error: productError } = await supabase
@@ -119,7 +111,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           relatedProducts: formattedRelated,
         };
 
-        cache.set(cacheKey, finalData);
         setProductData(finalData);
 
     } catch(err: any) {
@@ -130,7 +121,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     } finally {
         setLoading(false);
     }
-  }, [productId, cacheKey]);
+  }, [productId]);
 
 
   useEffect(() => {
@@ -138,7 +129,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [fetchProductData]);
   
   const onReviewSubmitted = () => {
-    cache.delete(cacheKey); // Invalidate cache for this product
     fetchProductData();
   };
 

@@ -25,7 +25,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
 
 type CarouselSlide = {
   id: string;
@@ -50,9 +49,6 @@ type HomePageData = {
     discordUrl: string;
 };
 
-const CACHE_KEY = "admin-homepage";
-
-
 export function HomePageTab() {
   const { toast } = useToast();
   const { language } = useLanguage();
@@ -66,12 +62,6 @@ export function HomePageTab() {
 
   const fetchHomePageContent = useCallback(async () => {
     setLoading(true);
-    if (cache.has(CACHE_KEY)) {
-        setData(cache.get(CACHE_KEY)!);
-        setLoading(false);
-        return;
-    }
-    
     try {
       const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
       const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
@@ -98,7 +88,6 @@ export function HomePageTab() {
       };
 
       setData(fetchedData);
-      cache.set(CACHE_KEY, fetchedData);
 
     } catch (error: any) {
       toast({ variant: "destructive", title: t.loadError, description: error.message });
@@ -133,7 +122,6 @@ export function HomePageTab() {
     } else if(newSlide) {
         const updatedData = {...data, slides: [...data.slides, newSlide[0]]};
         setData(updatedData);
-        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.addSlideSuccess });
     }
     setIsSaving(false);
@@ -148,7 +136,6 @@ export function HomePageTab() {
     } else {
         const updatedData = {...data, slides: data.slides.filter(s => s.id !== id)};
         setData(updatedData);
-        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.deleteSlideSuccess });
     }
     setIsSaving(false);
@@ -171,7 +158,6 @@ export function HomePageTab() {
     } else if(newTopProduct) {
         const updatedData = {...data, topProducts: [...data.topProducts, newTopProduct as TopProductLink]};
         setData(updatedData);
-        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.addProductSuccess });
     }
     setIsSaving(false);
@@ -187,7 +173,6 @@ export function HomePageTab() {
     } else {
         const updatedData = {...data, topProducts: data.topProducts.filter(p => p.id !== id)};
         setData(updatedData);
-        cache.set(CACHE_KEY, updatedData);
         toast({ title: t.removeProductSuccess });
     }
     setIsSaving(false);
@@ -215,7 +200,6 @@ export function HomePageTab() {
         const { error: settingsError } = await supabase.from('app_settings').update({ value: data.discordUrl }).eq('key', 'discord_ticket_url');
         if (settingsError) throw settingsError;
 
-        cache.set(CACHE_KEY, data); // Update cache with latest saved data
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
     } catch (error: any) {
          toast({ variant: "destructive", title: t.saveError, description: error.message });

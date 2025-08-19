@@ -32,7 +32,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
 
 type AdminUser = {
   id: string;
@@ -49,9 +48,6 @@ const roleHierarchy = {
     'owner': 2,
     'product_adder': 1,
 };
-
-const CACHE_KEY = "admin-admins";
-
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
@@ -166,19 +162,12 @@ export function AdminsTab() {
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 
-  const fetchAdmins = useCallback(async (force = false) => {
+  const fetchAdmins = useCallback(async () => {
     setLoading(true);
-    if (cache.has(CACHE_KEY) && !force) {
-        setAdmins(cache.get(CACHE_KEY)!);
-        setLoading(false);
-        return;
-    };
-    
     try {
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;
       setAdmins(data as AdminUser[]);
-      cache.set(CACHE_KEY, data as AdminUser[]);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -195,8 +184,7 @@ export function AdminsTab() {
   }, [fetchAdmins]);
 
   const handleRefresh = () => {
-    cache.delete(CACHE_KEY);
-    fetchAdmins(true);
+    fetchAdmins();
   }
 
   const handleAddAdmin = async (e: React.FormEvent) => {

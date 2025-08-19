@@ -22,11 +22,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY_DEALS = 'homepage-deals';
-const CACHE_KEY_TOP_PRODUCTS = 'homepage-top-products';
-const CACHE_KEY_REVIEWS = 'homepage-reviews';
 
 type CarouselDeal = {
     title: string;
@@ -63,10 +58,6 @@ function HeroCarousel() {
     
     useEffect(() => {
         async function getCarouselDeals() {
-            if (cache.has(CACHE_KEY_DEALS)) {
-                setBestDeals(cache.get(CACHE_KEY_DEALS)!);
-                return;
-            }
             const { data: dealsData, error: dealsError } = await supabase
                 .from('homepage_carousel')
                 .select('*')
@@ -83,7 +74,6 @@ function HeroCarousel() {
                 aiHint: d.ai_hint,
                 link: d.link,
             }));
-            cache.set(CACHE_KEY_DEALS, fetchedDeals);
             setBestDeals(fetchedDeals);
         }
         getCarouselDeals();
@@ -187,11 +177,6 @@ function TopProducts() {
     
     useEffect(() => {
         async function getTopProducts() {
-            if (cache.has(CACHE_KEY_TOP_PRODUCTS)) {
-                setTopProducts(cache.get(CACHE_KEY_TOP_PRODUCTS)!);
-                return;
-            }
-
             const { data: topProductsData, error: topProductsError } = await supabase
                 .from('homepage_top_products')
                 .select('products(*)') // This joins the products table
@@ -220,7 +205,6 @@ function TopProducts() {
                     isActive: item.is_active,
                 }));
             
-            cache.set(CACHE_KEY_TOP_PRODUCTS, fetchedProducts);
             setTopProducts(fetchedProducts);
         }
         getTopProducts();
@@ -258,11 +242,6 @@ function FeaturedReviews() {
     
     useEffect(() => {
         async function getFeaturedReviews() {
-            if (cache.has(CACHE_KEY_REVIEWS)) {
-                setReviews(cache.get(CACHE_KEY_REVIEWS)!);
-                return;
-            }
-
             const { data, error } = await supabase
                 .from('reviews')
                 .select(`
@@ -279,7 +258,6 @@ function FeaturedReviews() {
                 console.error("Error fetching featured reviews:", error);
                 return;
             }
-            cache.set(CACHE_KEY_REVIEWS, data as FeaturedReview[]);
             setReviews(data as FeaturedReview[]);
         }
         getFeaturedReviews();

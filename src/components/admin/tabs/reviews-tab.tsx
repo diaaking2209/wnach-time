@@ -44,7 +44,6 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -64,8 +63,6 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
-const CACHE_KEY = "admin-reviews";
-
 export function ReviewsTab() {
   const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,12 +72,6 @@ export function ReviewsTab() {
   
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    if (cache.has(CACHE_KEY)) {
-        setReviews(cache.get(CACHE_KEY)!);
-        setLoading(false);
-        return;
-    }
-    
     const { data, error } = await supabase
       .from('reviews')
       .select(`
@@ -103,7 +94,6 @@ export function ReviewsTab() {
       });
     } else {
       setReviews(data as ReviewWithProductAndUser[]);
-      cache.set(CACHE_KEY, data as ReviewWithProductAndUser[]);
     }
     setLoading(false);
   }, [toast, t]);
@@ -122,7 +112,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -137,7 +126,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cache.delete(CACHE_KEY);
       fetchReviews();
     }
   }
@@ -148,7 +136,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      cache.delete(CACHE_KEY);
       fetchReviews(); // Refresh the list
     }
   }

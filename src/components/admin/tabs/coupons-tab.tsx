@@ -43,7 +43,6 @@ import { cn } from "@/lib/utils";
 import { CouponDialog } from "../coupon-dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
 
 export type Coupon = {
   id: string;
@@ -54,8 +53,6 @@ export type Coupon = {
   is_active: boolean;
   created_at: string;
 };
-
-const CACHE_KEY = "admin-coupons";
 
 export function CouponsTab() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -68,12 +65,6 @@ export function CouponsTab() {
 
   const fetchCoupons = useCallback(async () => {
     setLoading(true);
-    if (cache.has(CACHE_KEY)) {
-        setCoupons(cache.get(CACHE_KEY)!);
-        setLoading(false);
-        return;
-    }
-    
     const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (error) {
       toast({
@@ -83,7 +74,6 @@ export function CouponsTab() {
       });
     } else {
       setCoupons(data as Coupon[]);
-      cache.set(CACHE_KEY, data as Coupon[]);
     }
     setLoading(false);
   }, [toast, t]);
@@ -115,14 +105,12 @@ export function CouponsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      cache.delete(CACHE_KEY); // Invalidate cache
       fetchCoupons(); // Refresh the list
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    cache.delete(CACHE_KEY); // Invalidate cache
     fetchCoupons(); // Refresh coupons after add/edit
   }
 
