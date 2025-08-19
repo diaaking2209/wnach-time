@@ -6,9 +6,6 @@ import { supabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useEffect, useState, useCallback } from "react";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY = 'products-ingame';
 
 export default function InGamePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,12 +14,6 @@ export default function InGamePage() {
   
   const getInGameProducts = useCallback(async () => {
     try {
-        const cachedProducts = cache.get<Product[]>(CACHE_KEY);
-        if (cachedProducts) {
-            setProducts(cachedProducts);
-            return;
-        }
-
         const { data, error } = await supabase
             .from('products')
             .select('*')
@@ -50,7 +41,6 @@ export default function InGamePage() {
             isActive: item.is_active,
         }));
         
-        cache.set(CACHE_KEY, formattedProducts);
         setProducts(formattedProducts);
     } catch(e) {
         console.error(e);
@@ -88,5 +78,3 @@ export default function InGamePage() {
     </div>
   );
 }
-
-    

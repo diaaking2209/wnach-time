@@ -44,9 +44,6 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY = 'admin-products';
 
 export function ProductsTab() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -60,13 +57,6 @@ export function ProductsTab() {
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-        const cachedProducts = cache.get<Product[]>(CACHE_KEY);
-        if (cachedProducts) {
-            setProducts(cachedProducts);
-            setLoading(false);
-            return;
-        }
-
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (error) throw error;
         
@@ -86,7 +76,6 @@ export function ProductsTab() {
             isActive: item.is_active,
         }));
         
-        cache.set(CACHE_KEY, formattedProducts);
         setProducts(formattedProducts);
     } catch (error: any) {
         toast({ variant: "destructive", title: t.loadError, description: error.message });
@@ -122,15 +111,13 @@ export function ProductsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      cache.delete(CACHE_KEY); // Invalidate cache
-      fetchProducts(); // Refresh the list
+      fetchProducts();
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    cache.delete(CACHE_KEY); // Invalidate cache
-    fetchProducts(); // Refresh products after add/edit
+    fetchProducts();
   }
 
 
@@ -277,5 +264,3 @@ export function ProductsTab() {
     </>
   );
 }
-
-    

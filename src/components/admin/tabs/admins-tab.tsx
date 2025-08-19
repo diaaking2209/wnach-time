@@ -32,9 +32,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY = 'admin-admins';
 
 type AdminUser = {
   id: string;
@@ -168,17 +165,9 @@ export function AdminsTab() {
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
     try {
-      const cachedAdmins = cache.get<AdminUser[]>(CACHE_KEY);
-      if (cachedAdmins) {
-          setAdmins(cachedAdmins);
-          setLoading(false);
-          return;
-      }
-      
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;
       
-      cache.set(CACHE_KEY, data as AdminUser[]);
       setAdmins(data as AdminUser[]);
     } catch (error: any) {
       toast({
@@ -194,11 +183,6 @@ export function AdminsTab() {
   useEffect(() => {
     fetchAdmins();
   }, [fetchAdmins]);
-
-  const handleRefresh = () => {
-    cache.delete(CACHE_KEY);
-    fetchAdmins();
-  }
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,7 +216,7 @@ export function AdminsTab() {
       
       setNewAdminId("");
       toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
-      handleRefresh();
+      fetchAdmins();
 
     } catch (error: any) {
       toast({
@@ -252,7 +236,7 @@ export function AdminsTab() {
         if (error) throw error;
 
         toast({ title: t.removeSuccess, description: `${t.user} ${providerId} ${t.removeSuccessDesc}`});
-        handleRefresh();
+        fetchAdmins();
 
     } catch (error: any) {
         toast({
@@ -272,7 +256,7 @@ export function AdminsTab() {
       if (error) throw error;
       
       toast({ title: t.roleUpdateSuccess, description: t.roleUpdateSuccessDesc });
-      handleRefresh();
+      fetchAdmins();
     } catch (error: any) {
        toast({
         variant: "destructive",
@@ -303,7 +287,7 @@ export function AdminsTab() {
               <CardTitle>{t.title}</CardTitle>
               <CardDescription>{t.description}</CardDescription>
             </div>
-             <AddAdminDialog onAdd={handleRefresh} />
+             <AddAdminDialog onAdd={fetchAdmins} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -323,7 +307,7 @@ export function AdminsTab() {
           <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">{t.currentAdmins}</h3>
-                <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={loading} className="hidden sm:inline-flex">
+                <Button variant="ghost" size="icon" onClick={fetchAdmins} disabled={loading} className="hidden sm:inline-flex">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             </div>
@@ -395,5 +379,3 @@ export function AdminsTab() {
     </div>
   );
 }
-
-    

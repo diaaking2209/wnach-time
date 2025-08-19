@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
 
 type CarouselDeal = {
     title: string;
@@ -47,8 +46,6 @@ function CarouselSkeleton() {
     );
 }
 
-const CAROUSEL_CACHE_KEY = 'homepage-carousel';
-
 function HeroCarousel() {
     const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
@@ -60,12 +57,6 @@ function HeroCarousel() {
     );
 
     const getCarouselDeals = useCallback(async () => {
-        const cachedDeals = cache.get<CarouselDeal[]>(CAROUSEL_CACHE_KEY);
-        if (cachedDeals) {
-            setBestDeals(cachedDeals);
-            return;
-        }
-
         const { data: dealsData, error: dealsError } = await supabase
             .from('homepage_carousel')
             .select('*')
@@ -83,7 +74,6 @@ function HeroCarousel() {
             link: d.link,
         }));
         
-        cache.set(CAROUSEL_CACHE_KEY, fetchedDeals);
         setBestDeals(fetchedDeals);
     }, []);
     
@@ -172,20 +162,12 @@ function TopProductsSkeleton() {
     );
 }
 
-const TOP_PRODUCTS_CACHE_KEY = 'homepage-top-products';
-
 function TopProducts() {
     const [topProducts, setTopProducts] = useState<Product[]>([]);
     const { language } = useLanguage();
     const t = translations[language];
 
     const getTopProducts = useCallback(async () => {
-        const cachedProducts = cache.get<Product[]>(TOP_PRODUCTS_CACHE_KEY);
-        if (cachedProducts) {
-            setTopProducts(cachedProducts);
-            return;
-        }
-
         const { data: topProductsData, error: topProductsError } = await supabase
             .from('homepage_top_products')
             .select('products(*)')
@@ -214,7 +196,6 @@ function TopProducts() {
                 isActive: item.is_active,
             }));
         
-        cache.set(TOP_PRODUCTS_CACHE_KEY, fetchedProducts);
         setTopProducts(fetchedProducts);
     }, []);
     
@@ -248,18 +229,10 @@ type FeaturedReview = {
   } | null;
 };
 
-const FEATURED_REVIEWS_CACHE_KEY = 'homepage-featured-reviews';
-
 function FeaturedReviews() {
     const [reviews, setReviews] = useState<FeaturedReview[]>([]);
 
     const getFeaturedReviews = useCallback(async () => {
-        const cachedReviews = cache.get<FeaturedReview[]>(FEATURED_REVIEWS_CACHE_KEY);
-        if (cachedReviews) {
-            setReviews(cachedReviews);
-            return;
-        }
-
         const { data, error } = await supabase
             .from('reviews')
             .select(`
@@ -277,7 +250,6 @@ function FeaturedReviews() {
             return;
         }
         
-        cache.set(FEATURED_REVIEWS_CACHE_KEY, data as FeaturedReview[]);
         setReviews(data as FeaturedReview[]);
     }, []);
     
@@ -420,5 +392,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

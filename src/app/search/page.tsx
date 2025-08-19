@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/scroll-to-top";
-import { cache } from "@/lib/cache";
 
 function SearchResults() {
   const searchParams = useSearchParams();
@@ -24,16 +23,8 @@ function SearchResults() {
     }
     
     setLoading(true);
-    const CACHE_KEY = `search-${query}`;
 
     try {
-      const cachedResults = cache.get<Product[]>(CACHE_KEY);
-      if (cachedResults) {
-        setProducts(cachedResults);
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -58,7 +49,6 @@ function SearchResults() {
           isActive: item.is_active,
       }));
       
-      cache.set(CACHE_KEY, formattedProducts);
       setProducts(formattedProducts);
     } catch (error: any) {
       console.error("Error fetching search results:", error);
@@ -125,5 +115,3 @@ export default function SearchPage() {
       </div>
     );
   }
-
-    

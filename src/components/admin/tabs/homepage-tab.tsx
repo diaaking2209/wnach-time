@@ -25,9 +25,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY = 'admin-homepage';
 
 type CarouselSlide = {
   id: string;
@@ -66,13 +63,6 @@ export function HomePageTab() {
   const fetchHomePageContent = useCallback(async () => {
     setLoading(true);
     try {
-        const cachedData = cache.get<HomePageData>(CACHE_KEY);
-        if (cachedData) {
-            setData(cachedData);
-            setLoading(false);
-            return;
-        }
-
         const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
         const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
         const allProdsPromise = supabase.from('products').select('*').order('name');
@@ -97,7 +87,6 @@ export function HomePageTab() {
             discordUrl: settingsData?.value || ""
         };
 
-        cache.set(CACHE_KEY, fetchedData);
         setData(fetchedData);
 
     } catch (error: any) {
@@ -134,7 +123,6 @@ export function HomePageTab() {
         const updatedData = {...data, slides: [...data.slides, newSlide[0]]};
         setData(updatedData);
         toast({ title: t.addSlideSuccess });
-        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -149,7 +137,6 @@ export function HomePageTab() {
         const updatedData = {...data, slides: data.slides.filter(s => s.id !== id)};
         setData(updatedData);
         toast({ title: t.deleteSlideSuccess });
-        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -172,7 +159,6 @@ export function HomePageTab() {
         const updatedData = {...data, topProducts: [...data.topProducts, newTopProduct as TopProductLink]};
         setData(updatedData);
         toast({ title: t.addProductSuccess });
-        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
     setAddProductDialogOpen(false);
@@ -188,7 +174,6 @@ export function HomePageTab() {
         const updatedData = {...data, topProducts: data.topProducts.filter(p => p.id !== id)};
         setData(updatedData);
         toast({ title: t.removeProductSuccess });
-        cache.set(CACHE_KEY, updatedData);
     }
     setIsSaving(false);
   }
@@ -216,7 +201,6 @@ export function HomePageTab() {
         if (settingsError) throw settingsError;
 
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
-        cache.set(CACHE_KEY, data);
     } catch (error: any) {
          toast({ variant: "destructive", title: t.saveError, description: error.message });
     } finally {
@@ -358,5 +342,3 @@ export function HomePageTab() {
     </div>
   );
 }
-
-    

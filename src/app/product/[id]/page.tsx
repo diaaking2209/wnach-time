@@ -16,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
 
 type ReviewWithUser = {
     id: string;
@@ -38,7 +37,6 @@ type ProductData = {
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const productId = params.id;
-  const CACHE_KEY = `product-${productId}`;
 
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,13 +49,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const fetchProductData = useCallback(async () => {
     setLoading(true);
     try {
-        const cachedData = cache.get<ProductData>(CACHE_KEY);
-        if (cachedData) {
-            setProductData(cachedData);
-            setLoading(false);
-            return notFound();
-        }
-
         const { data: productResult, error: productError } = await supabase
           .from('products')
           .select('*')
@@ -119,7 +110,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           relatedProducts: formattedRelated,
         };
         
-        cache.set(CACHE_KEY, finalData);
         setProductData(finalData);
 
     } catch(err: any) {
@@ -130,7 +120,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     } finally {
         setLoading(false);
     }
-  }, [productId, CACHE_KEY]);
+  }, [productId]);
 
 
   useEffect(() => {
@@ -138,7 +128,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [fetchProductData]);
   
   const onReviewSubmitted = () => {
-    cache.delete(CACHE_KEY); // Invalidate cache on new review
     fetchProductData();
   };
 
@@ -260,5 +249,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-
-    

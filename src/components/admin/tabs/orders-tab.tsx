@@ -1,4 +1,3 @@
-
 "use client"
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -73,6 +72,9 @@ type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
 type OrderWithStatus = Order & { status: OrderStatus };
 
 const ORDERS_PER_PAGE = 10;
+const orderTables = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
+const orderStatuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+
 
 const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -101,14 +103,11 @@ export function OrdersTab() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-        const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
-        const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
-
-        const promises = tableNames.map((table, index) =>
+        const promises = orderTables.map((table, index) =>
             supabase.from(table).select('*').order('created_at', { ascending: false })
                 .then(({ data, error }) => {
                     if (error) throw error;
-                    return data.map(order => ({ ...order, status: statuses[index] } as OrderWithStatus));
+                    return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
                 })
         );
         
@@ -129,6 +128,18 @@ export function OrdersTab() {
 
   useEffect(() => {
     fetchOrders();
+
+    const subscriptions = orderTables.map((table) => 
+        supabase.channel(`public:${table}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
+                fetchOrders(); // Refetch all orders on any change
+            })
+            .subscribe()
+    );
+
+    return () => {
+        subscriptions.forEach(sub => sub.unsubscribe());
+    };
   }, [fetchOrders]);
   
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
@@ -175,7 +186,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        fetchOrders();
+        // No need to call fetchOrders() here, realtime will handle it
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
@@ -189,7 +200,7 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    fetchOrders();
+    // No need to call fetchOrders() here, realtime will handle it
   }
 
   const handlePageChange = (status: OrderStatus, direction: 'next' | 'prev') => {

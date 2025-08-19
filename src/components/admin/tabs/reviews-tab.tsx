@@ -1,4 +1,3 @@
-
 "use client"
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -44,9 +43,6 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cache } from "@/lib/cache";
-
-const CACHE_KEY = 'admin-reviews';
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -76,13 +72,6 @@ export function ReviewsTab() {
   const fetchReviews = useCallback(async () => {
     setLoading(true);
     try {
-        const cachedReviews = cache.get<ReviewWithProductAndUser[]>(CACHE_KEY);
-        if (cachedReviews) {
-            setReviews(cachedReviews);
-            setLoading(false);
-            return;
-        }
-
         const { data, error } = await supabase
           .from('reviews')
           .select(`
@@ -99,7 +88,6 @@ export function ReviewsTab() {
 
         if (error) throw error;
         
-        cache.set(CACHE_KEY, data as ReviewWithProductAndUser[]);
         setReviews(data as ReviewWithProductAndUser[]);
     } catch(error: any) {
         toast({ variant: "destructive", title: t.loadError, description: error.message });
@@ -110,6 +98,16 @@ export function ReviewsTab() {
 
   useEffect(() => {
     fetchReviews();
+
+    const subscription = supabase.channel('public:reviews')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
+            fetchReviews();
+        })
+        .subscribe();
+    
+    return () => {
+        subscription.unsubscribe();
+    }
   }, [fetchReviews]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
@@ -122,8 +120,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cache.delete(CACHE_KEY);
-      fetchReviews();
     }
   }
 
@@ -137,8 +133,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      cache.delete(CACHE_KEY);
-      fetchReviews();
     }
   }
 
@@ -148,8 +142,6 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      cache.delete(CACHE_KEY);
-      fetchReviews(); // Refresh the list
     }
   }
 
@@ -276,5 +268,3 @@ export function ReviewsTab() {
     </Card>
   );
 }
-
-    
