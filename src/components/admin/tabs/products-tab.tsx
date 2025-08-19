@@ -49,8 +49,8 @@ import { cache } from "@/lib/cache";
 const CACHE_KEY = "admin-products";
 
 export function ProductsTab() {
-  const [products, setProducts] = useState<Product[]>(cache.get(CACHE_KEY) || []);
-  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();

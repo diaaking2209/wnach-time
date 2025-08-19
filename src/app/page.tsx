@@ -52,7 +52,7 @@ function CarouselSkeleton() {
 }
 
 function HeroCarousel() {
-    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>(cache.get(CACHE_KEY_DEALS) || []);
+    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
@@ -181,7 +181,7 @@ function TopProductsSkeleton() {
 }
 
 function TopProducts() {
-    const [topProducts, setTopProducts] = useState<Product[]>(cache.get(CACHE_KEY_TOP_PRODUCTS) || []);
+    const [topProducts, setTopProducts] = useState<Product[]>([]);
     const { language } = useLanguage();
     const t = translations[language];
     
@@ -254,7 +254,7 @@ type FeaturedReview = {
 
 
 function FeaturedReviews() {
-    const [reviews, setReviews] = useState<FeaturedReview[]>(cache.get(CACHE_KEY_REVIEWS) || []);
+    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
     
     useEffect(() => {
         const getFeaturedReviews = async () => {

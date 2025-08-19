@@ -161,8 +161,8 @@ export function AdminsTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.adminsTab;
 
-  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
-  const [admins, setAdmins] = useState<AdminUser[]>(cache.get(CACHE_KEY) || []);
+  const [loading, setLoading] = useState(true);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 

@@ -58,8 +58,8 @@ export type Coupon = {
 const CACHE_KEY = "admin-coupons";
 
 export function CouponsTab() {
-  const [coupons, setCoupons] = useState<Coupon[]>(cache.get(CACHE_KEY) || []);
-  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();

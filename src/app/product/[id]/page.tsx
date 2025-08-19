@@ -40,8 +40,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const productId = params.id;
   const cacheKey = `product-${productId}`;
 
-  const [productData, setProductData] = useState<ProductData | null>(cache.get(cacheKey) || null);
-  const [loading, setLoading] = useState(!productData);
+  const [productData, setProductData] = useState<ProductData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   
   const { addToCart } = useCart();

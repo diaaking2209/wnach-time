@@ -58,8 +58,8 @@ export function HomePageTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.homepageTab;
 
-  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
-  const [data, setData] = useState<HomePageData | null>(cache.get(CACHE_KEY) || null);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<HomePageData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
 

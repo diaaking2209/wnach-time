@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, CheckCircle, Clock } from "lucide-react";
@@ -32,17 +32,14 @@ type UserReview = {
   } | null;
 };
 
-let cachedReviews: UserReview[] | null = null;
-
 export function RatingsTab() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].profile.ratings;
 
-  const [loading, setLoading] = useState(!cachedReviews);
-  const [reviews, setReviews] = useState<UserReview[]>(cachedReviews || []);
-  const hasFetched = useMemo(() => !!cachedReviews, []);
+  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<UserReview[]>([]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!user) {
@@ -50,7 +47,6 @@ export function RatingsTab() {
         setReviews([]);
         return;
     };
-    if (hasFetched) return;
     setLoading(true);
     try {
         const { data, error } = await supabase
@@ -68,7 +64,6 @@ export function RatingsTab() {
         
         if (error) throw error;
         setReviews(data as UserReview[]);
-        cachedReviews = data as UserReview[];
 
     } catch (error: any) {
       toast({
@@ -79,7 +74,7 @@ export function RatingsTab() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user, t, hasFetched]);
+  }, [toast, user, t]);
 
   useEffect(() => {
     fetchUserReviews();
@@ -142,5 +137,3 @@ export function RatingsTab() {
     </Card>
   );
 }
-
-    

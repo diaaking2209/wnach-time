@@ -11,7 +11,7 @@ import { cache } from "@/lib/cache";
 const CACHE_KEY = 'products-ingame';
 
 export default function InGamePage() {
-  const [products, setProducts] = useState<Product[]>(cache.get(CACHE_KEY) || []);
+  const [products, setProducts] = useState<Product[]>([]);
   const { language } = useLanguage();
   const t = translations[language];
   

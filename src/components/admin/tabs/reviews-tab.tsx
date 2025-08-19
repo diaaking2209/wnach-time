@@ -67,8 +67,8 @@ type ReviewWithProductAndUser = {
 const CACHE_KEY = "admin-reviews";
 
 export function ReviewsTab() {
-  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>(cache.get(CACHE_KEY) || []);
-  const [loading, setLoading] = useState(!cache.has(CACHE_KEY));
+  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
