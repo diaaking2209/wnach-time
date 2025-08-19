@@ -27,6 +27,7 @@ type Reply = {
     created_at: string;
     comment: string;
     user_id: string;
+    review_id: string; // Keep review_id to map it back
     user_profiles: {
         username: string | null;
         avatar_url: string | null;
@@ -58,8 +59,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session, userRole } = useAuth();
-  const isUserAdmin = userRole === 'owner' || userRole === 'super_owner' || userRole === 'owner_ship';
+  const { user, session, isUserAdmin } = useAuth();
 
 
   const productId = params.id;
@@ -99,23 +99,40 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
     setProduct(formattedProduct);
 
-    // Fetch approved reviews and their replies
+    // Step 1: Fetch all approved reviews for the product
     const { data: reviewsData, error: reviewsError } = await supabase
       .from('reviews')
-      .select(`
-        id, created_at, rating, comment,
-        user_profiles ( username, avatar_url ),
-        review_replies ( id, created_at, comment, user_id, user_profiles(username, avatar_url) )
-      `)
+      .select(`id, created_at, rating, comment, user_profiles ( username, avatar_url )`)
       .eq('product_id', productId)
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false });
+      .eq('is_approved', true);
 
     if (reviewsError) {
       console.error("Error fetching reviews:", reviewsError);
-    } else {
-      setReviews(reviewsData as ReviewWithReplies[]);
+    } else if (reviewsData) {
+        const reviewIds = reviewsData.map(r => r.id);
+
+        // Step 2: Fetch all replies for those reviews in a separate query
+        const { data: repliesData, error: repliesError } = await supabase
+            .from('review_replies')
+            .select(`*, user_profiles (username, avatar_url)`)
+            .in('review_id', reviewIds);
+
+        if (repliesError) {
+            console.error("Error fetching replies:", repliesError);
+        }
+
+        // Step 3: Map replies to their corresponding reviews
+        const reviewsWithReplies = reviewsData.map(review => {
+            const repliesForReview = repliesData ? repliesData.filter(reply => reply.review_id === review.id) : [];
+            return {
+                ...review,
+                review_replies: repliesForReview as Reply[],
+            };
+        }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // Sort after mapping
+        
+        setReviews(reviewsWithReplies as ReviewWithReplies[]);
     }
+
 
     // Check if logged-in user has purchased and/or reviewed this product
     if(user && session) {
