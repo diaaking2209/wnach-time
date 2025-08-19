@@ -19,8 +19,21 @@ import { ReviewForm } from "@/components/review-form";
 import { StarRating } from "@/components/star-rating";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ReplyForm } from "@/components/reply-form";
+import { AdminBadge } from "@/components/admin-badge";
 
-type ReviewWithProfile = {
+type Reply = {
+    id: string;
+    created_at: string;
+    comment: string;
+    user_id: string;
+    user_profiles: {
+        username: string | null;
+        avatar_url: string | null;
+    } | null;
+}
+
+type ReviewWithReplies = {
     id: string;
     created_at: string;
     rating: number;
@@ -29,12 +42,13 @@ type ReviewWithProfile = {
         username: string | null;
         avatar_url: string | null;
     } | null;
+    review_replies: Reply[];
 }
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [reviews, setReviews] = useState<ReviewWithProfile[]>([]);
+  const [reviews, setReviews] = useState<ReviewWithReplies[]>([]);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,7 +58,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session } = useAuth();
+  const { user, session, isUserAdmin } = useAuth();
 
   const productId = params.id;
 
@@ -83,12 +97,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
     setProduct(formattedProduct);
 
-    // Fetch approved reviews
+    // Fetch approved reviews and their replies
     const { data: reviewsData, error: reviewsError } = await supabase
       .from('reviews')
       .select(`
         id, created_at, rating, comment,
-        user_profiles ( username, avatar_url )
+        user_profiles ( username, avatar_url ),
+        review_replies ( id, created_at, comment, user_id, user_profiles(username, avatar_url) )
       `)
       .eq('product_id', productId)
       .eq('is_approved', true)
@@ -97,7 +112,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     if (reviewsError) {
       console.error("Error fetching reviews:", reviewsError);
     } else {
-      setReviews(reviewsData as ReviewWithProfile[]);
+      setReviews(reviewsData as ReviewWithReplies[]);
     }
 
     // Check if logged-in user has purchased and/or reviewed this product
@@ -210,9 +225,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const onReviewSubmitted = () => {
-    setHasReviewed(true);
-    toast({ title: "Review Submitted!", description: "Thank you for your feedback. Your review is pending approval."});
+  const onActionSuccess = () => {
+    toast({ title: "Success!", description: "Your changes have been saved."});
     fetchProductData();
   }
 
@@ -332,7 +346,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                     hasReviewed ? (
                                         <p className="text-center text-muted-foreground">You have already reviewed this product. Thank you!</p>
                                     ) : (
-                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onReviewSubmitted} />
+                                        <ReviewForm productId={productId} userId={user!.id} onReviewSubmitted={onActionSuccess} />
                                     )
                                 ) : (
                                    <p className="text-center text-muted-foreground">You must purchase this product to leave a review.</p>
@@ -347,7 +361,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <div className="space-y-6 lg:col-span-2">
                     {reviews.length > 0 ? (
                         reviews.map(review => (
-                            <Card key={review.id} className="p-6">
+                            <Card key={review.id} className="p-4 sm:p-6">
                                 <div className="flex gap-4">
                                     <Avatar>
                                         <AvatarImage src={review.user_profiles?.avatar_url ?? undefined} />
@@ -361,6 +375,28 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                         <p className="text-sm text-muted-foreground mt-2 italic">"{review.comment}"</p>
                                     </div>
                                 </div>
+                                {review.review_replies && review.review_replies.length > 0 && (
+                                    <div className="mt-4 pl-10">
+                                        <div className="flex gap-4 p-4 rounded-md bg-muted/50">
+                                             <Avatar className="h-8 w-8">
+                                                <AvatarImage src={review.review_replies[0].user_profiles?.avatar_url ?? undefined} />
+                                                <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold">{review.review_replies[0].user_profiles?.username ?? 'Admin'}</p>
+                                                    <AdminBadge />
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-1">{review.review_replies[0].comment}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {isUserAdmin && review.review_replies.length === 0 && (
+                                     <div className="mt-4 pl-10">
+                                        <ReplyForm reviewId={review.id} userId={user!.id} onReplySubmitted={onActionSuccess} />
+                                    </div>
+                                )}
                             </Card>
                         ))
                     ) : (
