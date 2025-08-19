@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ShoppingCart, Star, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -118,8 +118,25 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     const fetchRelatedProducts = async () => {
         if (!product) return;
         const { data, error } = await supabase.from('products').select('*').or(`category.eq.${product.category},tags.cs.{${product.tags?.join(',')}}`).neq('id', product.id).eq('is_active', true).limit(4);
-        if (error) console.error("Error fetching related products:", error);
-        else setRelatedProducts(data);
+        if (error) {
+            console.error("Error fetching related products:", error);
+        } else {
+            const formattedProducts: Product[] = data.map((item: any) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                originalPrice: item.original_price,
+                discount: item.discount,
+                platforms: item.platforms || [],
+                tags: item.tags || [],
+                imageUrl: item.image_url,
+                description: item.description,
+                category: item.category,
+                stockStatus: item.stock_status,
+                isActive: item.is_active,
+            }));
+            setRelatedProducts(formattedProducts);
+        }
     }
     fetchRelatedProducts();
   }, [product])
