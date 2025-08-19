@@ -8,7 +8,7 @@ import { Badge } from "./ui/badge";
 import { ShieldCheck } from "lucide-react";
 
 interface AdminBadgeProps {
-    role: UserRole;
+    role: UserRole | null;
 }
 
 const roleTranslations: Record<UserRole, keyof typeof translations.en.admin.adminsTab.roles> = {
@@ -25,10 +25,10 @@ export function AdminBadge({ role }: AdminBadgeProps) {
     
     if (!role) return null;
 
-    const roleName = t[roleTranslations[role]];
+    const roleName = t[roleTranslations[role]] || 'Admin';
 
     return (
-        <Badge variant="destructive" className="ml-2">
+        <Badge variant="destructive" className="ml-1 text-xs">
             <ShieldCheck className="mr-1 h-3 w-3"/>
             {roleName}
         </Badge>
