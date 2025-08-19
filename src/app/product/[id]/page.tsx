@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type ReviewWithUser = {
     id: string;
@@ -35,106 +37,107 @@ type ProductData = {
   relatedProducts: Product[];
 }
 
+const fetchProductData = async (productId: string): Promise<ProductData | null> => {
+    if (!productId) return null;
+
+    const { data: productResult, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+    
+    if (productError || !productResult) {
+      console.error("Error fetching product:", productError);
+      return null; // Let the component handle the not found case
+    }
+    
+    const formattedProduct: Product = {
+        id: productResult.id,
+        name: productResult.name,
+        price: productResult.price,
+        originalPrice: productResult.original_price,
+        discount: productResult.discount,
+        platforms: productResult.platforms || [],
+        tags: productResult.tags || [],
+        imageUrl: productResult.image_url,
+        bannerUrl: productResult.banner_url,
+        description: productResult.description,
+        category: productResult.category,
+        stockStatus: productResult.stock_status,
+        isActive: productResult.is_active,
+    };
+
+    const reviewsPromise = supabase
+        .from('reviews')
+        .select(`*, user_profiles(*)`)
+        .eq('product_id', productId)
+        .eq('is_approved', true)
+        .order('is_featured', { ascending: false })
+        .order('created_at', { ascending: false });
+    
+    const relatedPromise = supabase
+        .from('products')
+        .select('*')
+        .or(`category.eq.${formattedProduct.category},tags.cs.{${formattedProduct.tags?.join(',')}}`)
+        .neq('id', formattedProduct.id)
+        .eq('is_active', true)
+        .limit(4);
+
+    const [{data: reviewsData, error: reviewsError}, {data: relatedData, error: relatedError}] = await Promise.all([reviewsPromise, relatedPromise]);
+
+    if (reviewsError) console.error("Error fetching reviews:", reviewsError);
+    if (relatedError) console.error("Error fetching related products:", relatedError);
+
+    const formattedRelated: Product[] = (relatedData || []).map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        originalPrice: item.original_price,
+        discount: item.discount,
+        platforms: item.platforms || [],
+        tags: item.tags || [],
+        imageUrl: item.image_url,
+        bannerUrl: item.banner_url,
+        description: item.description,
+        category: item.category,
+        stockStatus: item.stock_status,
+        isActive: item.is_active,
+    }));
+    
+    return {
+      product: formattedProduct,
+      reviews: (reviewsData as ReviewWithUser[]) || [],
+      relatedProducts: formattedRelated,
+    };
+};
+
+
 export default function ProductPage({ params }: { params: { id: string } }) {
   const productId = params.id;
-
-  const [productData, setProductData] = useState<ProductData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  
   const { addToCart } = useCart();
   const { language } = useLanguage();
   const t = translations[language];
+  const { toast } = useToast();
 
-  const fetchProductData = useCallback(async () => {
-    setLoading(true);
-    try {
-        const { data: productResult, error: productError } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', productId)
-          .single();
-        
-        if (productError || !productResult) {
-          console.error("Error fetching product:", productError);
-          throw new Error("Product not found");
-        }
-        
-        const formattedProduct: Product = {
-            id: productResult.id,
-            name: productResult.name,
-            price: productResult.price,
-            originalPrice: productResult.original_price,
-            discount: productResult.discount,
-            platforms: productResult.platforms || [],
-            tags: productResult.tags || [],
-            imageUrl: productResult.image_url,
-            bannerUrl: productResult.banner_url,
-            description: productResult.description,
-            category: productResult.category,
-            stockStatus: productResult.stock_status,
-            isActive: productResult.is_active,
-        };
+  const { data: productData, isLoading, error, refetch } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => fetchProductData(productId),
+    enabled: !!productId
+  });
 
-        const { data: reviewsData, error: reviewsError } = await supabase
-            .from('reviews')
-            .select(`*, user_profiles(*)`)
-            .eq('product_id', productId)
-            .eq('is_approved', true)
-            .order('is_featured', { ascending: false })
-            .order('created_at', { ascending: false });
-        if (reviewsError) console.error("Error fetching reviews:", reviewsError);
-        
-        const { data: relatedData, error: relatedError } = await supabase.from('products').select('*').or(`category.eq.${formattedProduct.category},tags.cs.{${formattedProduct.tags?.join(',')}}`).neq('id', formattedProduct.id).eq('is_active', true).limit(4);
-        if (relatedError) console.error("Error fetching related products:", relatedError);
-
-        const formattedRelated: Product[] = (relatedData || []).map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            tags: item.tags || [],
-            imageUrl: item.image_url,
-            bannerUrl: item.banner_url,
-            description: item.description,
-            category: item.category,
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-        
-        const finalData = {
-          product: formattedProduct,
-          reviews: (reviewsData as ReviewWithUser[]) || [],
-          relatedProducts: formattedRelated,
-        };
-        
-        setProductData(finalData);
-
-    } catch(err: any) {
-        console.error("Error in fetchProductData:", err);
-        if(err.message === "Product not found") {
-            return notFound();
-        }
-    } finally {
-        setLoading(false);
-    }
-  }, [productId]);
-
-
-  useEffect(() => {
-    fetchProductData();
-  }, [fetchProductData]);
-  
   const onReviewSubmitted = () => {
-    fetchProductData();
+    toast({ title: "Review Submitted", description: "Thank you! Your review is pending approval." });
+    refetch();
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-  if (!productData) return notFound();
+  
+  if (error || !productData) {
+    return notFound();
+  }
 
   const { product, reviews, relatedProducts } = productData;
 

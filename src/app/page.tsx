@@ -10,7 +10,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { supabase } from "@/lib/supabase";
-import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
+import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
 
 type CarouselDeal = {
     title: string;
@@ -46,8 +47,26 @@ function CarouselSkeleton() {
     );
 }
 
+const getCarouselDeals = async (): Promise<CarouselDeal[]> => {
+    const { data: dealsData, error: dealsError } = await supabase
+        .from('homepage_carousel')
+        .select('*')
+        .order('sort_order');
+    
+    if (dealsError) {
+        console.error("Error fetching deals:", dealsError);
+        throw new Error("Failed to fetch carousel deals");
+    }
+    
+    return dealsData.map(d => ({
+        title: d.title,
+        imageUrl: d.image_url,
+        aiHint: d.ai_hint,
+        link: d.link,
+    }));
+};
+
 function HeroCarousel() {
-    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
     const { language } = useLanguage();
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
@@ -56,30 +75,10 @@ function HeroCarousel() {
         Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
 
-    const getCarouselDeals = useCallback(async () => {
-        const { data: dealsData, error: dealsError } = await supabase
-            .from('homepage_carousel')
-            .select('*')
-            .order('sort_order');
-        
-        if (dealsError) {
-            console.error("Error fetching deals:", dealsError);
-            return;
-        }
-        
-        const fetchedDeals = dealsData.map(d => ({
-            title: d.title,
-            imageUrl: d.image_url,
-            aiHint: d.ai_hint,
-            link: d.link,
-        }));
-        
-        setBestDeals(fetchedDeals);
-    }, []);
-    
-    useEffect(() => {
-        getCarouselDeals();
-    }, [getCarouselDeals]);
+    const { data: bestDeals, isLoading } = useQuery({
+        queryKey: ['homepage', 'carousel'],
+        queryFn: getCarouselDeals
+    });
 
      useEffect(() => {
         if (!api) return;
@@ -91,6 +90,9 @@ function HeroCarousel() {
 
     const scrollTo = useCallback((index: number) => api && api.scrollTo(index), [api]);
 
+    if (isLoading || !bestDeals) {
+        return <CarouselSkeleton />;
+    }
 
     return (
         <div className="relative w-full">
@@ -162,48 +164,50 @@ function TopProductsSkeleton() {
     );
 }
 
+const getTopProducts = async (): Promise<Product[]> => {
+    const { data: topProductsData, error: topProductsError } = await supabase
+        .from('homepage_top_products')
+        .select('products(*)')
+        .order('sort_order');
+    
+    if (topProductsError) {
+        console.error("Error fetching top products:", topProductsError);
+        throw new Error("Failed to fetch top products");
+    }
+
+    return topProductsData
+        .map(item => item.products)
+        .filter(p => p && p.is_active)
+        .map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            tags: item.tags || [],
+            imageUrl: item.image_url,
+            description: item.description,
+            category: item.category,
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+};
+
 function TopProducts() {
-    const [topProducts, setTopProducts] = useState<Product[]>([]);
     const { language } = useLanguage();
     const t = translations[language];
 
-    const getTopProducts = useCallback(async () => {
-        const { data: topProductsData, error: topProductsError } = await supabase
-            .from('homepage_top_products')
-            .select('products(*)')
-            .order('sort_order');
-        
-        if (topProductsError) {
-            console.error("Error fetching top products:", topProductsError);
-            return;
-        }
+    const { data: topProducts, isLoading } = useQuery({
+        queryKey: ['homepage', 'top_products'],
+        queryFn: getTopProducts
+    });
 
-        const fetchedProducts = topProductsData
-            .map(item => item.products)
-            .filter(p => p && p.is_active)
-            .map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                originalPrice: item.original_price,
-                discount: item.discount,
-                platforms: item.platforms || [],
-                tags: item.tags || [],
-                imageUrl: item.image_url,
-                description: item.description,
-                category: item.category,
-                stockStatus: item.stock_status,
-                isActive: item.is_active,
-            }));
-        
-        setTopProducts(fetchedProducts);
-    }, []);
-    
-    useEffect(() => {
-        getTopProducts();
-    }, [getTopProducts])
+    if (isLoading) {
+        return <TopProductsSkeleton />;
+    }
 
-    return topProducts.length > 0 ? (
+    return topProducts && topProducts.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
         {topProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
@@ -229,35 +233,38 @@ type FeaturedReview = {
   } | null;
 };
 
-function FeaturedReviews() {
-    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
-
-    const getFeaturedReviews = useCallback(async () => {
-        const { data, error } = await supabase
-            .from('reviews')
-            .select(`
-                id,
-                rating,
-                comment,
-                products ( name ),
-                user_profiles ( username, avatar_url )
-            `)
-            .eq('is_featured', true)
-            .limit(3);
-        
-        if (error) {
-            console.error("Error fetching featured reviews:", error);
-            return;
-        }
-        
-        setReviews(data as FeaturedReview[]);
-    }, []);
+const getFeaturedReviews = async (): Promise<FeaturedReview[]> => {
+    const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+            id,
+            rating,
+            comment,
+            products ( name ),
+            user_profiles ( username, avatar_url )
+        `)
+        .eq('is_featured', true)
+        .limit(3);
     
-    useEffect(() => {
-        getFeaturedReviews();
-    }, [getFeaturedReviews]);
+    if (error) {
+        console.error("Error fetching featured reviews:", error);
+        throw new Error("Failed to fetch featured reviews");
+    }
+    
+    return data as FeaturedReview[];
+};
 
-    if (reviews.length === 0) {
+function FeaturedReviews() {
+    const { data: reviews, isLoading } = useQuery({
+        queryKey: ['homepage', 'featured_reviews'],
+        queryFn: getFeaturedReviews
+    });
+    
+    if (isLoading) {
+        return <TopProductsSkeleton />;
+    }
+
+    if (!reviews || reviews.length === 0) {
         return null; // Don't render the section if there are no featured reviews
     }
     
