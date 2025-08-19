@@ -27,7 +27,7 @@ type Reply = {
     created_at: string;
     comment: string;
     user_id: string;
-    review_id: string; // Keep review_id to map it back
+    review_id: string;
     user_profiles: {
         username: string | null;
         avatar_url: string | null;
@@ -59,7 +59,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, session, isUserAdmin } = useAuth();
+  const { user, session, userRole } = useAuth();
 
 
   const productId = params.id;
@@ -99,19 +99,23 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
     setProduct(formattedProduct);
 
-    // Step 1: Fetch all approved reviews for the product
+    // Fetch approved reviews for the product
     const { data: reviewsData, error: reviewsError } = await supabase
-      .from('reviews')
-      .select(`id, created_at, rating, comment, user_profiles ( username, avatar_url )`)
-      .eq('product_id', productId)
-      .eq('is_approved', true);
+        .from('reviews')
+        .select(`
+            id, created_at, rating, comment,
+            user_profiles ( username, avatar_url )
+        `)
+        .eq('product_id', productId)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
 
     if (reviewsError) {
-      console.error("Error fetching reviews:", reviewsError);
+        console.error("Error fetching reviews:", reviewsError);
     } else if (reviewsData) {
         const reviewIds = reviewsData.map(r => r.id);
 
-        // Step 2: Fetch all replies for those reviews in a separate query
+        // Fetch all replies for those reviews in a separate query
         const { data: repliesData, error: repliesError } = await supabase
             .from('review_replies')
             .select(`*, user_profiles (username, avatar_url)`)
@@ -121,14 +125,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             console.error("Error fetching replies:", repliesError);
         }
 
-        // Step 3: Map replies to their corresponding reviews
+        // Map replies to their corresponding reviews
         const reviewsWithReplies = reviewsData.map(review => {
             const repliesForReview = repliesData ? repliesData.filter(reply => reply.review_id === review.id) : [];
             return {
                 ...review,
                 review_replies: repliesForReview as Reply[],
             };
-        }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); // Sort after mapping
+        });
         
         setReviews(reviewsWithReplies as ReviewWithReplies[]);
     }
@@ -251,6 +255,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const isOutOfStock = product.stockStatus === 'Out of Stock';
   const averageRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
+  
+  // Define which roles are allowed to reply.
+  const canReply = userRole === 'owner' || userRole === 'super_owner' || userRole === 'owner_ship';
+
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -411,7 +419,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                                         </div>
                                     </div>
                                 )}
-                                {isUserAdmin && review.review_replies.length === 0 && (
+                                {canReply && review.review_replies.length === 0 && (
                                      <div className="mt-4 pl-10">
                                         <ReplyForm reviewId={review.id} userId={user!.id} onReplySubmitted={onActionSuccess} />
                                     </div>
