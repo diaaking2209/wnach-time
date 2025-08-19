@@ -14,12 +14,25 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, ShoppingCart, Star, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
-import { ReviewForm, type Review } from "@/components/review-form";
+import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+type ReviewWithUser = {
+    id: string;
+    rating: number;
+    comment: string;
+    created_at: string;
+    is_featured: boolean;
+    user_profiles: {
+        username: string;
+        avatar_url: string;
+    } | null;
+};
+
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<ReviewWithUser[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -46,7 +59,24 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           console.error("Error fetching product:", productError);
           throw new Error("Product not found");
         }
-        setProduct(productData);
+        
+        // This mapping ensures that snake_case from DB is converted to camelCase for the component
+        const formattedProduct: Product = {
+            id: productData.id,
+            name: productData.name,
+            price: productData.price,
+            originalPrice: productData.original_price,
+            discount: productData.discount,
+            platforms: productData.platforms || [],
+            tags: productData.tags || [],
+            imageUrl: productData.image_url,
+            bannerUrl: productData.banner_url,
+            description: productData.description,
+            category: productData.category,
+            stockStatus: productData.stock_status,
+            isActive: productData.is_active,
+        };
+        setProduct(formattedProduct);
 
         // Fetch approved reviews for the product with user profiles
         const { data: reviewsData, error: reviewsError } = await supabase
@@ -66,7 +96,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         if (reviewsError) {
             console.error("Error fetching reviews:", reviewsError);
         } else {
-            setReviews(reviewsData as Review[]);
+            setReviews(reviewsData as ReviewWithUser[]);
         }
 
     } catch(err: any) {
@@ -94,7 +124,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     fetchRelatedProducts();
   }, [product])
   
-  const onReviewSubmitted = (newReview: Review) => {
+  const onReviewSubmitted = (newReview: ReviewWithUser) => {
     fetchProductData();
   };
 
