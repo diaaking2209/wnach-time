@@ -98,7 +98,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     };
     setProduct(formattedProduct);
 
-    // Fetch approved reviews with replies
+    // Fetch approved reviews with replies - CORRECTED QUERY
     const { data: reviewsData, error: reviewsError } = await supabase
       .from('reviews')
       .select(`
@@ -109,6 +109,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
       .eq('product_id', productId)
       .eq('is_approved', true)
       .order('created_at', { ascending: false });
+
 
     if (reviewsError) {
       console.error("Error fetching reviews:", reviewsError);
@@ -432,3 +433,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+
+    
