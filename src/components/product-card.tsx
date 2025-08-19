@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Smartphone, Gamepad2, ShoppingCart, Loader2 } from "lucide-react";
+import { Smartphone, Gamepad2, ShoppingCart, Loader2, Package } from "lucide-react";
 import { PcIcon } from "./icons/pc-icon";
 import { RockstarIcon } from "./icons/rockstar-icon";
 import { SteamIcon } from "./icons/steam-icon";
@@ -108,7 +108,7 @@ export function ProductCard({ product }: { product: Product }) {
                 data-ai-hint={product.aiHint}
               />
             ) : (
-              <DiscordIcon className="w-16 h-16 text-muted-foreground" />
+              <Package className="w-16 h-16 text-muted-foreground/50" />
             )}
             {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
           </div>
@@ -179,5 +179,3 @@ export function ProductCard({ product }: { product: Product }) {
     </>
   );
 }
-
-    

@@ -11,11 +11,11 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star } from "lucide-react";
+import { Loader2, ShoppingCart, Star, User } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
-import { ReviewForm } from "@/components/review-form";
-import type { Review } from "@/components/review-form";
+import { ReviewForm, type Review } from "@/components/review-form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -49,7 +49,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         setProduct(productData);
 
         // Fetch approved reviews for the product with user profiles
-        // This is the simplified, correct query.
         const { data: reviewsData, error: reviewsError } = await supabase
             .from('reviews')
             .select(`
@@ -96,9 +95,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   }, [product])
   
   const onReviewSubmitted = (newReview: Review) => {
-    // Optimistically add the review to the list, assuming it will be approved.
-    // Or simply refetch all reviews to show the new one after approval.
-    // For now, let's refetch to keep it simple.
     fetchProductData();
   };
 
@@ -179,11 +175,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                     {reviews.map(review => (
                         <Card key={review.id} className="p-6 bg-card border-border/60">
                             <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0">
-                                    {review.user_profiles?.avatar_url && (
-                                        <Image src={review.user_profiles.avatar_url} alt={review.user_profiles.username || 'user'} width={40} height={40} className="rounded-full" />
-                                    )}
-                                </div>
+                                <Avatar className="flex-shrink-0 h-10 w-10">
+                                    <AvatarImage src={review.user_profiles?.avatar_url} alt={review.user_profiles?.username || 'user'} />
+                                    <AvatarFallback>
+                                        <User className="h-5 w-5" />
+                                    </AvatarFallback>
+                                </Avatar>
                                 <div className="flex-grow">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
@@ -217,4 +214,3 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
-

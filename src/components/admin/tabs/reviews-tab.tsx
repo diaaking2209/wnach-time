@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { MoreHorizontal, Loader2, Trash2, CheckCircle, Star, Sparkles } from "lucide-react";
+import { MoreHorizontal, Loader2, Trash2, CheckCircle, Star, Sparkles, User } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -44,6 +44,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -184,14 +185,26 @@ export function ReviewsTab() {
                       {review.products && (
                          <Link href={`/product/${review.products.id}`}>
                             <div className="flex items-center gap-2 hover:underline">
-                                <Image src={review.products.image_url || ''} alt={review.products.name} width={40} height={40} className="rounded-md object-cover" />
+                                {review.products.image_url ? (
+                                    <Image src={review.products.image_url} alt={review.products.name} width={40} height={40} className="rounded-md object-cover" />
+                                ) : (
+                                    <div className="h-10 w-10 rounded-md bg-muted" />
+                                )}
                                 <span className="font-medium">{review.products.name}</span>
                             </div>
                         </Link>
                       )}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                        {review.user_profiles?.username || 'Anonymous'}
+                        <div className="flex items-center gap-2">
+                             <Avatar className="h-8 w-8">
+                                <AvatarImage src={review.user_profiles?.avatar_url || undefined} alt={review.user_profiles?.username || 'user'} />
+                                <AvatarFallback>
+                                    <User className="h-4 w-4" />
+                                </AvatarFallback>
+                            </Avatar>
+                            <span>{review.user_profiles?.username || 'Anonymous'}</span>
+                        </div>
                     </TableCell>
                     <TableCell>
                       <Switch
