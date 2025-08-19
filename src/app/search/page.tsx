@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
@@ -10,9 +10,12 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { ScrollToTop } from "@/components/scroll-to-top";
 
+const searchCache = new Map<string, Product[]>();
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q');
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { language } = useLanguage();
@@ -22,6 +25,12 @@ function SearchResults() {
     const fetchSearchResults = async () => {
       if (!query) {
         setProducts([]);
+        setLoading(false);
+        return;
+      }
+      
+      if (searchCache.has(query)) {
+        setProducts(searchCache.get(query)!);
         setLoading(false);
         return;
       }
@@ -54,6 +63,7 @@ function SearchResults() {
             stockStatus: item.stock_status,
             isActive: item.is_active,
         }));
+        searchCache.set(query, formattedProducts);
         setProducts(formattedProducts);
       } catch (error: any) {
         console.error("Error fetching search results:", error);
@@ -119,3 +129,5 @@ export default function SearchPage() {
       </div>
     );
   }
+
+    

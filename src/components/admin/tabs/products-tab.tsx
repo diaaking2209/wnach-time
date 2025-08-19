@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,18 +45,21 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 
+let cachedProducts: Product[] | null = null;
 
 export function ProductsTab() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(cachedProducts || []);
+  const [loading, setLoading] = useState(!cachedProducts);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.productsTab;
+  
+  const hasFetched = useMemo(() => !!cachedProducts, []);
 
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
+    if (hasFetched) return;
     setLoading(true);
     const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (error) {
@@ -83,13 +86,14 @@ export function ProductsTab() {
         isActive: item.is_active,
       }));
       setProducts(formattedProducts);
+      cachedProducts = formattedProducts;
     }
     setLoading(false);
-  };
+  }, [hasFetched, t.loadError, toast]);
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -114,12 +118,14 @@ export function ProductsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
+      cachedProducts = null; // Invalidate cache
       fetchProducts(); // Refresh the list
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
+    cachedProducts = null; // Invalidate cache
     fetchProducts(); // Refresh products after add/edit
   }
 
@@ -267,3 +273,5 @@ export function ProductsTab() {
     </>
   );
 }
+
+    

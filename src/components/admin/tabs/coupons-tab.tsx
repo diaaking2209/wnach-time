@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -54,17 +54,21 @@ export type Coupon = {
   created_at: string;
 };
 
+let cachedCoupons: Coupon[] | null = null;
 
 export function CouponsTab() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [coupons, setCoupons] = useState<Coupon[]>(cachedCoupons || []);
+  const [loading, setLoading] = useState(!cachedCoupons);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.couponsTab;
 
+  const hasFetched = useMemo(() => !!cachedCoupons, []);
+
   const fetchCoupons = useCallback(async () => {
+    if (hasFetched) return;
     setLoading(true);
     const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (error) {
@@ -75,9 +79,10 @@ export function CouponsTab() {
       });
     } else {
       setCoupons(data as Coupon[]);
+      cachedCoupons = data as Coupon[];
     }
     setLoading(false);
-  }, [toast, t]);
+  }, [toast, t, hasFetched]);
 
   useEffect(() => {
     fetchCoupons();
@@ -106,12 +111,14 @@ export function CouponsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
+      cachedCoupons = null; // Invalidate cache
       fetchCoupons(); // Refresh the list
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
+    cachedCoupons = null; // Invalidate cache
     fetchCoupons(); // Refresh coupons after add/edit
   }
 
@@ -238,3 +245,5 @@ export function CouponsTab() {
     </>
   );
 }
+
+    

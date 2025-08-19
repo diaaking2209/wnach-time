@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -64,15 +64,19 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
+let cachedReviews: ReviewWithProductAndUser[] | null = null;
 
 export function ReviewsTab() {
-  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>(cachedReviews || []);
+  const [loading, setLoading] = useState(!cachedReviews);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
+  
+  const hasFetched = useMemo(() => !!cachedReviews, []);
 
   const fetchReviews = useCallback(async () => {
+    if (hasFetched) return;
     setLoading(true);
     const { data, error } = await supabase
       .from('reviews')
@@ -96,9 +100,10 @@ export function ReviewsTab() {
       });
     } else {
       setReviews(data as ReviewWithProductAndUser[]);
+      cachedReviews = data as ReviewWithProductAndUser[];
     }
     setLoading(false);
-  }, [toast, t]);
+  }, [toast, t, hasFetched]);
 
   useEffect(() => {
     fetchReviews();
@@ -114,6 +119,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      cachedReviews = null;
       fetchReviews();
     }
   }
@@ -128,6 +134,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      cachedReviews = null;
       fetchReviews();
     }
   }
@@ -138,6 +145,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
+      cachedReviews = null;
       fetchReviews(); // Refresh the list
     }
   }
@@ -265,3 +273,5 @@ export function ReviewsTab() {
     </Card>
   );
 }
+
+    

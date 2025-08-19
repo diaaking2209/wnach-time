@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Suspense, useEffect, useState, useRef, useCallback } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import Autoplay from "embla-carousel-autoplay"
@@ -38,6 +38,10 @@ const categories = [
     { nameKey: "computerPrograms", icon: Code, href: "/programs" },
 ];
 
+let cachedDeals: CarouselDeal[] | null = null;
+let cachedTopProducts: Product[] | null = null;
+let cachedReviews: FeaturedReview[] | null = null;
+
 function CarouselSkeleton() {
     return (
         <div className="relative h-56 w-full overflow-hidden rounded-lg sm:h-64 md:h-80 bg-muted/30 flex items-center justify-center">
@@ -47,7 +51,7 @@ function CarouselSkeleton() {
 }
 
 function HeroCarousel() {
-    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
+    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>(cachedDeals || []);
     const { language } = useLanguage();
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
@@ -55,9 +59,12 @@ function HeroCarousel() {
     const plugin = useRef(
         Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
+
+    const hasFetched = useMemo(() => !!cachedDeals, []);
     
     useEffect(() => {
         const getCarouselDeals = async () => {
+            if (hasFetched) return;
             const { data: dealsData, error: dealsError } = await supabase
                 .from('homepage_carousel')
                 .select('*')
@@ -68,15 +75,17 @@ function HeroCarousel() {
                 return;
             }
             
-            setBestDeals(dealsData.map(d => ({
+            const fetchedDeals = dealsData.map(d => ({
                 title: d.title,
                 imageUrl: d.image_url,
                 aiHint: d.ai_hint,
                 link: d.link,
-            })));
+            }));
+            cachedDeals = fetchedDeals;
+            setBestDeals(fetchedDeals);
         }
         getCarouselDeals();
-    }, [language]);
+    }, [language, hasFetched]);
 
      useEffect(() => {
         if (!api) {
@@ -170,12 +179,15 @@ function TopProductsSkeleton() {
 }
 
 function TopProducts() {
-    const [topProducts, setTopProducts] = useState<Product[]>([]);
+    const [topProducts, setTopProducts] = useState<Product[]>(cachedTopProducts || []);
     const { language } = useLanguage();
     const t = translations[language];
+    const hasFetched = useMemo(() => !!cachedTopProducts, []);
     
     useEffect(() => {
         const getTopProducts = async () => {
+            if (hasFetched) return;
+
             const { data: topProductsData, error: topProductsError } = await supabase
                 .from('homepage_top_products')
                 .select('products(*)') // This joins the products table
@@ -186,7 +198,7 @@ function TopProducts() {
                 return;
             }
 
-            setTopProducts(topProductsData
+            const fetchedProducts = topProductsData
                 .map(item => item.products) // Extract the product object
                 .filter(p => p && p.is_active) // Filter out any null products if the join failed or product is inactive
                 .map((item: any) => ({
@@ -202,10 +214,13 @@ function TopProducts() {
                     category: item.category,
                     stockStatus: item.stock_status,
                     isActive: item.is_active,
-                })));
+                }));
+            
+            cachedTopProducts = fetchedProducts;
+            setTopProducts(fetchedProducts);
         }
         getTopProducts();
-    }, [language])
+    }, [language, hasFetched])
 
     return topProducts.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
@@ -235,10 +250,13 @@ type FeaturedReview = {
 
 
 function FeaturedReviews() {
-    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
+    const [reviews, setReviews] = useState<FeaturedReview[]>(cachedReviews || []);
+    const hasFetched = useMemo(() => !!cachedReviews, []);
     
     useEffect(() => {
         const getFeaturedReviews = async () => {
+            if (hasFetched) return;
+
             const { data, error } = await supabase
                 .from('reviews')
                 .select(`
@@ -255,10 +273,11 @@ function FeaturedReviews() {
                 console.error("Error fetching featured reviews:", error);
                 return;
             }
+            cachedReviews = data as FeaturedReview[];
             setReviews(data as FeaturedReview[]);
         }
         getFeaturedReviews();
-    }, []);
+    }, [hasFetched]);
 
     if (reviews.length === 0) {
         return null; // Don't render the section if there are no featured reviews
@@ -395,5 +414,7 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
 
     

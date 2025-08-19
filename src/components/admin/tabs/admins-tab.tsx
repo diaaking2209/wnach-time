@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, PlusCircle, User, RefreshCw, MoreHorizontal } from "lucide-react";
@@ -48,6 +48,8 @@ const roleHierarchy = {
     'owner': 2,
     'product_adder': 1,
 };
+
+let cachedAdmins: AdminUser[] | null = null;
 
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
@@ -158,17 +160,21 @@ export function AdminsTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.adminsTab;
 
-  const [loading, setLoading] = useState(true);
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(!cachedAdmins);
+  const [admins, setAdmins] = useState<AdminUser[]>(cachedAdmins || []);
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 
-  const fetchAdmins = useCallback(async () => {
+  const hasFetched = useMemo(() => !!cachedAdmins, []);
+
+  const fetchAdmins = useCallback(async (force = false) => {
+    if (hasFetched && !force) return;
     setLoading(true);
     try {
       const { data, error } = await supabase.from("admins").select("*").order("created_at");
       if (error) throw error;
       setAdmins(data as AdminUser[]);
+      cachedAdmins = data as AdminUser[];
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -178,11 +184,16 @@ export function AdminsTab() {
     } finally {
       setLoading(false);
     }
-  }, [toast, t]);
+  }, [toast, t, hasFetched]);
 
   useEffect(() => {
     fetchAdmins();
   }, [fetchAdmins]);
+
+  const handleRefresh = () => {
+    cachedAdmins = null;
+    fetchAdmins(true);
+  }
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,6 +226,7 @@ export function AdminsTab() {
       if (error) throw error;
       
       setAdmins(prev => [...prev, data as AdminUser]);
+      cachedAdmins = [...admins, data as AdminUser];
       setNewAdminId("");
       toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
 
@@ -236,6 +248,7 @@ export function AdminsTab() {
         if (error) throw error;
 
         setAdmins(prev => prev.filter(admin => admin.id !== adminId));
+        cachedAdmins = admins.filter(admin => admin.id !== adminId);
         toast({ title: t.removeSuccess, description: `${t.user} ${providerId} ${t.removeSuccessDesc}`});
 
     } catch (error: any) {
@@ -255,7 +268,9 @@ export function AdminsTab() {
       const { data, error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
       if (error) throw error;
       
-      setAdmins(prev => prev.map(admin => admin.id === adminId ? data as AdminUser : admin));
+      const updatedAdmins = admins.map(admin => admin.id === adminId ? data as AdminUser : admin);
+      setAdmins(updatedAdmins);
+      cachedAdmins = updatedAdmins;
       toast({ title: t.roleUpdateSuccess, description: t.roleUpdateSuccessDesc });
     } catch (error: any) {
        toast({
@@ -287,7 +302,7 @@ export function AdminsTab() {
               <CardTitle>{t.title}</CardTitle>
               <CardDescription>{t.description}</CardDescription>
             </div>
-             <AddAdminDialog onAdd={fetchAdmins} />
+             <AddAdminDialog onAdd={handleRefresh} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -307,7 +322,7 @@ export function AdminsTab() {
           <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">{t.currentAdmins}</h3>
-                <Button variant="ghost" size="icon" onClick={() => fetchAdmins()} disabled={loading} className="hidden sm:inline-flex">
+                <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={loading} className="hidden sm:inline-flex">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             </div>
@@ -379,3 +394,5 @@ export function AdminsTab() {
     </div>
   );
 }
+
+    

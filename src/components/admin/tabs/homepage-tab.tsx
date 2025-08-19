@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -42,51 +42,75 @@ type TopProductLink = {
   products: Product; // Joined data
 };
 
+type HomePageData = {
+    slides: CarouselSlide[];
+    topProducts: TopProductLink[];
+    allProducts: Product[];
+    discordUrl: string;
+};
+
+let cachedData: HomePageData | null = null;
+
+
 export function HomePageTab() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.homepageTab;
 
-  const [loading, setLoading] = useState(true);
-  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProductLink[]>([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [discordUrl, setDiscordUrl] = useState("");
+  const [loading, setLoading] = useState(!cachedData);
+  const [carouselSlides, setCarouselSlides] = useState<CarouselSlide[]>(cachedData?.slides || []);
+  const [topProducts, setTopProducts] = useState<TopProductLink[]>(cachedData?.topProducts || []);
+  const [allProducts, setAllProducts] = useState<Product[]>(cachedData?.allProducts || []);
+  const [discordUrl, setDiscordUrl] = useState(cachedData?.discordUrl || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isAddProductDialogOpen, setAddProductDialogOpen] = useState(false);
 
-  const fetchHomePageContent = async () => {
+  const hasFetched = useMemo(() => !!cachedData, []);
+
+  const fetchHomePageContent = useCallback(async () => {
+    if (hasFetched) return;
     setLoading(true);
     try {
-      const { data: slides, error: slidesError } = await supabase.from('homepage_carousel').select('*').order('sort_order');
+      const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
+      const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
+      const allProdsPromise = supabase.from('products').select('*').order('name');
+      const settingsPromise = supabase.from('app_settings').select('value').eq('key', 'discord_ticket_url').single();
+
+      const [
+          {data: slides, error: slidesError},
+          {data: topProds, error: topProdsError},
+          {data: allProds, error: allProdsError},
+          {data: settingsData, error: settingsError},
+      ] = await Promise.all([slidesPromise, topProdsPromise, allProdsPromise, settingsPromise]);
+
       if (slidesError) throw slidesError;
-      setCarouselSlides(slides);
-
-      const { data: topProds, error: topProdsError } = await supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
       if (topProdsError) throw topProdsError;
-      setTopProducts(topProds as TopProductLink[]);
+      if (allProdsError) throw allProdsError;
+      if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
-       const { data: allProds, error: allProdsError } = await supabase.from('products').select('*').order('name');
-       if(allProdsError) throw allProdsError;
-       setAllProducts(allProds);
-       
-       const { data: settingsData, error: settingsError } = await supabase.from('app_settings').select('value').eq('key', 'discord_ticket_url').single();
-       if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
-       if (settingsData) {
-        setDiscordUrl(settingsData.value || "");
-       }
+      const data: HomePageData = {
+          slides,
+          topProducts: topProds as TopProductLink[],
+          allProducts: allProds,
+          discordUrl: settingsData?.value || ""
+      };
 
+      setCarouselSlides(data.slides);
+      setTopProducts(data.topProducts);
+      setAllProducts(data.allProducts);
+      setDiscordUrl(data.discordUrl);
+      cachedData = data;
 
     } catch (error: any) {
       toast({ variant: "destructive", title: t.loadError, description: error.message });
     } finally {
       setLoading(false);
     }
-  };
+  }, [hasFetched, t.loadError, toast]);
 
   useEffect(() => {
     fetchHomePageContent();
-  }, []);
+  }, [fetchHomePageContent]);
 
   const handleCarouselChange = (id: string, field: keyof CarouselSlide, value: any) => {
     setCarouselSlides(slides => slides.map(s => s.id === id ? { ...s, [field]: value } : s));
@@ -177,6 +201,7 @@ export function HomePageTab() {
         const { error: settingsError } = await supabase.from('app_settings').update({ value: discordUrl }).eq('key', 'discord_ticket_url');
         if (settingsError) throw settingsError;
 
+        cachedData = null; // Invalidate cache
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
     } catch (error: any) {
          toast({ variant: "destructive", title: t.saveError, description: error.message });
@@ -314,3 +339,5 @@ export function HomePageTab() {
     </div>
   );
 }
+
+    

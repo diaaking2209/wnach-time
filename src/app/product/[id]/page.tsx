@@ -29,12 +29,17 @@ type ReviewWithUser = {
     } | null;
 };
 
+type ProductData = {
+  product: Product;
+  reviews: ReviewWithUser[];
+  relatedProducts: Product[];
+}
+
+const productCache = new Map<string, ProductData>();
 
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [reviews, setReviews] = useState<ReviewWithUser[]>([]);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [productData, setProductData] = useState<ProductData | null>(productCache.get(params.id) || null);
+  const [loading, setLoading] = useState(!productData);
   const [quantity, setQuantity] = useState(1);
   
   const { addToCart } = useCart();
@@ -45,6 +50,13 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   const fetchProductData = useCallback(async () => {
     if (!productId) return;
+
+    if (productCache.has(productId)) {
+        setProductData(productCache.get(productId)!);
+        setLoading(false);
+        return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,7 +72,6 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           throw new Error("Product not found");
         }
         
-        // This mapping ensures that snake_case from DB is converted to camelCase for the component
         const formattedProduct: Product = {
             id: productData.id,
             name: productData.name,
@@ -76,28 +87,43 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             stockStatus: productData.stock_status,
             isActive: productData.is_active,
         };
-        setProduct(formattedProduct);
 
-        // Fetch approved reviews for the product with user profiles
         const { data: reviewsData, error: reviewsError } = await supabase
             .from('reviews')
-            .select(`
-                *,
-                user_profiles (
-                    username,
-                    avatar_url
-                )
-            `)
+            .select(`*, user_profiles(*)`)
             .eq('product_id', productId)
             .eq('is_approved', true)
             .order('is_featured', { ascending: false })
             .order('created_at', { ascending: false });
+        if (reviewsError) console.error("Error fetching reviews:", reviewsError);
+        
+        const { data: relatedData, error: relatedError } = await supabase.from('products').select('*').or(`category.eq.${formattedProduct.category},tags.cs.{${formattedProduct.tags?.join(',')}}`).neq('id', formattedProduct.id).eq('is_active', true).limit(4);
+        if (relatedError) console.error("Error fetching related products:", relatedError);
 
-        if (reviewsError) {
-            console.error("Error fetching reviews:", reviewsError);
-        } else {
-            setReviews(reviewsData as ReviewWithUser[]);
-        }
+        const formattedRelated: Product[] = (relatedData || []).map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            tags: item.tags || [],
+            imageUrl: item.image_url,
+            bannerUrl: item.banner_url,
+            description: item.description,
+            category: item.category,
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+        
+        const finalData = {
+          product: formattedProduct,
+          reviews: (reviewsData as ReviewWithUser[]) || [],
+          relatedProducts: formattedRelated,
+        };
+
+        productCache.set(productId, finalData);
+        setProductData(finalData);
 
     } catch(err: any) {
         console.error("Error in fetchProductData:", err);
@@ -113,42 +139,18 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     fetchProductData();
   }, [fetchProductData]);
-
-  useEffect(() => {
-    const fetchRelatedProducts = async () => {
-        if (!product) return;
-        const { data, error } = await supabase.from('products').select('*').or(`category.eq.${product.category},tags.cs.{${product.tags?.join(',')}}`).neq('id', product.id).eq('is_active', true).limit(4);
-        if (error) {
-            console.error("Error fetching related products:", error);
-        } else {
-            const formattedProducts: Product[] = data.map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                originalPrice: item.original_price,
-                discount: item.discount,
-                platforms: item.platforms || [],
-                tags: item.tags || [],
-                imageUrl: item.image_url,
-                description: item.description,
-                category: item.category,
-                stockStatus: item.stock_status,
-                isActive: item.is_active,
-            }));
-            setRelatedProducts(formattedProducts);
-        }
-    }
-    fetchRelatedProducts();
-  }, [product])
   
-  const onReviewSubmitted = (newReview: ReviewWithUser) => {
+  const onReviewSubmitted = () => {
+    productCache.delete(productId);
     fetchProductData();
   };
 
   if (loading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
-  if (!product) notFound();
+  if (!productData) notFound();
+
+  const { product, reviews, relatedProducts } = productData;
 
   const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
   const handleQuantityChange = (newQuantity: number) => newQuantity >= 1 && setQuantity(newQuantity);
@@ -261,3 +263,5 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+    
