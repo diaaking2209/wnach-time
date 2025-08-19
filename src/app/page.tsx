@@ -10,7 +10,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel"
 import { supabase } from "@/lib/supabase";
-import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
+import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Suspense, useEffect, useState, useRef, useCallback } from "react";
@@ -20,20 +20,12 @@ import Autoplay from "embla-carousel-autoplay"
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
 
 type CarouselDeal = {
     title: string;
     imageUrl: string;
     aiHint: string;
     link: string;
-}
-
-type FeaturedReview = {
-    id: string;
-    rating: number;
-    comment: string;
-    product_name: string;
 }
 
 const categories = [
@@ -226,89 +218,6 @@ function TopProducts() {
     );
 }
 
-function FeaturedReviews() {
-    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
-    const { language } = useLanguage();
-    const t = translations[language];
-
-    useEffect(() => {
-        const fetchFeaturedReviews = async () => {
-            const { data, error } = await supabase
-                .from('reviews')
-                .select(`
-                    id,
-                    rating,
-                    comment,
-                    products ( name )
-                `)
-                .eq('is_featured', true)
-                .eq('is_approved', true)
-                .order('created_at', { ascending: false })
-                .limit(3);
-
-            if (error) {
-                console.error("Error fetching featured reviews:", error);
-                return;
-            }
-            
-            const formattedReviews = data.map(review => ({
-                ...review,
-                // @ts-ignore
-                product_name: review.products.name,
-            }));
-            // @ts-ignore
-            setReviews(formattedReviews);
-        };
-        fetchFeaturedReviews();
-    }, []);
-
-    if (reviews.length === 0) {
-        return null;
-    }
-
-    return (
-        <section className="mb-12">
-            <div className="mb-8 flex items-baseline gap-4">
-                <div className="w-1 bg-primary h-8"></div>
-                <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                        {t.home.featuredReviews}
-                    </h2>
-                    <p className="text-sm text-muted-foreground sm:text-base">{t.home.reviewsDescription}</p>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reviews.map(review => (
-                    <Card key={review.id} className="bg-card">
-                        <CardContent className="p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="p-3 bg-muted rounded-full">
-                                    <User className="h-6 w-6 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-1">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <Star key={i} className={cn(
-                                                "h-5 w-5",
-                                                i < review.rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/50"
-                                            )} />
-                                        ))}
-                                    </div>
-                                    <blockquote className="mt-2 text-sm italic text-foreground/90 border-l-2 border-primary/50 pl-4">
-                                       "{review.comment}"
-                                    </blockquote>
-                                    <p className="mt-2 text-xs text-muted-foreground">{t.home.reviewFor} <span className="font-semibold">{review.product_name}</span></p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </section>
-    )
-}
-
-
 export default function HomePage() {
   const { language } = useLanguage();
   const t = translations[language];
@@ -363,10 +272,6 @@ export default function HomePage() {
             <TopProducts />
         </Suspense>
       </section>
-      
-      <Suspense>
-        <FeaturedReviews />
-      </Suspense>
       
       <section className="mb-12">
         <div className="relative overflow-hidden rounded-lg bg-card p-8 sm:p-12">
