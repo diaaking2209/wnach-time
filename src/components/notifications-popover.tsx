@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useCallback } from "react";
@@ -10,9 +9,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Badge } from "./ui/badge";
 import { ScrollArea } from "./ui/scroll-area";
-import { Separator } from "./ui/separator";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type Notification = {
   id: string;
@@ -25,68 +23,53 @@ type Notification = {
 export function NotificationsPopover() {
   const { toast } = useToast();
   const { user, session } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const fetchNotifications = useCallback(async () => {
-    if (!user || !session) {
-      setLoading(false);
-      setNotifications([]);
-      setUnreadCount(0);
-      return;
-    };
-    setLoading(true);
-    try {
-        const { data, error, count } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact' })
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+    if (!user || !session) return [];
+    
+    const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        
-        setNotifications(data as Notification[]);
-        const currentUnreadCount = data.filter(n => !n.is_read).length;
-        setUnreadCount(currentUnreadCount);
+    if (error) throw error;
+    return data as Notification[];
+  }, [user, session]);
 
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Failed to load notifications",
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, user, session]);
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: fetchNotifications,
+    enabled: !!user && !!session,
+  });
 
   useEffect(() => {
-    fetchNotifications();
+    if (!user) return;
 
-    if(user) {
-        const channel = supabase.channel('public:notifications')
-          .on(
-            'postgres_changes', 
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'notifications', 
-              filter: `user_id=eq.${user.id}` 
-            }, 
-            (payload) => {
-                fetchNotifications();
-            }
-          )
-          .subscribe();
+    const channel = supabase.channel('public:notifications')
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'notifications', 
+          filter: `user_id=eq.${user.id}` 
+        }, 
+        () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        }
+      )
+      .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }
-  }, [fetchNotifications, user]);
+    return () => {
+        supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
   
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   const handleMarkAsRead = async (notificationId: string) => {
     if (!user) return;
     const { error } = await supabase
@@ -97,9 +80,7 @@ export function NotificationsPopover() {
     if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not update notification." });
     } else {
-        // Optimistically update the UI to feel faster
-        setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
     }
   }
   
@@ -114,8 +95,7 @@ export function NotificationsPopover() {
     if(error){
         toast({ variant: "destructive", title: "Error", description: "Could not mark all as read." });
     } else {
-        setNotifications(prev => prev.map(n => ({...n, is_read: true})));
-        setUnreadCount(0);
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
     }
   }
   
@@ -142,7 +122,7 @@ export function NotificationsPopover() {
                 </Button>
             </div>
              <ScrollArea className="h-96">
-                {loading ? (
+                {isLoading ? (
                      <div className="flex justify-center items-center h-full py-20">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>

@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,6 +43,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -62,53 +63,36 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
+const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select(`
+        id,
+        created_at,
+        rating,
+        comment,
+        is_approved,
+        is_featured,
+        products ( id, name, image_url ),
+        user_profiles ( username, avatar_url )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    return data as ReviewWithProductAndUser[];
+};
+
 export function ReviewsTab() {
-  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
+  const queryClient = useQueryClient();
   
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    try {
-        const { data, error } = await supabase
-          .from('reviews')
-          .select(`
-            id,
-            created_at,
-            rating,
-            comment,
-            is_approved,
-            is_featured,
-            products ( id, name, image_url ),
-            user_profiles ( username, avatar_url )
-          `)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        
-        setReviews(data as ReviewWithProductAndUser[]);
-    } catch(error: any) {
-        toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } finally {
-        setLoading(false);
-    }
-  }, [toast, t]);
-
-  useEffect(() => {
-    fetchReviews();
-
-    const subscription = supabase.channel('public:reviews')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
-            fetchReviews();
-        })
-        .subscribe();
-    
-    return () => {
-        subscription.unsubscribe();
-    }
-  }, [fetchReviews]);
+  const { data: reviews = [], isLoading, error } = useQuery({
+    queryKey: ['admin_reviews'],
+    queryFn: fetchReviews,
+  });
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -120,6 +104,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
     }
   }
 
@@ -133,6 +118,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
+      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
     }
   }
 
@@ -142,6 +128,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
+      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
     }
   }
 
@@ -167,10 +154,16 @@ export function ReviewsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    </TableCell>
+                </TableRow>
+              ) : error ? (
+                 <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-destructive">
+                       {t.loadError}
                     </TableCell>
                 </TableRow>
               ) : reviews.length > 0 ? (

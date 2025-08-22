@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -45,6 +45,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type OrderItem = {
     product_id: string;
@@ -83,15 +84,33 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
+const fetchAllOrders = async (): Promise<OrderWithStatus[]> => {
+    const promises = orderTables.map((table, index) =>
+        supabase.from(table).select('*').order('created_at', { ascending: false })
+            .then(({ data, error }) => {
+                if (error) throw error;
+                return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
+            })
+    );
+    
+    const results = await Promise.all(promises);
+    return results.flat();
+};
+
 export function OrdersTab() {
-  const [orders, setOrders] = useState<OrderWithStatus[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.ordersTab;
+  const queryClient = useQueryClient();
+
+
+  const { data: orders = [], isLoading, error } = useQuery({
+      queryKey: ['admin_orders'],
+      queryFn: fetchAllOrders,
+  });
 
   const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
     Pending: 1,
@@ -100,47 +119,6 @@ export function OrdersTab() {
     Cancelled: 1,
   });
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    try {
-        const promises = orderTables.map((table, index) =>
-            supabase.from(table).select('*').order('created_at', { ascending: false })
-                .then(({ data, error }) => {
-                    if (error) throw error;
-                    return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
-                })
-        );
-        
-        const results = await Promise.all(promises);
-        const allOrders = results.flat();
-
-        setOrders(allOrders);
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: t.loadError,
-            description: error.message || "Could not retrieve the list of orders.",
-        });
-        console.error("Fetch orders error:", error);
-    }
-    setLoading(false);
-  }, [toast, t]);
-
-  useEffect(() => {
-    fetchOrders();
-
-    const subscriptions = orderTables.map((table) => 
-        supabase.channel(`public:${table}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
-                fetchOrders(); // Refetch all orders on any change
-            })
-            .subscribe()
-    );
-
-    return () => {
-        subscriptions.forEach(sub => sub.unsubscribe());
-    };
-  }, [fetchOrders]);
   
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
     const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
@@ -186,7 +164,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        // No need to call fetchOrders() here, realtime will handle it
+        queryClient.invalidateQueries({ queryKey: ['admin_orders'] });
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
@@ -200,7 +178,7 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    // No need to call fetchOrders() here, realtime will handle it
+    queryClient.invalidateQueries({ queryKey: ['admin_orders'] });
   }
 
   const handlePageChange = (status: OrderStatus, direction: 'next' | 'prev') => {
@@ -233,7 +211,7 @@ export function OrdersTab() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {loading ? (
+                    {isLoading ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
