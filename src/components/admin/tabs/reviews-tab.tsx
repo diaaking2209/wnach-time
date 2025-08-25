@@ -44,6 +44,7 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 
 type ReviewWithProductAndUser = {
@@ -64,64 +65,60 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
+const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
+    const { data, error } = await supabase
+    .from('reviews')
+    .select(`
+        id,
+        created_at,
+        rating,
+        comment,
+        is_approved,
+        is_featured,
+        products ( id, name, image_url ),
+        user_profiles ( username, avatar_url )
+    `)
+    .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data as ReviewWithProductAndUser[];
+}
+
 
 export function ReviewsTab() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
-  
-  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const channelRef = useRef<RealtimeChannel | null>(null);
+  const queryClient = useQueryClient();
 
-
-  const fetchReviews = useCallback(async () => {
-    setLoading(true);
-    try {
-        const { data, error } = await supabase
-        .from('reviews')
-        .select(`
-            id,
-            created_at,
-            rating,
-            comment,
-            is_approved,
-            is_featured,
-            products ( id, name, image_url ),
-            user_profiles ( username, avatar_url )
-        `)
-        .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setReviews(data as ReviewWithProductAndUser[]);
-    } catch(error: any) {
-        toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } finally {
-        setLoading(false);
-    }
-  }, [t.loadError, toast]);
+  const { data: reviews, isLoading, refetch } = useQuery<ReviewWithProductAndUser[]>({
+    queryKey: ['adminReviews'],
+    queryFn: fetchReviews,
+  });
 
   useEffect(() => {
-    fetchReviews();
-    
-    if (!channelRef.current) {
-        const channel = supabase.channel('public:reviews')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
-                fetchReviews();
-            })
-            .subscribe();
-        
-        channelRef.current = channel;
-    }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const channel = supabase.channel('public:reviews')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
+            queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
+        })
+        .subscribe();
+    
     return () => {
-        if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-            channelRef.current = null;
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        if (channel) {
+            supabase.removeChannel(channel);
         }
     };
 
-  }, [fetchReviews]);
+  }, [refetch, queryClient]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -133,7 +130,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      // No need to call fetchReviews, subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 
@@ -147,7 +144,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      // No need to call fetchReviews, subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 
@@ -157,7 +154,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      // No need to call fetchReviews, subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 
@@ -183,13 +180,13 @@ export function ReviewsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                     </TableCell>
                 </TableRow>
-              ) : reviews.length > 0 ? (
+              ) : reviews && reviews.length > 0 ? (
                 reviews.map((review) => (
                   <TableRow key={review.id}>
                     <TableCell>

@@ -46,6 +46,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type OrderItem = {
     product_id: string;
@@ -89,6 +90,22 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
+const fetchOrdersByStatus = async () => {
+    const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
+        const table = statusMap[status];
+        const { data, error } = await supabase.from(table).select('id, display_id, created_at, total_amount, user_id, customer_username, customer_provider_id, delivery_details, items, last_modified_by_admin_id, last_modified_by_admin_username').order('created_at', { ascending: false });
+        if (error) throw new Error(`Failed to fetch ${status} orders: ${error.message}`);
+        return { status, data: data as Order[] };
+    });
+    
+    const results = await Promise.all(promises);
+    return results.reduce((acc, { status, data }) => {
+        acc[status] = data;
+        return acc;
+    }, {} as Record<OrderStatus, Order[]>);
+}
+
+
 export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -96,72 +113,40 @@ export function OrdersTab() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.ordersTab;
+  const queryClient = useQueryClient();
+
+  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
+    queryKey: ['adminOrders'],
+    queryFn: fetchOrdersByStatus,
+    initialData: { Pending: [], Processing: [], Completed: [], Cancelled: [] },
+  });
   
-  const [ordersByStatus, setOrdersByStatus] = useState<Record<OrderStatus, Order[]>>({
-      Pending: [],
-      Processing: [],
-      Completed: [],
-      Cancelled: [],
-  });
-  const [loading, setLoading] = useState(true);
-  const channelsRef = useRef<Record<OrderTable, RealtimeChannel | null>>({
-    pending_orders: null,
-    processing_orders: null,
-    completed_orders: null,
-    cancelled_orders: null,
-  });
-
-  const fetchInitialOrders = useCallback(async () => {
-    setLoading(true);
-    try {
-        const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
-            const table = statusMap[status];
-            const { data, error } = await supabase.from(table).select('id, display_id, created_at, total_amount, user_id, customer_username, customer_provider_id, delivery_details, items, last_modified_by_admin_id, last_modified_by_admin_username').order('created_at', { ascending: false });
-            if (error) throw new Error(`Failed to fetch ${status} orders: ${error.message}`);
-            return { status, data: data as Order[] };
-        });
-        
-        const results = await Promise.all(promises);
-        const newOrdersByStatus = results.reduce((acc, { status, data }) => {
-            acc[status] = data;
-            return acc;
-        }, {} as Record<OrderStatus, Order[]>);
-
-        setOrdersByStatus(newOrdersByStatus);
-
-    } catch (error: any) {
-        toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } finally {
-        setLoading(false);
-    }
-  }, [t.loadError, toast]);
-
   useEffect(() => {
-    fetchInitialOrders();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const channels: RealtimeChannel[] = [];
     const allTables = Object.values(statusMap);
-    
+
     allTables.forEach(table => {
-        if (!channelsRef.current[table]) {
-            const channel = supabase.channel(`public:${table}`)
-                .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-                    // Refetch all orders to ensure consistency across tabs
-                    fetchInitialOrders();
-                })
-                .subscribe();
-            channelsRef.current[table] = channel;
-        }
+        const channel = supabase.channel(`public:${table}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+                queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+            })
+            .subscribe();
+        channels.push(channel);
     });
 
     return () => {
-        // Unsubscribe from all channels on component unmount
-        Object.values(channelsRef.current).forEach(channel => {
-            if (channel) {
-                supabase.removeChannel(channel);
-            }
-        });
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        channels.forEach(channel => supabase.removeChannel(channel));
     };
-  }, [fetchInitialOrders]);
+  }, [refetch, queryClient]);
 
   
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
@@ -208,7 +193,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        // The realtime subscription will handle updating the UI
+        queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
@@ -222,7 +207,7 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    // The realtime subscription will handle updating the UI
+    queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
   }
 
   const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
@@ -240,8 +225,8 @@ export function OrdersTab() {
   }
   
   const renderOrdersTable = (status: OrderStatus) => {
-    const isTabLoading = loading;
-    const ordersForTab = ordersByStatus[status] || [];
+    const isTabLoading = isLoading;
+    const ordersForTab = ordersByStatus?.[status] || [];
     
     const currentPage = currentPages[status];
     const totalPages = Math.ceil(ordersForTab.length / ORDERS_PER_PAGE);
