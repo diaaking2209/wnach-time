@@ -43,6 +43,7 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -88,10 +89,31 @@ export function ReviewsTab() {
   const t = translations[language].admin.reviewsTab;
   const queryClient = useQueryClient();
 
-  const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
+  const { data: reviews, isLoading, isError, refetch } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:reviews')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, (payload) => {
+        queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
+      })
+      .subscribe();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [queryClient, refetch]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -103,7 +125,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
+      // No need to invalidate, realtime subscription will handle it
     }
   }
 
@@ -117,7 +139,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
+      // No need to invalidate, realtime subscription will handle it
     }
   }
 
@@ -127,7 +149,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
+      // No need to invalidate, realtime subscription will handle it
     }
   }
 

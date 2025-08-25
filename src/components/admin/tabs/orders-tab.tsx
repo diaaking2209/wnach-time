@@ -90,10 +90,13 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
-const fetchOrdersByStatus = async () => {
+const fetchAllOrders = async (): Promise<Record<OrderStatus, Order[]>> => {
     const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
         const table = statusMap[status];
-        const { data, error } = await supabase.from(table).select('id, display_id, created_at, total_amount, user_id, customer_username, customer_provider_id, delivery_details, items, last_modified_by_admin_id, last_modified_by_admin_username').order('created_at', { ascending: false });
+        const { data, error } = await supabase
+          .from(table)
+          .select('id, display_id, created_at, total_amount, user_id, customer_username, customer_provider_id, delivery_details, items, last_modified_by_admin_id, last_modified_by_admin_username')
+          .order('created_at', { ascending: false });
         if (error) throw new Error(`Failed to fetch ${status} orders: ${error.message}`);
         return { status, data: data as Order[] };
     });
@@ -107,48 +110,51 @@ const fetchOrdersByStatus = async () => {
 
 
 export function OrdersTab() {
-  const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.ordersTab;
   const queryClient = useQueryClient();
+  const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
-    queryFn: fetchOrdersByStatus,
-    initialData: { Pending: [], Processing: [], Completed: [], Cancelled: [] },
+    queryFn: fetchAllOrders,
+    // The data will be managed by react-query's cache and refetching mechanisms
   });
-  
+
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    // This effect handles real-time updates via Supabase subscriptions
     const channels: RealtimeChannel[] = [];
     const allTables = Object.values(statusMap);
 
     allTables.forEach(table => {
         const channel = supabase.channel(`public:${table}`)
             .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+                // When a change occurs, invalidate the query to refetch data
                 queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
             })
             .subscribe();
         channels.push(channel);
     });
 
+    // This handles refetching when the tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function to remove subscriptions and event listeners
     return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
         channels.forEach(channel => supabase.removeChannel(channel));
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [refetch, queryClient]);
 
-  
+
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
     const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
     if (error) throw error;
@@ -193,7 +199,8 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+        // No need to manually invalidate, the subscription will catch the change.
+        // queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
