@@ -1,6 +1,5 @@
-
 "use client"
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +42,6 @@ import { cn } from "@/lib/utils";
 import { CouponDialog } from "../coupon-dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type Coupon = {
   id: string;
@@ -55,24 +53,30 @@ export type Coupon = {
   created_at: string;
 };
 
-const fetchCoupons = async (): Promise<Coupon[]> => {
-    const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return data as Coupon[];
-};
-
 export function CouponsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.couponsTab;
-  const queryClient = useQueryClient();
+  
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: coupons, isLoading, error } = useQuery({
-    queryKey: ['admin_coupons'],
-    queryFn: fetchCoupons
-  });
+  const fetchCoupons = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
+    if (error) {
+      toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } else {
+      setCoupons(data as Coupon[]);
+    }
+    setLoading(false);
+  }, [t.loadError, toast]);
+
+  useEffect(() => {
+    fetchCoupons();
+  }, [fetchCoupons]);
 
   const handleAddCoupon = () => {
     setSelectedCoupon(null);
@@ -97,13 +101,13 @@ export function CouponsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      queryClient.invalidateQueries({ queryKey: ['admin_coupons'] });
+      fetchCoupons();
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['admin_coupons'] });
+    fetchCoupons();
   }
 
   return (
@@ -157,17 +161,11 @@ export function CouponsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {loading ? (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         <p className="mt-2 text-muted-foreground">{t.loading}</p>
-                    </TableCell>
-                </TableRow>
-              ) : error ? (
-                <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-destructive">
-                        {t.loadError}
                     </TableCell>
                 </TableRow>
               ) : coupons && coupons.length > 0 ? (

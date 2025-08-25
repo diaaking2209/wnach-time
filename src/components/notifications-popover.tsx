@@ -10,7 +10,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type Notification = {
   id: string;
@@ -24,26 +23,36 @@ export function NotificationsPopover() {
   const { toast } = useToast();
   const { user, session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user || !session) return [];
+    if (!user || !session) return;
     
+    setLoading(true);
     const { data, error } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data as Notification[];
-  }, [user, session]);
+    if (error) {
+        toast({ variant: "destructive", title: "Error", description: "Could not load notifications." });
+    } else {
+        setNotifications(data as Notification[]);
+    }
+    setLoading(false);
+  }, [user, session, toast]);
 
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['notifications', user?.id],
-    queryFn: fetchNotifications,
-    enabled: !!user && !!session,
-  });
+  useEffect(() => {
+    if (session) {
+      fetchNotifications();
+    } else {
+      setNotifications([]);
+      setLoading(false);
+    }
+  }, [session, fetchNotifications]);
+
 
   useEffect(() => {
     if (!user) return;
@@ -57,8 +66,8 @@ export function NotificationsPopover() {
           table: 'notifications', 
           filter: `user_id=eq.${user.id}` 
         }, 
-        () => {
-            queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        (payload) => {
+            fetchNotifications();
         }
       )
       .subscribe();
@@ -66,7 +75,7 @@ export function NotificationsPopover() {
     return () => {
         supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, fetchNotifications]);
   
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -80,7 +89,7 @@ export function NotificationsPopover() {
     if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not update notification." });
     } else {
-        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        fetchNotifications();
     }
   }
   
@@ -95,7 +104,7 @@ export function NotificationsPopover() {
     if(error){
         toast({ variant: "destructive", title: "Error", description: "Could not mark all as read." });
     } else {
-        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        fetchNotifications();
     }
   }
   
@@ -122,7 +131,7 @@ export function NotificationsPopover() {
                 </Button>
             </div>
              <ScrollArea className="h-96">
-                {isLoading ? (
+                {loading ? (
                      <div className="flex justify-center items-center h-full py-20">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>

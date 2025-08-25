@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -45,7 +45,6 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type OrderItem = {
     product_id: string;
@@ -84,19 +83,6 @@ const formatPrice = (price: number) => {
     }).format(price);
 };
 
-const fetchAllOrders = async (): Promise<OrderWithStatus[]> => {
-    const promises = orderTables.map((table, index) =>
-        supabase.from(table).select('*').order('created_at', { ascending: false })
-            .then(({ data, error }) => {
-                if (error) throw error;
-                return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
-            })
-    );
-    
-    const results = await Promise.all(promises);
-    return results.flat();
-};
-
 export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -104,13 +90,9 @@ export function OrdersTab() {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.ordersTab;
-  const queryClient = useQueryClient();
-
-
-  const { data: orders = [], isLoading, error } = useQuery({
-      queryKey: ['admin_orders'],
-      queryFn: fetchAllOrders,
-  });
+  
+  const [orders, setOrders] = useState<OrderWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
     Pending: 1,
@@ -118,6 +100,43 @@ export function OrdersTab() {
     Completed: 1,
     Cancelled: 1,
   });
+
+  const fetchAllOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const promises = orderTables.map((table, index) =>
+          supabase.from(table).select('*').order('created_at', { ascending: false })
+              .then(({ data, error }) => {
+                  if (error) throw error;
+                  return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
+              })
+      );
+      const results = await Promise.all(promises);
+      setOrders(results.flat());
+    } catch (error: any) {
+        toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } finally {
+        setLoading(false);
+    }
+  }, [t.loadError, toast]);
+
+  useEffect(() => {
+    fetchAllOrders();
+
+    const channels = orderTables.map(table => 
+        supabase.channel(`public:${table}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
+                fetchAllOrders();
+            })
+            .subscribe()
+    );
+
+    return () => {
+        channels.forEach(channel => {
+            supabase.removeChannel(channel);
+        });
+    };
+  }, [fetchAllOrders]);
 
   
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
@@ -164,7 +183,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        queryClient.invalidateQueries({ queryKey: ['admin_orders'] });
+        // No need to call fetchAllOrders here, the subscription will handle it
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
@@ -178,7 +197,7 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['admin_orders'] });
+    // No need to call fetchAllOrders here, the subscription will handle it
   }
 
   const handlePageChange = (status: OrderStatus, direction: 'next' | 'prev') => {
@@ -211,7 +230,7 @@ export function OrdersTab() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isLoading ? (
+                    {loading ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />

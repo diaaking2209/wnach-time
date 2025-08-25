@@ -1,4 +1,3 @@
-
 'use client'
 import Image from "next/image";
 import { ProductCard, type Product } from "@/components/product-card";
@@ -22,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery } from "@tanstack/react-query";
 
 type CarouselDeal = {
     title: string;
@@ -47,38 +45,39 @@ function CarouselSkeleton() {
     );
 }
 
-const getCarouselDeals = async (): Promise<CarouselDeal[]> => {
-    const { data: dealsData, error: dealsError } = await supabase
-        .from('homepage_carousel')
-        .select('*')
-        .order('sort_order');
-    
-    if (dealsError) {
-        console.error("Error fetching deals:", dealsError);
-        throw new Error("Failed to fetch carousel deals");
-    }
-    
-    return dealsData.map(d => ({
-        title: d.title,
-        imageUrl: d.image_url,
-        aiHint: d.ai_hint,
-        link: d.link,
-    }));
-};
-
 function HeroCarousel() {
     const { language } = useLanguage();
     const [api, setApi] = useState<CarouselApi>()
     const [current, setCurrent] = useState(0)
+    const [bestDeals, setBestDeals] = useState<CarouselDeal[]>([]);
+    const [loading, setLoading] = useState(true);
 
     const plugin = useRef(
         Autoplay({ delay: 3000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
 
-    const { data: bestDeals, isLoading } = useQuery({
-        queryKey: ['homepage', 'carousel'],
-        queryFn: getCarouselDeals
-    });
+    useEffect(() => {
+        const getCarouselDeals = async () => {
+            setLoading(true);
+            const { data: dealsData, error: dealsError } = await supabase
+                .from('homepage_carousel')
+                .select('*')
+                .order('sort_order');
+            
+            if (dealsError) {
+                console.error("Error fetching deals:", dealsError);
+            } else {
+                setBestDeals(dealsData.map(d => ({
+                    title: d.title,
+                    imageUrl: d.image_url,
+                    aiHint: d.ai_hint,
+                    link: d.link,
+                })));
+            }
+            setLoading(false);
+        };
+        getCarouselDeals();
+    }, []);
 
      useEffect(() => {
         if (!api) return;
@@ -90,7 +89,7 @@ function HeroCarousel() {
 
     const scrollTo = useCallback((index: number) => api && api.scrollTo(index), [api]);
 
-    if (isLoading || !bestDeals) {
+    if (loading) {
         return <CarouselSkeleton />;
     }
 
@@ -164,46 +163,48 @@ function TopProductsSkeleton() {
     );
 }
 
-const getTopProducts = async (): Promise<Product[]> => {
-    const { data: topProductsData, error: topProductsError } = await supabase
-        .from('homepage_top_products')
-        .select('products(*)')
-        .order('sort_order');
-    
-    if (topProductsError) {
-        console.error("Error fetching top products:", topProductsError);
-        throw new Error("Failed to fetch top products");
-    }
-
-    return topProductsData
-        .map(item => item.products)
-        .filter(p => p && p.is_active)
-        .map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            tags: item.tags || [],
-            imageUrl: item.image_url,
-            description: item.description,
-            category: item.category,
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-};
-
 function TopProducts() {
     const { language } = useLanguage();
     const t = translations[language];
+    const [topProducts, setTopProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const { data: topProducts, isLoading } = useQuery({
-        queryKey: ['homepage', 'top_products'],
-        queryFn: getTopProducts
-    });
+    useEffect(() => {
+        const getTopProducts = async () => {
+            setLoading(true);
+            const { data: topProductsData, error: topProductsError } = await supabase
+                .from('homepage_top_products')
+                .select('products(*)')
+                .order('sort_order');
+            
+            if (topProductsError) {
+                console.error("Error fetching top products:", topProductsError);
+            } else {
+                const formattedProducts = topProductsData
+                    .map(item => item.products)
+                    .filter(p => p && p.is_active)
+                    .map((item: any) => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        originalPrice: item.original_price,
+                        discount: item.discount,
+                        platforms: item.platforms || [],
+                        tags: item.tags || [],
+                        imageUrl: item.image_url,
+                        description: item.description,
+                        category: item.category,
+                        stockStatus: item.stock_status,
+                        isActive: item.is_active,
+                    }));
+                setTopProducts(formattedProducts);
+            }
+            setLoading(false);
+        };
+        getTopProducts();
+    }, []);
 
-    if (isLoading) {
+    if (loading) {
         return <TopProductsSkeleton />;
     }
 
@@ -233,34 +234,37 @@ type FeaturedReview = {
   } | null;
 };
 
-const getFeaturedReviews = async (): Promise<FeaturedReview[]> => {
-    const { data, error } = await supabase
-        .from('reviews')
-        .select(`
-            id,
-            rating,
-            comment,
-            products ( name ),
-            user_profiles ( username, avatar_url )
-        `)
-        .eq('is_featured', true)
-        .limit(3);
-    
-    if (error) {
-        console.error("Error fetching featured reviews:", error);
-        throw new Error("Failed to fetch featured reviews");
-    }
-    
-    return data as FeaturedReview[];
-};
 
 function FeaturedReviews() {
-    const { data: reviews, isLoading } = useQuery({
-        queryKey: ['homepage', 'featured_reviews'],
-        queryFn: getFeaturedReviews
-    });
+    const [reviews, setReviews] = useState<FeaturedReview[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const getFeaturedReviews = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('reviews')
+                .select(`
+                    id,
+                    rating,
+                    comment,
+                    products ( name ),
+                    user_profiles ( username, avatar_url )
+                `)
+                .eq('is_featured', true)
+                .limit(3);
+            
+            if (error) {
+                console.error("Error fetching featured reviews:", error);
+            } else {
+                setReviews(data as FeaturedReview[]);
+            }
+            setLoading(false);
+        };
+        getFeaturedReviews();
+    }, []);
     
-    if (isLoading) {
+    if (loading) {
         return <TopProductsSkeleton />;
     }
 

@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useEffect, useState, Suspense, useCallback } from "react";
@@ -7,52 +6,58 @@ import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/scroll-to-top";
-import { useQuery } from "@tanstack/react-query";
 
-const fetchSearchResults = async (query: string | null): Promise<Product[]> => {
-    if (!query) {
-      return [];
+function SearchResults() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const fetchSearchResults = useCallback(async (searchQuery: string | null) => {
+    if (!searchQuery) {
+      setProducts([]);
+      return;
     }
+    setLoading(true);
+    setError(null);
     
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .ilike('name', `%${query}%`)
+      .ilike('name', `%${searchQuery}%`)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (error) {
         console.error("Error fetching search results:", error);
-        throw new Error("Failed to fetch search results");
+        setError("Failed to fetch search results");
+    } else {
+        const formattedProducts = data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            originalPrice: item.original_price,
+            discount: item.discount,
+            platforms: item.platforms || [],
+            tags: item.tags || [],
+            imageUrl: item.image_url,
+            description: item.description,
+            category: item.category,
+            stockStatus: item.stock_status,
+            isActive: item.is_active,
+        }));
+        setProducts(formattedProducts);
     }
+    setLoading(false);
+  }, []);
 
-    return data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        discount: item.discount,
-        platforms: item.platforms || [],
-        tags: item.tags || [],
-        imageUrl: item.image_url,
-        description: item.description,
-        category: item.category,
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
-    }));
-};
+  useEffect(() => {
+    fetchSearchResults(query);
+  }, [query, fetchSearchResults]);
 
-function SearchResults() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q');
-  
-  const { data: products, isLoading, error } = useQuery({
-      queryKey: ['search', query],
-      queryFn: () => fetchSearchResults(query),
-      enabled: !!query, // Only run the query if `query` is not null/empty
-  });
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex h-[40vh] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

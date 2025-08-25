@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,7 +43,6 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -63,7 +62,17 @@ type ReviewWithProductAndUser = {
   } | null;
 };
 
-const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
+
+export function ReviewsTab() {
+  const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = translations[language].admin.reviewsTab;
+  
+  const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from('reviews')
       .select(`
@@ -78,21 +87,28 @@ const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
       `)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    
-    return data as ReviewWithProductAndUser[];
-};
+    if (error) {
+      toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } else {
+      setReviews(data as ReviewWithProductAndUser[]);
+    }
+    setLoading(false);
+  }, [t.loadError, toast]);
 
-export function ReviewsTab() {
-  const { toast } = useToast();
-  const { language } = useLanguage();
-  const t = translations[language].admin.reviewsTab;
-  const queryClient = useQueryClient();
-  
-  const { data: reviews = [], isLoading, error } = useQuery({
-    queryKey: ['admin_reviews'],
-    queryFn: fetchReviews,
-  });
+  useEffect(() => {
+    fetchReviews();
+    
+    const channel = supabase.channel('public:reviews')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
+            fetchReviews();
+        })
+        .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
+
+  }, [fetchReviews]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -104,7 +120,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
+      // No need to call fetchReviews, subscription will handle it
     }
   }
 
@@ -118,7 +134,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
+      // No need to call fetchReviews, subscription will handle it
     }
   }
 
@@ -128,7 +144,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      queryClient.invalidateQueries({ queryKey: ['admin_reviews'] });
+      // No need to call fetchReviews, subscription will handle it
     }
   }
 
@@ -154,16 +170,10 @@ export function ReviewsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {loading ? (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                    </TableCell>
-                </TableRow>
-              ) : error ? (
-                 <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10 text-destructive">
-                       {t.loadError}
                     </TableCell>
                 </TableRow>
               ) : reviews.length > 0 ? (

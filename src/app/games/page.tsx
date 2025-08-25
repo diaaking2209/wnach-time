@@ -1,52 +1,58 @@
-
 'use client'
+import { useEffect, useState } from "react";
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-const getGameProducts = async (): Promise<Product[]> => {
-    const { data, error } = await supabase
+
+export default function GamesPage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getGameProducts = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('category', 'Games')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-    if (error) {
+      if (error) {
         console.error("Error fetching game products:", error);
-        throw new Error("Failed to fetch game products");
-    }
+        setError("Failed to fetch game products");
+      } else {
+        const formattedProducts = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          originalPrice: item.original_price,
+          discount: item.discount,
+          platforms: item.platforms || [],
+          tags: item.tags || [],
+          imageUrl: item.image_url,
+          description: item.description,
+          category: item.category,
+          stockStatus: item.stock_status,
+          isActive: item.is_active,
+        }));
+        setProducts(formattedProducts);
+      }
+      setLoading(false);
+    };
 
-    return data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        discount: item.discount,
-        platforms: item.platforms || [],
-        tags: item.tags || [],
-        imageUrl: item.image_url,
-        description: item.description,
-        category: item.category,
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
-    }));
-};
+    getGameProducts();
+  }, []);
 
-export default function GamesPage() {
-  const { language } = useLanguage();
-  const t = translations[language];
-
-  const { data: products, isLoading, error } = useQuery({
-    queryKey: ['products', 'games'],
-    queryFn: getGameProducts
-  });
-
-  if (isLoading) {
+  if (loading) {
     return (
         <div className="flex h-[60vh] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
