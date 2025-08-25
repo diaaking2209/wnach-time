@@ -13,8 +13,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import React, { useState, useEffect, useRef } from 'react';
-import { ReloadPrompt } from '@/components/reload-prompt';
+import React, { useState } from 'react';
 
 // export const metadata: Metadata = {
 //   title: 'Wnash time',
@@ -27,36 +26,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [queryClient] = useState(() => new QueryClient())
-
-  useEffect(() => {
-    const handleInteraction = () => {
-      // Invalidate all queries to force a refetch on user interaction
-      // This is a simple but effective way to ensure data is fresh
-      // after the tab has been inactive.
-      queryClient.invalidateQueries();
-      
-      // Remove listeners after first interaction to avoid excessive refetching
-      const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-      userEvents.forEach(event => document.removeEventListener(event, handleInteraction));
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // When tab becomes hidden, set up listeners for the next interaction
-        const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-        userEvents.forEach(event => document.addEventListener(event, handleInteraction, { once: true }));
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-      userEvents.forEach(event => document.removeEventListener(event, handleInteraction));
-    };
-  }, [queryClient]);
-
 
   return (
     <LanguageProvider>
@@ -80,12 +49,6 @@ export default function RootLayout({
                 <AuthProvider>
                     <CartProvider>
                         <div className="flex min-h-screen flex-col">
-                            {/* ReloadPrompt is no longer needed with this approach */}
-                            {/* <ReloadPrompt
-                              isOpen={showReloadPrompt}
-                              onClose={() => setShowReloadPrompt(false)}
-                              onReload={() => window.location.reload()}
-                            /> */}
                             <Header />
                             <main className="flex-grow pt-8">{children}</main>
                             <Footer />
