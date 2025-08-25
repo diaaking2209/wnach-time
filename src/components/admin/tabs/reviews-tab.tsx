@@ -89,9 +89,11 @@ export function ReviewsTab() {
   const t = translations[language].admin.reviewsTab;
   const queryClient = useQueryClient();
 
-  const { data: reviews, isLoading, isError, refetch } = useQuery<ReviewWithProductAndUser[]>({
+  const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -102,18 +104,10 @@ export function ReviewsTab() {
       })
       .subscribe();
     
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
     return () => {
       supabase.removeChannel(channel);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [queryClient, refetch]);
+  }, [queryClient]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -125,7 +119,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      // No need to invalidate, realtime subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 
@@ -139,7 +133,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.updateError, description: error.message });
     } else {
       toast({ title: t.updateSuccess });
-      // No need to invalidate, realtime subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 
@@ -149,7 +143,7 @@ export function ReviewsTab() {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });
     } else {
       toast({ title: t.deleteSuccess });
-      // No need to invalidate, realtime subscription will handle it
+      queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
     }
   }
 

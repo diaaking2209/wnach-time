@@ -118,10 +118,11 @@ export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
+  const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
-    // The data will be managed by react-query's cache and refetching mechanisms
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    refetchOnWindowFocus: true, // Refreshes data when window is focused
   });
 
   useEffect(() => {
@@ -132,27 +133,18 @@ export function OrdersTab() {
     allTables.forEach(table => {
         const channel = supabase.channel(`public:${table}`)
             .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-                // When a change occurs, invalidate the query to refetch data
+                // When a change occurs, invalidate the query to refetch data from the source
                 queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
             })
             .subscribe();
         channels.push(channel);
     });
 
-    // This handles refetching when the tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Cleanup function to remove subscriptions and event listeners
+    // Cleanup function to remove subscriptions
     return () => {
         channels.forEach(channel => supabase.removeChannel(channel));
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [refetch, queryClient]);
+  }, [queryClient]);
 
 
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
@@ -199,8 +191,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        // No need to manually invalidate, the subscription will catch the change.
-        // queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+        queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
