@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -45,6 +45,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type OrderItem = {
     product_id: string;
@@ -69,11 +70,16 @@ export type Order = {
 };
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
-type OrderWithStatus = Order & { status: OrderStatus };
+type OrderTable = 'pending_orders' | 'processing_orders' | 'completed_orders' | 'cancelled_orders';
+
+const statusMap: Record<OrderStatus, OrderTable> = {
+    Pending: 'pending_orders',
+    Processing: 'processing_orders',
+    Completed: 'completed_orders',
+    Cancelled: 'cancelled_orders',
+};
 
 const ORDERS_PER_PAGE = 10;
-const orderTables = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
-const orderStatuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
 
 const formatPrice = (price: number) => {
@@ -91,28 +97,38 @@ export function OrdersTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.ordersTab;
   
-  const [orders, setOrders] = useState<OrderWithStatus[]>([]);
+  const [ordersByStatus, setOrdersByStatus] = useState<Record<OrderStatus, Order[]>>({
+      Pending: [],
+      Processing: [],
+      Completed: [],
+      Cancelled: [],
+  });
   const [loading, setLoading] = useState(true);
-
-  const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
-    Pending: 1,
-    Processing: 1,
-    Completed: 1,
-    Cancelled: 1,
+  const channelsRef = useRef<Record<OrderTable, RealtimeChannel | null>>({
+    pending_orders: null,
+    processing_orders: null,
+    completed_orders: null,
+    cancelled_orders: null,
   });
 
-  const fetchAllOrders = useCallback(async () => {
+  const fetchInitialOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const promises = orderTables.map((table, index) =>
-          supabase.from(table).select('*').order('created_at', { ascending: false })
-              .then(({ data, error }) => {
-                  if (error) throw error;
-                  return data.map(order => ({ ...order, status: orderStatuses[index] } as OrderWithStatus));
-              })
-      );
-      const results = await Promise.all(promises);
-      setOrders(results.flat());
+        const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
+            const table = statusMap[status];
+            const { data, error } = await supabase.from(table).select('id, display_id, created_at, total_amount, user_id, customer_username, customer_provider_id, delivery_details, items, last_modified_by_admin_id, last_modified_by_admin_username').order('created_at', { ascending: false });
+            if (error) throw new Error(`Failed to fetch ${status} orders: ${error.message}`);
+            return { status, data: data as Order[] };
+        });
+        
+        const results = await Promise.all(promises);
+        const newOrdersByStatus = results.reduce((acc, { status, data }) => {
+            acc[status] = data;
+            return acc;
+        }, {} as Record<OrderStatus, Order[]>);
+
+        setOrdersByStatus(newOrdersByStatus);
+
     } catch (error: any) {
         toast({ variant: "destructive", title: t.loadError, description: error.message });
     } finally {
@@ -121,22 +137,31 @@ export function OrdersTab() {
   }, [t.loadError, toast]);
 
   useEffect(() => {
-    fetchAllOrders();
+    fetchInitialOrders();
 
-    const channels = orderTables.map(table => 
-        supabase.channel(`public:${table}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table }, payload => {
-                fetchAllOrders();
-            })
-            .subscribe()
-    );
+    const allTables = Object.values(statusMap);
+    
+    allTables.forEach(table => {
+        if (!channelsRef.current[table]) {
+            const channel = supabase.channel(`public:${table}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+                    // Refetch all orders to ensure consistency across tabs
+                    fetchInitialOrders();
+                })
+                .subscribe();
+            channelsRef.current[table] = channel;
+        }
+    });
 
     return () => {
-        channels.forEach(channel => {
-            supabase.removeChannel(channel);
+        // Unsubscribe from all channels on component unmount
+        Object.values(channelsRef.current).forEach(channel => {
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
         });
     };
-  }, [fetchAllOrders]);
+  }, [fetchInitialOrders]);
 
   
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
@@ -183,7 +208,7 @@ export function OrdersTab() {
         await createNotification(fullOrder.user_id, orderId, message);
         
         toast({ title: t.statusUpdated });
-        // No need to call fetchAllOrders here, the subscription will handle it
+        // The realtime subscription will handle updating the UI
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
@@ -197,8 +222,15 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    // No need to call fetchAllOrders here, the subscription will handle it
+    // The realtime subscription will handle updating the UI
   }
+
+  const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
+    Pending: 1,
+    Processing: 1,
+    Completed: 1,
+    Cancelled: 1,
+  });
 
   const handlePageChange = (status: OrderStatus, direction: 'next' | 'prev') => {
     setCurrentPages(prev => ({
@@ -208,10 +240,12 @@ export function OrdersTab() {
   }
   
   const renderOrdersTable = (status: OrderStatus) => {
-    const filteredOrders = orders.filter(order => order.status === status);
+    const isTabLoading = loading;
+    const ordersForTab = ordersByStatus[status] || [];
+    
     const currentPage = currentPages[status];
-    const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
-    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE);
+    const totalPages = Math.ceil(ordersForTab.length / ORDERS_PER_PAGE);
+    const paginatedOrders = ordersForTab.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE);
 
     return (
         <Card>
@@ -230,7 +264,7 @@ export function OrdersTab() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {loading ? (
+                    {isTabLoading ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -286,21 +320,21 @@ export function OrdersTab() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel>{t.actions.title}</DropdownMenuLabel>
                                 
-                                {order.status === 'Pending' && (
+                                {status === 'Pending' && (
                                         <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'pending', 'processing')}>
                                             <Play className="mr-2 h-4 w-4" />
                                             <span>{t.actions.process}</span>
                                         </DropdownMenuItem>
                                 )}
 
-                                {order.status === 'Processing' && (
+                                {status === 'Processing' && (
                                         <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
                                             <Send className="mr-2 h-4 w-4" />
                                             <span>{t.actions.deliver}</span>
                                         </DropdownMenuItem>
                                 )}
 
-                                {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                                {status !== 'Cancelled' && status !== 'Completed' && (
                                     <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <DropdownMenuItem
@@ -318,7 +352,7 @@ export function OrdersTab() {
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter className="gap-2 sm:flex-row sm:justify-end sm:space-x-2">
                                                     <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, order.status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
+                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
                                                         {t.confirm.continue}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
@@ -391,7 +425,7 @@ export function OrdersTab() {
                         <span>{t.statuses.Pending}</span>
                     </TabsTrigger>
                     <TabsTrigger value="Processing">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4" />
                         <span>{t.statuses.Processing}</span>
                     </TabsTrigger>
                     <TabsTrigger value="Completed">

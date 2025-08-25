@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,6 +43,8 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -70,42 +72,53 @@ export function ReviewsTab() {
   
   const [reviews, setReviews] = useState<ReviewWithProductAndUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('reviews')
-      .select(`
-        id,
-        created_at,
-        rating,
-        comment,
-        is_approved,
-        is_featured,
-        products ( id, name, image_url ),
-        user_profiles ( username, avatar_url )
-      `)
-      .order('created_at', { ascending: false });
+    try {
+        const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+            id,
+            created_at,
+            rating,
+            comment,
+            is_approved,
+            is_featured,
+            products ( id, name, image_url ),
+            user_profiles ( username, avatar_url )
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } else {
-      setReviews(data as ReviewWithProductAndUser[]);
+        if (error) throw error;
+        setReviews(data as ReviewWithProductAndUser[]);
+    } catch(error: any) {
+        toast({ variant: "destructive", title: t.loadError, description: error.message });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   }, [t.loadError, toast]);
 
   useEffect(() => {
     fetchReviews();
     
-    const channel = supabase.channel('public:reviews')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
-            fetchReviews();
-        })
-        .subscribe();
+    if (!channelRef.current) {
+        const channel = supabase.channel('public:reviews')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
+                fetchReviews();
+            })
+            .subscribe();
+        
+        channelRef.current = channel;
+    }
 
     return () => {
-        supabase.removeChannel(channel);
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
     };
 
   }, [fetchReviews]);
