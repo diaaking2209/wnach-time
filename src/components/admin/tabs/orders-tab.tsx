@@ -1,5 +1,6 @@
+
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -15,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, User, Send, Play, Edit } from "lucide-react";
+import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, Send, Play, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +46,6 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type OrderItem = {
@@ -117,71 +117,11 @@ export function OrdersTab() {
   const queryClient = useQueryClient();
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const channelsRef = useRef<RealtimeChannel[]>([]);
 
-  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
+  const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
-    staleTime: 5 * 60 * 1000,
   });
-
-  const setupSubscriptions = useCallback(() => {
-    // Unsubscribe from any existing channels
-    channelsRef.current.forEach(channel => {
-      supabase.removeChannel(channel);
-    });
-    channelsRef.current = [];
-
-    // Setup new subscriptions
-    const allTables = Object.values(statusMap);
-    const newChannels = allTables.map(table => {
-        const channel = supabase.channel(`public:${table}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-                queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
-            })
-            .subscribe();
-        return channel;
-    });
-    channelsRef.current = newChannels;
-  }, [queryClient]);
-  
-  useEffect(() => {
-    setupSubscriptions();
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch(); // Use react-query's refetch which is more robust
-        setupSubscriptions();
-      }
-    };
-    
-    const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-    const handleUserInteraction = () => {
-        let isConnected = true;
-        channelsRef.current.forEach(ch => {
-            if(ch.state !== 'joined') {
-                isConnected = false;
-            }
-        });
-        if (!isConnected) {
-            refetch();
-            setupSubscriptions();
-        }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    userEvents.forEach(event => document.addEventListener(event, handleUserInteraction, { once: true }));
-
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      userEvents.forEach(event => document.removeEventListener(event, handleUserInteraction));
-      channelsRef.current.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
-    };
-  }, [refetch, setupSubscriptions]);
-
 
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
     const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
@@ -259,7 +199,6 @@ export function OrdersTab() {
   }
   
   const renderOrdersTable = (status: OrderStatus) => {
-    const isTabLoading = isLoading;
     const ordersForTab = ordersByStatus?.[status] || [];
     
     const currentPage = currentPages[status];
@@ -283,7 +222,7 @@ export function OrdersTab() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {isTabLoading ? (
+                    {isLoading ? (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center py-10">
                                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />

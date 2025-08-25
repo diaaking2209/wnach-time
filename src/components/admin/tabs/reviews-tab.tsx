@@ -1,3 +1,4 @@
+
 "use client"
 import { Button } from "@/components/ui/button";
 import {
@@ -43,8 +44,6 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useCallback } from "react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -89,61 +88,11 @@ export function ReviewsTab() {
   const { language } = useLanguage();
   const t = translations[language].admin.reviewsTab;
   const queryClient = useQueryClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const { data: reviews, isLoading, isError, refetch } = useQuery<ReviewWithProductAndUser[]>({
+  const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
-    staleTime: 5 * 60 * 1000,
   });
-
-  const setupSubscription = useCallback(() => {
-    if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-    }
-    
-    const channel = supabase
-      .channel('public:reviews')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, (payload) => {
-        queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
-      })
-      .subscribe();
-    
-    channelRef.current = channel;
-
-  }, [queryClient]);
-
-  useEffect(() => {
-    setupSubscription();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-        setupSubscription();
-      }
-    };
-    
-    const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-    const handleUserInteraction = () => {
-      if (channelRef.current && channelRef.current.state !== 'joined') {
-        refetch();
-        setupSubscription();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    userEvents.forEach(event => document.addEventListener(event, handleUserInteraction, { once: true }));
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      userEvents.forEach(event => document.removeEventListener(event, handleUserInteraction));
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
-  }, [refetch, setupSubscription]);
-
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase

@@ -27,20 +27,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const [queryClient] = useState(() => new QueryClient())
-  const [showReloadPrompt, setShowReloadPrompt] = useState(false);
-  const hiddenTimestamp = useRef<number | null>(null);
 
   useEffect(() => {
+    const handleInteraction = () => {
+      // Invalidate all queries to force a refetch on user interaction
+      // This is a simple but effective way to ensure data is fresh
+      // after the tab has been inactive.
+      queryClient.invalidateQueries();
+      
+      // Remove listeners after first interaction to avoid excessive refetching
+      const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+      userEvents.forEach(event => document.removeEventListener(event, handleInteraction));
+    };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        hiddenTimestamp.current = Date.now();
-      } else if (document.visibilityState === 'visible' && hiddenTimestamp.current) {
-        const timeHidden = Date.now() - hiddenTimestamp.current;
-        // If hidden for more than 5 minutes (300000 ms), show prompt.
-        if (timeHidden > 300000) {
-          setShowReloadPrompt(true);
-        }
-        hiddenTimestamp.current = null;
+        // When tab becomes hidden, set up listeners for the next interaction
+        const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+        userEvents.forEach(event => document.addEventListener(event, handleInteraction, { once: true }));
       }
     };
 
@@ -48,8 +52,10 @@ export default function RootLayout({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+      userEvents.forEach(event => document.removeEventListener(event, handleInteraction));
     };
-  }, []);
+  }, [queryClient]);
 
 
   return (
@@ -74,11 +80,12 @@ export default function RootLayout({
                 <AuthProvider>
                     <CartProvider>
                         <div className="flex min-h-screen flex-col">
-                            <ReloadPrompt
+                            {/* ReloadPrompt is no longer needed with this approach */}
+                            {/* <ReloadPrompt
                               isOpen={showReloadPrompt}
                               onClose={() => setShowReloadPrompt(false)}
                               onReload={() => window.location.reload()}
-                            />
+                            /> */}
                             <Header />
                             <main className="flex-grow pt-8">{children}</main>
                             <Footer />

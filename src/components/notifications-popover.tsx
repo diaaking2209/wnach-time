@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -10,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type Notification = {
@@ -20,49 +22,38 @@ type Notification = {
   created_at: string;
 };
 
+const fetchNotifications = async (userId: string | undefined): Promise<Notification[]> => {
+    if (!userId) return [];
+    
+    const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Could not load notifications.", error);
+        throw new Error("Could not load notifications.");
+    }
+    return data as Notification[];
+}
+
 export function NotificationsPopover() {
   const { toast } = useToast();
   const { user, session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user || !session) return;
-    
-    setLoading(true);
-    const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not load notifications." });
-    } else {
-        setNotifications(data as Notification[]);
-    }
-    setLoading(false);
-  }, [user, session, toast]);
+  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+    queryKey: ['notifications', user?.id],
+    queryFn: () => fetchNotifications(user?.id),
+    enabled: !!user,
+  });
 
   useEffect(() => {
-    if (session) {
-      fetchNotifications();
-    } else {
-      setNotifications([]);
-      setLoading(false);
-    }
-  }, [session, fetchNotifications]);
-
-
-  const setupSubscription = useCallback(() => {
     if (!user) return;
-    // Clean up existing channel before creating a new one
-    if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-    }
+
     const channel = supabase.channel(`public:notifications:user_id=eq.${user.id}`)
       .on(
         'postgres_changes', 
@@ -73,49 +64,31 @@ export function NotificationsPopover() {
           filter: `user_id=eq.${user.id}` 
         }, 
         (payload) => {
-            fetchNotifications();
+            queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
       .subscribe();
-    channelRef.current = channel;
-  }, [user, fetchNotifications]);
-
-
-  useEffect(() => {
-    if (!user) return;
-    setupSubscription();
     
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchNotifications();
-        setupSubscription(); // Re-establish connection on visibility change
-      }
-    };
-
-    const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
-    const handleUserInteraction = () => {
-        if (channelRef.current && channelRef.current.state !== 'joined') {
-            fetchNotifications();
-            setupSubscription();
-        }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    userEvents.forEach(event => document.addEventListener(event, handleUserInteraction, { once: true }));
+    channelRef.current = channel;
 
     return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        userEvents.forEach(event => document.removeEventListener(event, handleUserInteraction));
         if (channelRef.current) {
             supabase.removeChannel(channelRef.current);
         }
     };
-  }, [user, fetchNotifications, setupSubscription]);
+  }, [user, queryClient]);
+
   
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleMarkAsRead = async (notificationId: string) => {
     if (!user) return;
+
+    // Optimistic update
+    queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
+        oldData ? oldData.map(n => n.id === notificationId ? {...n, is_read: true} : n) : []
+    );
+
     const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
@@ -123,18 +96,17 @@ export function NotificationsPopover() {
 
     if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not update notification." });
-    } else {
-        // Optimistic update
-        setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, is_read: true} : n));
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] }); // Revert on error
     }
   }
   
   const handleMarkAllAsRead = async () => {
     if (!user || unreadCount === 0) return;
     
-    const originalNotifications = notifications;
     // Optimistic update
-    setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+    queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
+        oldData ? oldData.map(n => ({...n, is_read: true})) : []
+    );
 
     const { error } = await supabase
         .from('notifications')
@@ -144,7 +116,7 @@ export function NotificationsPopover() {
 
     if(error){
         toast({ variant: "destructive", title: "Error", description: "Could not mark all as read." });
-        setNotifications(originalNotifications); // Revert on error
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] }); // Revert on error
     }
   }
   
@@ -171,7 +143,7 @@ export function NotificationsPopover() {
                 </Button>
             </div>
              <ScrollArea className="h-96">
-                {loading ? (
+                {isLoading ? (
                      <div className="flex justify-center items-center h-full py-20">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
