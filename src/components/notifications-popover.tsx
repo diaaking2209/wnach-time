@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, BellOff, Bell } from "lucide-react";
@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type Notification = {
   id: string;
@@ -25,6 +26,7 @@ export function NotificationsPopover() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !session) return;
@@ -54,10 +56,14 @@ export function NotificationsPopover() {
   }, [session, fetchNotifications]);
 
 
-  useEffect(() => {
+  const setupSubscription = useCallback(() => {
     if (!user) return;
-
-    const channel = supabase.channel('public:notifications')
+    // Clean up existing channel before creating a new one
+    if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+    }
+    const channel = supabase.channel(`public:notifications:user_id=eq.${user.id}`)
       .on(
         'postgres_changes', 
         { 
@@ -71,11 +77,40 @@ export function NotificationsPopover() {
         }
       )
       .subscribe();
+    channelRef.current = channel;
+  }, [user, fetchNotifications]);
+
+
+  useEffect(() => {
+    if (!user) return;
+    setupSubscription();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications();
+        setupSubscription(); // Re-establish connection on visibility change
+      }
+    };
+
+    const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    const handleUserInteraction = () => {
+        if (channelRef.current && channelRef.current.state !== 'joined') {
+            fetchNotifications();
+            setupSubscription();
+        }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    userEvents.forEach(event => document.addEventListener(event, handleUserInteraction, { once: true }));
 
     return () => {
-        supabase.removeChannel(channel);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        userEvents.forEach(event => document.removeEventListener(event, handleUserInteraction));
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+        }
     };
-  }, [user, fetchNotifications]);
+  }, [user, fetchNotifications, setupSubscription]);
   
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -89,12 +124,18 @@ export function NotificationsPopover() {
     if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not update notification." });
     } else {
-        fetchNotifications();
+        // Optimistic update
+        setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, is_read: true} : n));
     }
   }
   
   const handleMarkAllAsRead = async () => {
     if (!user || unreadCount === 0) return;
+    
+    const originalNotifications = notifications;
+    // Optimistic update
+    setNotifications(prev => prev.map(n => ({...n, is_read: true})));
+
     const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
@@ -103,8 +144,7 @@ export function NotificationsPopover() {
 
     if(error){
         toast({ variant: "destructive", title: "Error", description: "Could not mark all as read." });
-    } else {
-        fetchNotifications();
+        setNotifications(originalNotifications); // Revert on error
     }
   }
   

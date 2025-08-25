@@ -117,34 +117,70 @@ export function OrdersTab() {
   const queryClient = useQueryClient();
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const channelsRef = useRef<RealtimeChannel[]>([]);
 
-  const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
+  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
-    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
-    refetchOnWindowFocus: true, // Refreshes data when window is focused
+    staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    // This effect handles real-time updates via Supabase subscriptions
-    const channels: RealtimeChannel[] = [];
-    const allTables = Object.values(statusMap);
+  const setupSubscriptions = useCallback(() => {
+    // Unsubscribe from any existing channels
+    channelsRef.current.forEach(channel => {
+      supabase.removeChannel(channel);
+    });
+    channelsRef.current = [];
 
-    allTables.forEach(table => {
+    // Setup new subscriptions
+    const allTables = Object.values(statusMap);
+    const newChannels = allTables.map(table => {
         const channel = supabase.channel(`public:${table}`)
             .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-                // When a change occurs, invalidate the query to refetch data from the source
                 queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
             })
             .subscribe();
-        channels.push(channel);
+        return channel;
     });
-
-    // Cleanup function to remove subscriptions
-    return () => {
-        channels.forEach(channel => supabase.removeChannel(channel));
-    };
+    channelsRef.current = newChannels;
   }, [queryClient]);
+  
+  useEffect(() => {
+    setupSubscriptions();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refetch(); // Use react-query's refetch which is more robust
+        setupSubscriptions();
+      }
+    };
+    
+    const userEvents = ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    const handleUserInteraction = () => {
+        let isConnected = true;
+        channelsRef.current.forEach(ch => {
+            if(ch.state !== 'joined') {
+                isConnected = false;
+            }
+        });
+        if (!isConnected) {
+            refetch();
+            setupSubscriptions();
+        }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    userEvents.forEach(event => document.addEventListener(event, handleUserInteraction, { once: true }));
+
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      userEvents.forEach(event => document.removeEventListener(event, handleUserInteraction));
+      channelsRef.current.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [refetch, setupSubscriptions]);
 
 
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
