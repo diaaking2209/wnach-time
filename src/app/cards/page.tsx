@@ -1,5 +1,4 @@
 'use client'
-import { useEffect, useState } from "react";
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { supabase } from '@/lib/supabase';
@@ -40,25 +39,10 @@ export default function CardsPage() {
   const { language } = useLanguage();
   const t = translations[language];
 
-  const { data: products, isLoading, isError, refetch } = useQuery<Product[]>({
+  const { data: products, isLoading, isError } = useQuery<Product[]>({
     queryKey: ['cardProducts'],
     queryFn: fetchCardProducts,
   });
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refetch]);
-
 
   if (isLoading) {
     return (

@@ -1,26 +1,17 @@
 'use client'
 
-import { useEffect, useState, Suspense, useCallback } from "react";
+import { useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { useQuery } from "@tanstack/react-query";
 
-function SearchResults() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const fetchSearchResults = useCallback(async (searchQuery: string | null) => {
+const fetchSearchResults = async (searchQuery: string | null): Promise<Product[]> => {
     if (!searchQuery) {
-      setProducts([]);
-      return;
+      return [];
     }
-    setLoading(true);
-    setError(null);
     
     const { data, error } = await supabase
       .from('products')
@@ -31,47 +22,34 @@ function SearchResults() {
 
     if (error) {
         console.error("Error fetching search results:", error);
-        setError("Failed to fetch search results");
-    } else {
-        const formattedProducts = data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            tags: item.tags || [],
-            imageUrl: item.image_url,
-            description: item.description,
-            category: item.category,
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-        setProducts(formattedProducts);
+        throw new Error("Failed to fetch search results");
     }
-    setLoading(false);
-  }, []);
 
-  useEffect(() => {
-    fetchSearchResults(query);
-  }, [query, fetchSearchResults]);
+    return data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        originalPrice: item.original_price,
+        discount: item.discount,
+        platforms: item.platforms || [],
+        tags: item.tags || [],
+        imageUrl: item.image_url,
+        description: item.description,
+        category: item.category,
+        stockStatus: item.stock_status,
+        isActive: item.is_active,
+    }));
+};
 
-
-  if (loading) {
-    return (
-      <div className="flex h-[40vh] items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-      return (
-          <div className="text-center py-20">
-              <p className="text-destructive">Failed to load search results.</p>
-          </div>
-      )
-  }
+function SearchResults() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get('q');
+  
+  const { data: products, isLoading, isError } = useQuery<Product[]>({
+    queryKey: ['searchResults', query],
+    queryFn: () => fetchSearchResults(query),
+    enabled: !!query, // Only run the query if 'q' exists
+  });
 
   if (!query) {
     return (
@@ -79,6 +57,22 @@ function SearchResults() {
             <p className="text-muted-foreground">Please enter a search term to begin.</p>
         </div>
     )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[40vh] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError) {
+      return (
+          <div className="text-center py-20">
+              <p className="text-destructive">Failed to load search results.</p>
+          </div>
+      )
   }
 
   return (

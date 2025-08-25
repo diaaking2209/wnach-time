@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, CheckCircle, Clock } from "lucide-react";
@@ -17,6 +16,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useQuery } from "@tanstack/react-query";
 
 type UserReview = {
   id: string;
@@ -31,60 +31,54 @@ type UserReview = {
   } | null;
 };
 
+const fetchUserReviews = async (userId: string | undefined): Promise<UserReview[]> => {
+    if (!userId) {
+        return [];
+    };
+
+    const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+            id,
+            created_at,
+            rating,
+            comment,
+            is_approved,
+            products ( id, name, image_url )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data as UserReview[];
+};
+
 export function RatingsTab() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].profile.ratings;
 
-  const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<UserReview[]>([]);
+  const { data: reviews, isLoading, isError } = useQuery<UserReview[]>({
+    queryKey: ['userReviews', user?.id],
+    queryFn: () => fetchUserReviews(user?.id),
+    enabled: !!user,
+  });
 
-  const fetchUserReviews = useCallback(async () => {
-    if (!user) {
-        setLoading(false);
-        setReviews([]);
-        return;
-    };
-    setLoading(true);
-    try {
-        const { data, error } = await supabase
-            .from('reviews')
-            .select(`
-                id,
-                created_at,
-                rating,
-                comment,
-                is_approved,
-                products ( id, name, image_url )
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        setReviews(data as UserReview[]);
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t.loadError,
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, user, t]);
-
-  useEffect(() => {
-    fetchUserReviews();
-  }, [fetchUserReviews]);
-  
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isError) {
+    return (
+        <div className="text-center py-10 text-destructive">
+            <p>{t.loadError}</p>
+        </div>
+    )
   }
 
   return (
@@ -94,7 +88,7 @@ export function RatingsTab() {
         <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {reviews.length > 0 ? (
+        {reviews && reviews.length > 0 ? (
             <div className="space-y-6">
                 {reviews.map((review) => (
                     <div key={review.id} className="flex flex-col sm:flex-row gap-4 border-b pb-6 last:border-b-0">

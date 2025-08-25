@@ -1,5 +1,4 @@
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,9 +42,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -80,7 +77,7 @@ const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
     `)
     .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     return data as ReviewWithProductAndUser[];
 }
 
@@ -91,34 +88,10 @@ export function ReviewsTab() {
   const t = translations[language].admin.reviewsTab;
   const queryClient = useQueryClient();
 
-  const { data: reviews, isLoading, refetch } = useQuery<ReviewWithProductAndUser[]>({
+  const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
   });
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    const channel = supabase.channel('public:reviews')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, payload => {
-            queryClient.invalidateQueries({ queryKey: ['adminReviews'] });
-        })
-        .subscribe();
-    
-    return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        if (channel) {
-            supabase.removeChannel(channel);
-        }
-    };
-
-  }, [refetch, queryClient]);
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase
@@ -184,6 +157,12 @@ export function ReviewsTab() {
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                    </TableCell>
+                </TableRow>
+                ) : isError ? (
+                <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                        <p className="text-destructive">{t.loadError}</p>
                     </TableCell>
                 </TableRow>
               ) : reviews && reviews.length > 0 ? (

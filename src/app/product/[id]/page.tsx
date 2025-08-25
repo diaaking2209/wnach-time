@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type ReviewWithUser = {
     id: string;
@@ -35,31 +36,19 @@ type ProductData = {
   relatedProducts: Product[];
 }
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const productId = params.id;
-  const [quantity, setQuantity] = useState(1);
-  const { addToCart } = useCart();
-  const { language } = useLanguage();
-  const t = translations[language];
-  const { toast } = useToast();
-  
-  const [productData, setProductData] = useState<ProductData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProductData = async (id: string) => {
-    if (!id) return;
-    setLoading(true);
+const fetchProductData = async (productId: string): Promise<ProductData> => {
+    if (!productId) {
+      throw new Error("Product ID is required");
+    }
 
     const { data: productResult, error: productError } = await supabase
       .from('products')
       .select('*')
-      .eq('id', id)
+      .eq('id', productId)
       .single();
     
     if (productError || !productResult) {
-      console.error("Error fetching product:", productError);
-      setLoading(false);
-      return;
+      throw new Error(productError?.message || "Product not found");
     }
     
     const formattedProduct: Product = {
@@ -81,7 +70,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     const reviewsPromise = supabase
         .from('reviews')
         .select(`*, user_profiles(*)`)
-        .eq('product_id', id)
+        .eq('product_id', productId)
         .eq('is_approved', true)
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
@@ -115,29 +104,38 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         isActive: item.is_active,
     }));
     
-    setProductData({
+    return {
       product: formattedProduct,
       reviews: (reviewsData as ReviewWithUser[]) || [],
       relatedProducts: formattedRelated,
-    });
-    setLoading(false);
-  };
+    };
+};
 
-  useEffect(() => {
-    fetchProductData(productId);
-  }, [productId]);
 
+export default function ProductPage({ params }: { params: { id: string } }) {
+  const productId = params.id;
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+  const { language } = useLanguage();
+  const t = translations[language];
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const { data: productData, isLoading, isError } = useQuery<ProductData>({
+    queryKey: ['product', productId],
+    queryFn: () => fetchProductData(productId),
+  });
 
   const onReviewSubmitted = () => {
     toast({ title: "Review Submitted", description: "Thank you! Your review is pending approval." });
-    fetchProductData(productId);
+    queryClient.invalidateQueries({ queryKey: ['product', productId] });
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex h-[60vh] items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
   
-  if (!productData) {
+  if (isError || !productData) {
     return notFound();
   }
 

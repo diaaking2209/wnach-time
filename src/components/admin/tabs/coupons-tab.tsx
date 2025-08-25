@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { CouponDialog } from "../coupon-dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type Coupon = {
   id: string;
@@ -53,30 +54,26 @@ export type Coupon = {
   created_at: string;
 };
 
+const fetchCoupons = async (): Promise<Coupon[]> => {
+    const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
+    if (error) {
+        throw new Error(error.message);
+    }
+    return data as Coupon[];
+}
+
 export function CouponsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.couponsTab;
+  const queryClient = useQueryClient();
   
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCoupons = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
-    if (error) {
-      toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } else {
-      setCoupons(data as Coupon[]);
-    }
-    setLoading(false);
-  }, [t.loadError, toast]);
-
-  useEffect(() => {
-    fetchCoupons();
-  }, [fetchCoupons]);
+  const { data: coupons, isLoading, isError } = useQuery<Coupon[]>({
+    queryKey: ['coupons'],
+    queryFn: fetchCoupons
+  });
 
   const handleAddCoupon = () => {
     setSelectedCoupon(null);
@@ -101,13 +98,13 @@ export function CouponsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      fetchCoupons();
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    fetchCoupons();
+    queryClient.invalidateQueries({ queryKey: ['coupons'] });
   }
 
   return (
@@ -161,11 +158,17 @@ export function CouponsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         <p className="mt-2 text-muted-foreground">{t.loading}</p>
+                    </TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                    <TableCell colSpan={5} className="text-center py-10">
+                        <p className="text-destructive">{t.loadError}</p>
                     </TableCell>
                 </TableRow>
               ) : coupons && coupons.length > 0 ? (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, BadgeCheck, Hourglass, X, KeySquare } from "lucide-react";
@@ -25,6 +25,7 @@ import { Button } from "../ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useQuery } from "@tanstack/react-query";
 
 
 type OrderStatus = 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
@@ -54,71 +55,55 @@ const statusConfig: { [key in OrderStatus]: { icon: React.ElementType, color: st
     Cancelled: { icon: X, color: "text-red-400" },
 }
 
+const fetchUserOrders = async (userId: string | undefined): Promise<Order[]> => {
+    if (!userId) {
+        return [];
+    };
 
-export function OrdersTab() {
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const { language } = useLanguage();
-  const t = translations[language].profile.orders;
-  
-  const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
+    const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
+    const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
-  const fetchMiscData = useCallback(async () => {
+    const promises = tableNames.map((table, index) =>
+        supabase.from(table).select('*').eq('user_id', userId)
+            .then(({ data, error }) => {
+                if (error) throw error;
+                return data.map(order => ({ ...order, status: statuses[index] } as Order));
+            })
+    );
+    
+    const results = await Promise.all(promises);
+    return results.flat().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+const fetchDiscordTicketUrl = async (): Promise<string> => {
     const { data, error } = await supabase
         .from('app_settings')
         .select('value')
         .eq('key', 'discord_ticket_url')
         .single();
-    if (data?.value) {
-        setDiscordTicketUrl(data.value);
+    
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching discord url", error);
     }
-    if(error && error.code !== 'PGRST116') {
-      console.error("Error fetching discord url", error);
-    }
-  }, []);
 
-  const fetchOrders = useCallback(async () => {
-    if (!user) {
-        setLoading(false);
-        setOrders([]);
-        return;
-    };
+    return data?.value || "https://discord.com";
+}
 
-    setLoading(true);
-    try {
-        const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
-        const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+export function OrdersTab() {
+  const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = translations[language].profile.orders;
+  
+  const { data: orders, isLoading, isError } = useQuery<Order[]>({
+    queryKey: ['userOrders', user?.id],
+    queryFn: () => fetchUserOrders(user?.id),
+    enabled: !!user,
+  });
 
-        const promises = tableNames.map((table, index) =>
-            supabase.from(table).select('*').eq('user_id', user.id)
-                .then(({ data, error }) => {
-                    if (error) throw error;
-                    return data.map(order => ({ ...order, status: statuses[index] } as Order));
-                })
-        );
-        
-        const results = await Promise.all(promises);
-        const allOrders = results.flat().sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        
-        setOrders(allOrders);
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t.loadError,
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, user, t]);
-
-  useEffect(() => {
-    fetchOrders();
-    fetchMiscData();
-  }, [fetchOrders, fetchMiscData]);
+  const { data: discordTicketUrl } = useQuery<string>({
+    queryKey: ['discordTicketUrl'],
+    queryFn: fetchDiscordTicketUrl,
+  });
   
 
   const formatPrice = (price: number) => {
@@ -128,12 +113,20 @@ export function OrdersTab() {
     }).format(price);
   };
   
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isError) {
+    return (
+        <div className="text-center py-10 text-destructive">
+            <p>{t.loadError}</p>
+        </div>
+    )
   }
 
   return (
@@ -143,7 +136,7 @@ export function OrdersTab() {
         <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {orders.length > 0 ? (
+        {orders && orders.length > 0 ? (
             <Accordion type="single" collapsible className="w-full">
                 {orders.map((order) => {
                     const StatusIcon = statusConfig[order.status].icon;

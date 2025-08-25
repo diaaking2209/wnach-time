@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, PlusCircle, User, RefreshCw, MoreHorizontal } from "lucide-react";
@@ -31,6 +31,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type AdminUser = {
   id: string;
@@ -47,6 +49,12 @@ const roleHierarchy = {
     'owner': 2,
     'product_adder': 1,
 };
+
+const fetchAdmins = async (): Promise<AdminUser[]> => {
+    const { data, error } = await supabase.from("admins").select("*").order("created_at");
+    if (error) throw error;
+    return data as AdminUser[];
+}
 
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
@@ -80,7 +88,7 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
                  return;
             }
 
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from("admins")
                 .insert([{ provider_id: newAdminId.trim(), role: 'product_adder' }])
                 .select()
@@ -152,36 +160,18 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 
 export function AdminsTab() {
   const { toast } = useToast();
-  const { user, userRole } = useAuth();
+  const { userRole } = useAuth();
   const { language } = useLanguage();
   const t = translations[language].admin.adminsTab;
+  const queryClient = useQueryClient();
 
-  const [loading, setLoading] = useState(true);
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [newAdminId, setNewAdminId] = useState("");
 
-  const fetchAdmins = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.from("admins").select("*").order("created_at");
-      if (error) throw error;
-      
-      setAdmins(data as AdminUser[]);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t.loadError,
-        description: error.message,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, t]);
-
-  useEffect(() => {
-    fetchAdmins();
-  }, [fetchAdmins]);
+  const { data: admins, isLoading, isError } = useQuery<AdminUser[]>({
+    queryKey: ['admins'],
+    queryFn: fetchAdmins
+  });
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,14 +185,14 @@ export function AdminsTab() {
         return;
     }
 
-    if (admins.some(admin => admin.provider_id === newAdminId.trim())) {
+    if (admins && admins.some(admin => admin.provider_id === newAdminId.trim())) {
         toast({ variant: "destructive", title: t.alreadyExists });
         return;
     }
 
     setIsSaving(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("admins")
         .insert([{ 
             provider_id: newAdminId.trim(),
@@ -215,7 +205,7 @@ export function AdminsTab() {
       
       setNewAdminId("");
       toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
-      fetchAdmins();
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
 
     } catch (error: any) {
       toast({
@@ -235,7 +225,7 @@ export function AdminsTab() {
         if (error) throw error;
 
         toast({ title: t.removeSuccess, description: `${t.user} ${providerId} ${t.removeSuccessDesc}`});
-        fetchAdmins();
+        queryClient.invalidateQueries({ queryKey: ['admins'] });
 
     } catch (error: any) {
         toast({
@@ -255,7 +245,7 @@ export function AdminsTab() {
       if (error) throw error;
       
       toast({ title: t.roleUpdateSuccess, description: t.roleUpdateSuccessDesc });
-      fetchAdmins();
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
     } catch (error: any) {
        toast({
         variant: "destructive",
@@ -267,12 +257,24 @@ export function AdminsTab() {
     }
   }
 
-  if (loading) {
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admins'] });
+  }
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isError) {
+     return (
+        <div className="text-center py-10">
+            <p className="text-destructive">{t.loadError}</p>
+        </div>
+    )
   }
   
   const currentUserLevel = userRole ? roleHierarchy[userRole] : 0;
@@ -286,7 +288,7 @@ export function AdminsTab() {
               <CardTitle>{t.title}</CardTitle>
               <CardDescription>{t.description}</CardDescription>
             </div>
-             <AddAdminDialog onAdd={fetchAdmins} />
+             <AddAdminDialog onAdd={handleRefresh} />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -306,11 +308,11 @@ export function AdminsTab() {
           <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium">{t.currentAdmins}</h3>
-                <Button variant="ghost" size="icon" onClick={fetchAdmins} disabled={loading} className="hidden sm:inline-flex">
+                <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isLoading} className="hidden sm:inline-flex">
                     <RefreshCw className="h-4 w-4" />
                 </Button>
             </div>
-            {admins.length > 0 ? (
+            {admins && admins.length > 0 ? (
                 admins.map((admin) => {
                     const targetUserLevel = roleHierarchy[admin.role];
 

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -43,6 +43,30 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const fetchProducts = async (): Promise<Product[]> => {
+    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        originalPrice: item.original_price,
+        discount: item.discount,
+        platforms: item.platforms || [],
+        imageUrl: item.image_url,
+        bannerUrl: item.banner_url,
+        description: item.description,
+        category: item.category,
+        tags: item.tags || [],
+        stockStatus: item.stock_status,
+        isActive: item.is_active,
+    }));
+}
 
 export function ProductsTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -50,39 +74,12 @@ export function ProductsTab() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = translations[language].admin.productsTab;
+  const queryClient = useQueryClient();
   
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
-    if (error) {
-      toast({ variant: "destructive", title: t.loadError, description: error.message });
-    } else {
-        const formattedProducts = data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            originalPrice: item.original_price,
-            discount: item.discount,
-            platforms: item.platforms || [],
-            imageUrl: item.image_url,
-            bannerUrl: item.banner_url,
-            description: item.description,
-            category: item.category,
-            tags: item.tags || [],
-            stockStatus: item.stock_status,
-            isActive: item.is_active,
-        }));
-        setProducts(formattedProducts);
-    }
-    setLoading(false);
-  }, [t.loadError, toast]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const { data: products, isLoading, isError } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: fetchProducts
+  });
 
   const handleAddProduct = () => {
     setSelectedProduct(null);
@@ -107,13 +104,13 @@ export function ProductsTab() {
         title: t.deleteSuccess,
         description: t.deleteSuccessDesc,
       });
-      fetchProducts();
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     }
   }
 
   const handleDialogSave = () => {
     setIsDialogOpen(false);
-    fetchProducts();
+    queryClient.invalidateQueries({ queryKey: ['products'] });
   }
 
 
@@ -169,11 +166,17 @@ export function ProductsTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
+              {isLoading ? (
                 <TableRow>
                     <TableCell colSpan={6} className="text-center py-10">
                         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
                         <p className="mt-2 text-muted-foreground">{t.loading}</p>
+                    </TableCell>
+                </TableRow>
+              ) : isError ? (
+                 <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                        <p className="text-destructive">{t.loadError}</p>
                     </TableCell>
                 </TableRow>
               ) : products && products.length > 0 ? (
