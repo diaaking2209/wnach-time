@@ -122,29 +122,27 @@ export function OrdersTab() {
   const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnWindowFocus: true,
   });
 
   useRealtime({
-    channel: 'admin-orders-channel',
-    table: 'pending_orders',
-    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+    channelName: 'admin-orders-channel',
+    tableName: 'pending_orders',
+    queryKey: ['adminOrders']
   });
   useRealtime({
-    channel: 'admin-orders-channel-processing',
-    table: 'processing_orders',
-    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+    channelName: 'admin-orders-channel-processing',
+    tableName: 'processing_orders',
+    queryKey: ['adminOrders']
   });
    useRealtime({
-    channel: 'admin-orders-channel-completed',
-    table: 'completed_orders',
-    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+    channelName: 'admin-orders-channel-completed',
+    tableName: 'completed_orders',
+    queryKey: ['adminOrders']
   });
    useRealtime({
-    channel: 'admin-orders-channel-cancelled',
-    table: 'cancelled_orders',
-    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+    channelName: 'admin-orders-channel-cancelled',
+    tableName: 'cancelled_orders',
+    queryKey: ['adminOrders']
   });
 
 

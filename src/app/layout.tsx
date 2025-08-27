@@ -14,6 +14,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import React, { useState } from 'react';
+import { ReloadPrompt } from '@/components/reload-prompt';
 
 // export const metadata: Metadata = {
 //   title: 'Wnash time',

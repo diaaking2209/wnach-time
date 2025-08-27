@@ -3,85 +3,55 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UseRealtimeProps {
-    channel: string;
-    table: string;
+    channelName: string;
+    tableName: string;
+    queryKey: (string | undefined)[];
     filter?: string;
-    onEvent: (payload: RealtimePostgresChangesPayload<any>) => void;
     enabled?: boolean;
 }
 
 export const useRealtime = ({
-    channel: channelName,
-    table,
+    channelName,
+    tableName,
+    queryKey,
     filter,
-    onEvent,
     enabled = true
 }: UseRealtimeProps) => {
+    const queryClient = useQueryClient();
     const channelRef = useRef<RealtimeChannel | null>(null);
-    const retriesRef = useRef(0);
-    const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const cleanup = useCallback(() => {
-        if (pingIntervalRef.current) {
-            clearInterval(pingIntervalRef.current);
-            pingIntervalRef.current = null;
-        }
         if (channelRef.current) {
             supabase.removeChannel(channelRef.current);
             channelRef.current = null;
         }
     }, []);
 
-    const subscribeToChannel = useCallback(() => {
-        cleanup(); // Clean up any existing channel before creating a new one
+    const setupChannel = useCallback(() => {
+        cleanup(); // Ensure no duplicate channels
 
-        const channel = supabase.channel(channelName, {
-            config: {
-                broadcast: {
-                    self: true,
-                },
-            },
-        });
+        const channel = supabase.channel(channelName);
 
         channel.on(
             'postgres_changes',
-            { event: '*', schema: 'public', table, filter },
+            { event: '*', schema: 'public', table: tableName, filter },
             (payload) => {
-                onEvent(payload);
+                // When a change is detected, invalidate the corresponding query.
+                // TanStack Query will then automatically refetch the data.
+                queryClient.invalidateQueries({ queryKey });
             }
         ).subscribe((status, err) => {
             if (err) {
                 console.error(`[Realtime Error] Channel: ${channelName}`, err);
             }
-
-            if (status === 'SUBSCRIBED') {
-                console.log(`[Realtime] Subscribed to ${channelName}`);
-                retriesRef.current = 0;
-                
-                if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-                pingIntervalRef.current = setInterval(() => {
-                    if (channel.state === 'open') {
-                        channel.send({ type: 'broadcast', event: 'ping', payload: {} });
-                    }
-                }, 30000);
-
-            } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
-                console.warn(`[Realtime] Channel ${channelName} timed out or had an error. Reconnecting...`);
-                if (retriesRef.current < 5) {
-                    retriesRef.current++;
-                    setTimeout(() => subscribeToChannel(), 2000 * (retriesRef.current)); 
-                } else {
-                    console.error(`[Realtime] Failed to reconnect to ${channelName} after 5 attempts.`);
-                }
-            } else if (status === 'CLOSED') {
-                 console.log(`[Realtime] Channel ${channelName} closed. Will attempt to reconnect on next interaction or visibility change.`);
-            }
         });
 
         channelRef.current = channel;
-    }, [channelName, table, filter, onEvent, cleanup]);
+
+    }, [channelName, tableName, filter, queryClient, queryKey, cleanup]);
 
     useEffect(() => {
         if (!enabled) {
@@ -89,30 +59,11 @@ export const useRealtime = ({
             return;
         }
 
-        subscribeToChannel();
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                console.log('[Realtime] Page is visible again. Re-subscribing...');
-                subscribeToChannel();
-            }
-        }
+        setupChannel();
         
-        const handlePageShow = (event: PageTransitionEvent) => {
-             if (event.persisted) {
-                console.log('[Realtime] Page was restored from BFCache. Re-subscribing...');
-                subscribeToChannel();
-             }
-        }
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('pageshow', handlePageShow);
-
         return () => {
             cleanup();
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('pageshow', handlePageShow);
         };
 
-    }, [enabled, subscribeToChannel, cleanup]);
+    }, [enabled, setupChannel, cleanup]);
 };

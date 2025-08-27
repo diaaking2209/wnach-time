@@ -49,17 +49,13 @@ export function NotificationsPopover() {
     queryKey: ['notifications', user?.id],
     queryFn: () => fetchNotifications(user?.id),
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: true,
   });
 
   useRealtime({
-    channel: `user-notifications:${user?.id}`,
-    table: 'notifications',
+    channelName: `user-notifications:${user?.id}`,
+    tableName: 'notifications',
     filter: `user_id=eq.${user?.id}`,
-    onEvent: () => {
-        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-    },
+    queryKey: ['notifications', user?.id],
     enabled: !!user,
   });
   

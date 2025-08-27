@@ -93,14 +93,12 @@ export function ReviewsTab() {
   const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: true,
   });
 
   useRealtime({
-    channel: 'admin-reviews-channel',
-    table: 'reviews',
-    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminReviews'] })
+    channelName: 'admin-reviews-channel',
+    tableName: 'reviews',
+    queryKey: ['adminReviews']
   });
 
 
