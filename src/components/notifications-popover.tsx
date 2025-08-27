@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useRealtime } from "@/hooks/use-realtime";
 
 type Notification = {
   id: string;
@@ -43,41 +44,24 @@ export function NotificationsPopover() {
   const { user, session } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
+  
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['notifications', user?.id],
     queryFn: () => fetchNotifications(user?.id),
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase.channel(`public:notifications:user_id=eq.${user.id}`)
-      .on(
-        'postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'notifications', 
-          filter: `user_id=eq.${user.id}` 
-        }, 
-        (payload) => {
-            queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
-        }
-      )
-      .subscribe();
-    
-    channelRef.current = channel;
-
-    return () => {
-        if (channelRef.current) {
-            supabase.removeChannel(channelRef.current);
-        }
-    };
-  }, [user, queryClient]);
-
+  useRealtime({
+    channel: `user-notifications:${user?.id}`,
+    table: 'notifications',
+    filter: `user_id=eq.${user?.id}`,
+    onEvent: () => {
+        queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+    },
+    enabled: !!user,
+  });
   
   const unreadCount = notifications.filter(n => !n.is_read).length;
 

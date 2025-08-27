@@ -44,6 +44,7 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtime } from "@/hooks/use-realtime";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -92,7 +93,16 @@ export function ReviewsTab() {
   const { data: reviews, isLoading, isError } = useQuery<ReviewWithProductAndUser[]>({
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
+
+  useRealtime({
+    channel: 'admin-reviews-channel',
+    table: 'reviews',
+    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminReviews'] })
+  });
+
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase

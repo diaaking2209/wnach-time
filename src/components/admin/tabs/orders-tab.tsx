@@ -1,6 +1,6 @@
 
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -47,6 +47,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export type OrderItem = {
     product_id: string;
@@ -121,7 +122,31 @@ export function OrdersTab() {
   const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
   });
+
+  useRealtime({
+    channel: 'admin-orders-channel',
+    table: 'pending_orders',
+    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+  });
+  useRealtime({
+    channel: 'admin-orders-channel-processing',
+    table: 'processing_orders',
+    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+  });
+   useRealtime({
+    channel: 'admin-orders-channel-completed',
+    table: 'completed_orders',
+    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+  });
+   useRealtime({
+    channel: 'admin-orders-channel-cancelled',
+    table: 'cancelled_orders',
+    onEvent: () => queryClient.invalidateQueries({ queryKey: ['adminOrders'] })
+  });
+
 
   const getFullOrderDetails = async (orderId: string, fromTable: string) => {
     const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
