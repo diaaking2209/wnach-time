@@ -14,19 +14,40 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import React, { useState } from 'react';
-import { ReloadPrompt } from '@/components/reload-prompt';
+import { useForceRefetchOnPageshow } from '@/hooks/use-force-refetch-on-pageshow';
 
 // export const metadata: Metadata = {
 //   title: 'Wnash time',
 //   description: 'Your one-stop shop for digital games, cards, and more.',
 // };
 
+function ForceRefetchProvider({ children }: { children: React.ReactNode }) {
+    useForceRefetchOnPageshow();
+    return <>{children}</>;
+}
+
+
+function AppProviders({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+        <ForceRefetchProvider>
+            <AuthProvider>
+                <CartProvider>
+                {children}
+                </CartProvider>
+            </AuthProvider>
+        </ForceRefetchProvider>
+    </QueryClientProvider>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [queryClient] = useState(() => new QueryClient())
 
   return (
     <LanguageProvider>
@@ -46,18 +67,14 @@ export default function RootLayout({
           />
         </head>
         <body className="font-body antialiased">
-            <QueryClientProvider client={queryClient}>
-                <AuthProvider>
-                    <CartProvider>
-                        <div className="flex min-h-screen flex-col">
-                            <Header />
-                            <main className="flex-grow pt-8">{children}</main>
-                            <Footer />
-                        </div>
-                        <Toaster />
-                    </CartProvider>
-                </AuthProvider>
-            </QueryClientProvider>
+            <AppProviders>
+              <div className="flex min-h-screen flex-col">
+                  <Header />
+                  <main className="flex-grow pt-8">{children}</main>
+                  <Footer />
+              </div>
+              <Toaster />
+            </AppProviders>
         </body>
       </html>
     </LanguageProvider>
