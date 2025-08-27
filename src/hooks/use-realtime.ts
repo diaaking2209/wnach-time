@@ -1,6 +1,6 @@
 
 "use client"
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
@@ -23,78 +23,96 @@ export const useRealtime = ({
     const retriesRef = useRef(0);
     const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    const cleanup = useCallback(() => {
+        if (pingIntervalRef.current) {
+            clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = null;
+        }
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+            channelRef.current = null;
+        }
+    }, []);
+
+    const subscribeToChannel = useCallback(() => {
+        cleanup(); // Clean up any existing channel before creating a new one
+
+        const channel = supabase.channel(channelName, {
+            config: {
+                broadcast: {
+                    self: true,
+                },
+            },
+        });
+
+        channel.on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table, filter },
+            (payload) => {
+                onEvent(payload);
+            }
+        ).subscribe((status, err) => {
+            if (err) {
+                console.error(`[Realtime Error] Channel: ${channelName}`, err);
+            }
+
+            if (status === 'SUBSCRIBED') {
+                console.log(`[Realtime] Subscribed to ${channelName}`);
+                retriesRef.current = 0;
+                
+                if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+                pingIntervalRef.current = setInterval(() => {
+                    if (channel.state === 'open') {
+                        channel.send({ type: 'broadcast', event: 'ping', payload: {} });
+                    }
+                }, 30000);
+
+            } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+                console.warn(`[Realtime] Channel ${channelName} timed out or had an error. Reconnecting...`);
+                if (retriesRef.current < 5) {
+                    retriesRef.current++;
+                    setTimeout(() => subscribeToChannel(), 2000 * (retriesRef.current)); 
+                } else {
+                    console.error(`[Realtime] Failed to reconnect to ${channelName} after 5 attempts.`);
+                }
+            } else if (status === 'CLOSED') {
+                 console.log(`[Realtime] Channel ${channelName} closed. Will attempt to reconnect on next interaction or visibility change.`);
+            }
+        });
+
+        channelRef.current = channel;
+    }, [channelName, table, filter, onEvent, cleanup]);
+
     useEffect(() => {
         if (!enabled) {
+            cleanup();
             return;
         }
 
-        const subscribeToChannel = () => {
-            const channel = supabase.channel(channelName, {
-                config: {
-                    broadcast: {
-                        self: true,
-                    },
-                },
-            });
-
-            channel.on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table, filter },
-                (payload) => {
-                    onEvent(payload);
-                }
-            ).subscribe((status, err) => {
-                if (err) {
-                    console.error(`Subscription error on channel ${channelName}:`, err);
-                }
-
-                if (status === 'SUBSCRIBED') {
-                    console.log(`Successfully subscribed to ${channelName}`);
-                    retriesRef.current = 0; // Reset retries on successful connection
-                    
-                    // Start ping interval
-                    if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-                    pingIntervalRef.current = setInterval(() => {
-                        channel.send({ type: 'broadcast', event: 'ping', payload: {} });
-                    }, 30000);
-
-                } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
-                    console.warn(`Channel ${channelName} timed out or had an error. Attempting to reconnect...`);
-                    if (retriesRef.current < 5) {
-                        retriesRef.current++;
-                        setTimeout(() => subscribeToChannel(), 5000); // Wait 5 seconds before retrying
-                    } else {
-                        console.error(`Failed to reconnect to channel ${channelName} after 5 attempts.`);
-                    }
-                }
-            });
-
-            channelRef.current = channel;
-        };
-        
         subscribeToChannel();
-        
+
         const handleVisibilityChange = () => {
-            if(document.visibilityState === 'visible') {
-                console.log(`Re-subscribing to ${channelName} due to visibility change.`);
-                if (channelRef.current) {
-                    supabase.removeChannel(channelRef.current);
-                }
+            if (document.visibilityState === 'visible') {
+                console.log('[Realtime] Page is visible again. Re-subscribing...');
                 subscribeToChannel();
             }
         }
+        
+        const handlePageShow = (event: PageTransitionEvent) => {
+             if (event.persisted) {
+                console.log('[Realtime] Page was restored from BFCache. Re-subscribing...');
+                subscribeToChannel();
+             }
+        }
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
 
         return () => {
-            if (pingIntervalRef.current) {
-                clearInterval(pingIntervalRef.current);
-            }
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-            }
+            cleanup();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('pageshow', handlePageShow);
         };
 
-    }, [channelName, table, filter, onEvent, enabled]);
+    }, [enabled, subscribeToChannel, cleanup]);
 };
