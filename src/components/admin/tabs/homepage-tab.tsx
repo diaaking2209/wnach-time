@@ -199,7 +199,6 @@ export function HomePageTab() {
         const { error: topProductsError } = await supabase.from('homepage_top_products').upsert(topProductsUpsert);
         if (topProductsError) throw topProductsError;
 
-        // Use upsert to handle both creation and update of the setting
         const { error: settingsError } = await supabase.from('app_settings').upsert({ 
             key: 'discord_ticket_url',
             value: data.discordUrl 
@@ -209,7 +208,12 @@ export function HomePageTab() {
 
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
     } catch (error: any) {
-         toast({ variant: "destructive", title: t.saveError, description: error.message });
+        console.error("Save All Error:", error);
+        toast({ 
+            variant: "destructive", 
+            title: t.saveError, 
+            description: `An error occurred: ${error.message}. Check console for details.` 
+        });
     } finally {
         setIsSaving(false);
     }

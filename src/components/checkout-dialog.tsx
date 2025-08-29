@@ -20,6 +20,7 @@ import { translations } from "@/lib/translations";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { ServerGateDialog } from "./server-gate-dialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface CheckoutDialogProps {
   isOpen: boolean;
@@ -32,12 +33,26 @@ interface CheckoutDialogProps {
   };
 }
 
+const fetchDiscordUrl = async (): Promise<string> => {
+    // This query is now safe for all users, including logged-out ones,
+    // because of the public read policy on the app_settings table.
+    const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'discord_ticket_url')
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching discord_ticket_url", error);
+    }
+    return data?.value || "https://discord.gg/7up"; // Fallback URL
+};
+
 
 export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDialogProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [newOrderDisplayId, setNewOrderDisplayId] = useState<string | null>(null);
-  const [discordTicketUrl, setDiscordTicketUrl] = useState("https://discord.com");
   const [isGateOpen, setGateOpen] = useState(false);
 
 
@@ -47,23 +62,11 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const { user, checkGuildMembership } = useAuth();
   const t = translations[language];
 
-  useEffect(() => {
-    // Fetch Discord URL when the component mounts, regardless of dialog state.
-    // This allows the URL to be ready when needed.
-    const fetchDiscordUrl = async () => {
-        const { data, error } = await supabase
-            .from('app_settings')
-            .select('value')
-            .eq('key', 'discord_ticket_url')
-            .single();
-        if (data?.value) {
-            setDiscordTicketUrl(data.value);
-        } else if (error && error.code !== 'PGRST116') {
-             console.error("Error fetching discord_ticket_url", error);
-        }
-    };
-    fetchDiscordUrl();
-  }, []);
+  const { data: discordTicketUrl, isLoading: isUrlLoading } = useQuery({
+      queryKey: ['discordTicketUrl'],
+      queryFn: fetchDiscordUrl,
+      staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+  });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -201,8 +204,8 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                         {t.checkout.close}
                     </Button>
                     <a href={discordTicketUrl} target="_blank" rel="noopener noreferrer" className="w-full">
-                        <Button type="button" className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white">
-                           {t.checkout.goToTicket}
+                        <Button type="button" className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white" disabled={isUrlLoading}>
+                           {isUrlLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : t.checkout.goToTicket}
                         </Button>
                     </a>
                 </DialogFooter>
