@@ -14,11 +14,13 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import React, { useState } from 'react';
+import { useForceRefetchOnPageshow } from '@/hooks/use-force-refetch-on-pageshow';
 
-// export const metadata: Metadata = {
-//   title: 'Wnash time',
-//   description: 'Your one-stop shop for digital games, cards, and more.',
-// };
+// A new client component to safely call the hook within the provider's context.
+function PageshowRefetcher() {
+  useForceRefetchOnPageshow();
+  return null;
+}
 
 function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -36,7 +38,8 @@ function AppProviders({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
         <AuthProvider>
             <CartProvider>
-            {children}
+              <PageshowRefetcher />
+              {children}
             </CartProvider>
         </AuthProvider>
     </QueryClientProvider>
