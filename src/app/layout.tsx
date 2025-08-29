@@ -21,7 +21,16 @@ import React, { useState } from 'react';
 // };
 
 function AppProviders({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        // This ensures queries are considered "stale" immediately,
+        // prompting a refetch on component mount or window focus
+        // without complex manual logic.
+        staleTime: 0,
+      },
+    },
+  }));
 
   return (
     <QueryClientProvider client={queryClient}>
