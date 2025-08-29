@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback } from "react";
@@ -56,6 +57,21 @@ const fetchAdmins = async (): Promise<AdminUser[]> => {
     return data as AdminUser[];
 }
 
+async function getSupabaseUserIdFromProviderId(providerId: string): Promise<string | null> {
+    const { data, error } = await supabase
+        .from('user_profiles')
+        .select('user_id')
+        .eq('provider_id', providerId)
+        .single();
+    
+    if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching user_id from provider_id:", error);
+        return null;
+    }
+    return data?.user_id || null;
+}
+
+
 function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
     const { toast } = useToast();
     const { language } = useLanguage();
@@ -68,35 +84,42 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 
     const handleAddAdmin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newAdminId.trim()) {
+        const trimmedId = newAdminId.trim();
+        if (!trimmedId) {
             toast({ variant: "destructive", title: t.idEmpty });
             return;
         }
         
-        if (!/^\d+$/.test(newAdminId.trim())) {
+        if (!/^\d+$/.test(trimmedId)) {
             toast({ variant: "destructive", title: t.invalidId, description: t.invalidIdDesc });
             return;
         }
 
         setIsSaving(true);
         try {
-            const { error: checkError } = await supabase.from('admins').select('id').eq('provider_id', newAdminId.trim()).single();
+            const { data: existingAdmin, error: checkError } = await supabase.from('admins').select('id').eq('provider_id', trimmedId).single();
             if(checkError && checkError.code !== 'PGRST116') throw checkError;
-            if(!checkError) {
+            if(existingAdmin) {
                  toast({ variant: "destructive", title: t.alreadyExists });
                  setIsSaving(false);
                  return;
             }
 
+            // Fetch the supabase user_id from the user_profiles table using the provider_id
+            const supabaseUserId = await getSupabaseUserIdFromProviderId(trimmedId);
+            if (!supabaseUserId) {
+                toast({ variant: "destructive", title: t.addError, description: "User not found or has not logged in yet." });
+                setIsSaving(false);
+                return;
+            }
+
             const { error } = await supabase
                 .from("admins")
-                .insert([{ provider_id: newAdminId.trim(), role: 'product_adder' }])
-                .select()
-                .single();
+                .insert([{ id: supabaseUserId, provider_id: trimmedId, role: 'product_adder' }]);
 
             if (error) throw error;
             
-            toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
+            toast({ title: t.addSuccess, description: `${t.user} ${trimmedId} ${t.addSuccessDesc}` });
             onAdd();
             setIsOpen(false);
             setNewAdminId("");
@@ -175,36 +198,43 @@ export function AdminsTab() {
 
   const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdminId.trim()) {
+    const trimmedId = newAdminId.trim();
+    if (!trimmedId) {
       toast({ variant: "destructive", title: t.idEmpty });
       return;
     }
     
-    if (!/^\d+$/.test(newAdminId.trim())) {
+    if (!/^\d+$/.test(trimmedId)) {
         toast({ variant: "destructive", title: t.invalidId, description: t.invalidIdDesc });
         return;
     }
 
-    if (admins && admins.some(admin => admin.provider_id === newAdminId.trim())) {
+    if (admins && admins.some(admin => admin.provider_id === trimmedId)) {
         toast({ variant: "destructive", title: t.alreadyExists });
         return;
     }
 
     setIsSaving(true);
     try {
+      const supabaseUserId = await getSupabaseUserIdFromProviderId(trimmedId);
+      if (!supabaseUserId) {
+        toast({ variant: "destructive", title: t.addError, description: "User not found or has not logged in yet. Please ask them to sign in first." });
+        setIsSaving(false);
+        return;
+      }
+
       const { error } = await supabase
         .from("admins")
         .insert([{ 
-            provider_id: newAdminId.trim(),
+            id: supabaseUserId,
+            provider_id: trimmedId,
             role: 'product_adder' 
-        }])
-        .select()
-        .single();
+        }]);
 
       if (error) throw error;
       
       setNewAdminId("");
-      toast({ title: t.addSuccess, description: `${t.user} ${newAdminId.trim()} ${t.addSuccessDesc}` });
+      toast({ title: t.addSuccess, description: `${t.user} ${trimmedId} ${t.addSuccessDesc}` });
       queryClient.invalidateQueries({ queryKey: ['admins'] });
 
     } catch (error: any) {
@@ -380,3 +410,5 @@ export function AdminsTab() {
     </div>
   );
 }
+
+    
