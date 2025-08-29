@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState, useCallback } from "react";
@@ -196,7 +197,10 @@ export function HomePageTab() {
         const { error: topProductsError } = await supabase.from('homepage_top_products').upsert(topProductsUpsert);
         if (topProductsError) throw topProductsError;
 
-        const { error: settingsError } = await supabase.from('app_settings').update({ value: data.discordUrl }).eq('key', 'discord_ticket_url');
+        const { error: settingsError } = await supabase.from('app_settings').upsert({ 
+            key: 'discord_ticket_url',
+            value: data.discordUrl 
+        }, { onConflict: 'key' });
         if (settingsError) throw settingsError;
 
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });
