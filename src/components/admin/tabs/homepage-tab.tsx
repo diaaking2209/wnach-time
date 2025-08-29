@@ -25,6 +25,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { useAuth } from "@/hooks/use-auth";
 
 type CarouselSlide = {
   id: string;
@@ -52,6 +53,7 @@ type HomePageData = {
 export function HomePageTab() {
   const { toast } = useToast();
   const { language } = useLanguage();
+  const { user } = useAuth();
   const t = translations[language].admin.homepageTab;
 
   const [loading, setLoading] = useState(true);
@@ -81,9 +83,9 @@ export function HomePageTab() {
         if (settingsError && settingsError.code !== 'PGRST116') throw settingsError;
 
         const fetchedData: HomePageData = {
-            slides,
-            topProducts: topProds as TopProductLink[],
-            allProducts: allProds,
+            slides: slides || [],
+            topProducts: (topProds as TopProductLink[]) || [],
+            allProducts: allProds || [],
             discordUrl: settingsData?.value || ""
         };
 
@@ -115,12 +117,12 @@ export function HomePageTab() {
         ai_hint: "placeholder",
         link: "#",
         sort_order: data.slides.length,
-    }]).select();
+    }]).select().single();
 
     if(error) {
         toast({ variant: "destructive", title: t.addSlideError, description: error.message });
     } else if(newSlide) {
-        const updatedData = {...data, slides: [...data.slides, newSlide[0]]};
+        const updatedData = {...data, slides: [...data.slides, newSlide]};
         setData(updatedData);
         toast({ title: t.addSlideSuccess });
     }
@@ -179,7 +181,7 @@ export function HomePageTab() {
   }
 
   const handleSaveAll = async () => {
-    if (!data) return;
+    if (!data || !user) return;
     setIsSaving(true);
     try {
         const carouselUpsert = data.slides.map((slide, index) => ({
@@ -197,10 +199,12 @@ export function HomePageTab() {
         const { error: topProductsError } = await supabase.from('homepage_top_products').upsert(topProductsUpsert);
         if (topProductsError) throw topProductsError;
 
+        // Use upsert to handle both creation and update of the setting
         const { error: settingsError } = await supabase.from('app_settings').upsert({ 
             key: 'discord_ticket_url',
             value: data.discordUrl 
         }, { onConflict: 'key' });
+
         if (settingsError) throw settingsError;
 
         toast({ title: t.saveSuccess, description: t.saveSuccessDesc });

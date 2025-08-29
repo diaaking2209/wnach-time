@@ -48,20 +48,22 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const t = translations[language];
 
   useEffect(() => {
-    if (isOpen) {
-        const fetchDiscordUrl = async () => {
-            const { data, error } = await supabase
-                .from('app_settings')
-                .select('value')
-                .eq('key', 'discord_ticket_url')
-                .single();
-            if (data?.value) {
-                setDiscordTicketUrl(data.value);
-            }
-        };
-        fetchDiscordUrl();
-    }
-  }, [isOpen]);
+    // Fetch Discord URL when the component mounts, regardless of dialog state.
+    // This allows the URL to be ready when needed.
+    const fetchDiscordUrl = async () => {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'discord_ticket_url')
+            .single();
+        if (data?.value) {
+            setDiscordTicketUrl(data.value);
+        } else if (error && error.code !== 'PGRST116') {
+             console.error("Error fetching discord_ticket_url", error);
+        }
+    };
+    fetchDiscordUrl();
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -101,7 +103,9 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
 
         if (error) throw error;
         
-        setNewOrderDisplayId(newOrder.display_id);
+        if (newOrder?.display_id) {
+            setNewOrderDisplayId(newOrder.display_id);
+        }
         
         // Clear the client-side cart and show success
         clearCart(); 
