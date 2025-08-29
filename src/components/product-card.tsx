@@ -92,7 +92,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <>
     <ServerGateDialog isOpen={isGateOpen} setIsOpen={setGateOpen} />
-    <Link href={`/product/${product.id}`} className="outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg h-full">
+    <Link href={`/product/${product.id}`} className="outline-none rounded-lg h-full">
       <Card 
         className="group flex h-full w-full flex-col overflow-hidden rounded-lg border-transparent bg-card text-card-foreground shadow-none transition-all duration-300 hover:border-accent/60 hover:-translate-y-1 cursor-pointer"
       >
