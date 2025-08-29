@@ -1,31 +1,11 @@
+import { createClient } from '@supabase/supabase-js'
 
-"use client";
+const supabaseUrl = 'https://ssywwcucfidvgxzwiqnj.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzeXd3Y3VjZmlkdmd4endpcW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0ODIwNzIsImV4cCI6MjA3MDA1ODA3Mn0.oxiRrGe6Kwe_BEXgoiK_05cU-Zdw8VMW2uwVDsC4kUc'
 
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-
-/**
- * Custom hook that forces all TanStack queries to refetch when the page becomes visible,
- * particularly after being restored from the Back/Forward Cache (BFCache).
- * This solves the issue where data becomes stale after navigating back to a page.
- */
-export function useForceRefetchOnPageshow() {
-  const queryClient = useQueryClient();
-  
-  useEffect(() => {
-    const onPageShow = (event: PageTransitionEvent) => {
-      // The `persisted` property is true if the page is restored from BFCache.
-      if (event.persisted) {
-        // Invalidate all queries to force a refetch.
-        queryClient.invalidateQueries();
-      }
-    };
-
-    window.addEventListener('pageshow', onPageShow);
-    
-    // Cleanup the event listener when the component unmounts.
-    return () => {
-      window.removeEventListener('pageshow', onPageShow);
-    };
-  }, [queryClient]);
-}
+// This is the standard Supabase client configuration.
+// By removing the aggressive caching overrides, we allow Next.js and Supabase
+// to handle data fetching and revalidation in their intended, default way.
+// This ensures that data is fresh when needed without causing the issues
+// of stale or missing data on navigation.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

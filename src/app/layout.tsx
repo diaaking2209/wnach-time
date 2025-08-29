@@ -14,31 +14,22 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import React, { useState } from 'react';
-import { useForceRefetchOnPageshow } from '@/hooks/use-force-refetch-on-pageshow';
 
 // export const metadata: Metadata = {
 //   title: 'Wnash time',
 //   description: 'Your one-stop shop for digital games, cards, and more.',
 // };
 
-function ForceRefetchProvider({ children }: { children: React.ReactNode }) {
-    useForceRefetchOnPageshow();
-    return <>{children}</>;
-}
-
-
 function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
-        <ForceRefetchProvider>
-            <AuthProvider>
-                <CartProvider>
-                {children}
-                </CartProvider>
-            </AuthProvider>
-        </ForceRefetchProvider>
+        <AuthProvider>
+            <CartProvider>
+            {children}
+            </CartProvider>
+        </AuthProvider>
     </QueryClientProvider>
   );
 }
