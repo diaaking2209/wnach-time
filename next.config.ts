@@ -40,6 +40,12 @@ const nextConfig: NextConfig = {
         hostname: 'cdn.discordapp.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'l.top4top.io',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
