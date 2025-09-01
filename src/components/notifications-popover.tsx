@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, BellOff, Bell } from "lucide-react";
@@ -12,7 +12,6 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useRealtime } from "@/hooks/use-realtime";
 
 type Notification = {
@@ -42,7 +41,6 @@ const fetchNotifications = async (userId: string | undefined): Promise<Notificat
 export function NotificationsPopover() {
   const { toast } = useToast();
   const { user, session } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
@@ -64,7 +62,6 @@ export function NotificationsPopover() {
   const handleMarkAsRead = async (notificationId: string) => {
     if (!user) return;
 
-    // Optimistic update
     queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
         oldData ? oldData.map(n => n.id === notificationId ? {...n, is_read: true} : n) : []
     );
@@ -76,14 +73,13 @@ export function NotificationsPopover() {
 
     if (error) {
         toast({ variant: "destructive", title: "Error", description: "Could not update notification." });
-        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] }); // Revert on error
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
     }
   }
   
   const handleMarkAllAsRead = async () => {
     if (!user || unreadCount === 0) return;
     
-    // Optimistic update
     queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
         oldData ? oldData.map(n => ({...n, is_read: true})) : []
     );
@@ -96,7 +92,7 @@ export function NotificationsPopover() {
 
     if(error){
         toast({ variant: "destructive", title: "Error", description: "Could not mark all as read." });
-        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] }); // Revert on error
+        queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
     }
   }
   
@@ -105,7 +101,7 @@ export function NotificationsPopover() {
   }
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover>
         <PopoverTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 p-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                 <Bell className="h-5 w-5" />

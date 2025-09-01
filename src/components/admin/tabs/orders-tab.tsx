@@ -1,6 +1,6 @@
 
 "use client"
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -125,7 +125,7 @@ export function OrdersTab() {
   });
 
   useRealtime({
-    channelName: 'admin-orders-channel',
+    channelName: 'admin-orders-channel-pending',
     tableName: 'pending_orders',
     queryKey: ['adminOrders']
   });
@@ -187,7 +187,9 @@ export function OrdersTab() {
         if(to === 'processing') message = `${t.notification.processing} ${fullOrder.display_id || ''}.`;
         if(to === 'cancelled') message = `${t.notification.cancelled} ${fullOrder.display_id || ''}.`;
         
-        await createNotification(fullOrder.user_id, orderId, message);
+        if (message) {
+            await createNotification(fullOrder.user_id, orderId, message);
+        }
         
         toast({ title: t.statusUpdated });
         queryClient.invalidateQueries({ queryKey: ['adminOrders'] });

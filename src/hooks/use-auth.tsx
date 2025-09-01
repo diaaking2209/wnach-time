@@ -21,8 +21,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GUILD_ID = '1403414827686170747';
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -38,11 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const syncUserProfileInfo = useCallback(async (user: User): Promise<boolean> => {
     const { id, user_metadata } = user;
-    if (!id || !user_metadata?.full_name) return false;
+    if (!id || !user_metadata?.full_name || !user_metadata?.provider_id) return false;
 
     const { error } = await supabase.from('user_profiles')
       .upsert({
         user_id: id,
+        provider_id: user_metadata.provider_id,
         username: user_metadata.full_name,
         avatar_url: user_metadata.avatar_url
       }, { onConflict: 'user_id' });
