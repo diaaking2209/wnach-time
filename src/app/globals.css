@@ -16,35 +16,46 @@ body {
 
 @layer base {
   :root {
-    --background: 222 22% 11%;
-    --foreground: 210 40% 98%;
+    /* 
+      =================================================
+      == THEME COLORS CONFIGURATION (EDIT HERE) ==
+      =================================================
+      You can change the main colors of the site here.
+      Values are in HSL format: Hue Saturation% Lightness%
+    */
 
-    --card: 222 22% 15%;
-    --card-foreground: 210 40% 98%;
+    /* -- Main Theme Colors -- */
+    --background: 222 22% 11%;         /* Site background color */
+    --foreground: 210 40% 98%;         /* Main text color */
+    
+    --primary: 340 82% 60%;            /* Main accent color for buttons, links, etc. (Pink) */
+    --primary-foreground: 210 40% 98%; /* Text color on primary elements */
+    
+    --accent: 340 82% 60%;             /* Accent color, often the same as primary */
+    --accent-foreground: 210 40% 98%;  /* Text color on accent elements */
+    
+    
+    /* -- Component Colors -- */
+    --card: 222 22% 15%;               /* Background color for cards */
+    --card-foreground: 210 40% 98%;    /* Text color inside cards */
 
-    --popover: 222 22% 11%;
-    --popover-foreground: 210 40% 98%;
+    --secondary: 217 33% 17%;          /* Secondary elements background */
+    --secondary-foreground: 210 40% 98%;/* Secondary elements text color */
 
-    --primary: 340 82% 60%;
-    --primary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;              /* Muted elements background */
+    --muted-foreground: 215 20% 65%;   /* Muted text color (e.g., descriptions) */
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --border: 217 33% 25%;             /* Border color for components */
+    --input: 217 33% 17%;              /* Input fields background */
+    --ring: 340 82% 60%;               /* Focus ring color */
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
 
-    --accent: 340 82% 60%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 63% 31%;
+    /* -- Other Colors -- */
+    --destructive: 0 63% 31%;          /* Color for destructive actions (e.g., delete) */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 25%;
-    --input: 217 33% 17%;
-    --ring: 340 82% 60%;
-
-    --radius: 0.5rem;
+    /* -- General Settings -- */
+    --radius: 0.5rem;                  /* Border radius for components */
   }
 }
 
