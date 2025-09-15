@@ -11,7 +11,7 @@ import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShoppingCart, Star, User } from "lucide-react";
+import { Loader2, ShoppingCart, Star, User, Package } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
@@ -228,7 +228,13 @@ export default function ProductPage() {
           </div>
           <div className="hidden md:block">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-105">
-              <Image src={product.image_url} alt={product.name} fill className="object-cover" priority />
+              {product.image_url ? (
+                  <Image src={product.image_url} alt={product.name} fill className="object-cover" priority />
+              ) : (
+                  <div className="flex items-center justify-center h-full bg-muted">
+                    <Package className="w-16 h-16 text-muted-foreground/50" />
+                  </div>
+              )}
             </div>
           </div>
         </div>
@@ -288,5 +294,3 @@ export default function ProductPage() {
     </div>
   );
 }
-
-    
