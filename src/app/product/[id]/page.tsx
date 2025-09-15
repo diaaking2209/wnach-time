@@ -139,10 +139,31 @@ export default function ProductPage() {
   const { product, reviews, relatedProducts } = productData;
 
   const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-  const handleQuantityChange = (newQuantity: number) => newQuantity >= 1 && setQuantity(newQuantity);
-  const handleAddToCart = () => product?.id && addToCart({ id: product.id, name: product.name, price: product.price, imageUrl: product.image_url, quantity });
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity >= 1) {
+        if (product.stock_type === 'LIMITED' && product.stock_quantity !== null && newQuantity > product.stock_quantity) {
+            setQuantity(product.stock_quantity);
+        } else {
+            setQuantity(newQuantity);
+        }
+    }
+  };
+  const handleAddToCart = () => {
+    if (product?.id) {
+        addToCart({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            imageUrl: product.image_url,
+            quantity: quantity,
+            stock_type: product.stock_type,
+            stock_quantity: product.stock_quantity,
+        });
+    }
+  };
   
   const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
+  const maxQuantity = product.stock_type === 'LIMITED' && product.stock_quantity !== null ? product.stock_quantity : Infinity;
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -158,6 +179,12 @@ export default function ProductPage() {
           <div className="md:col-span-2">
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
             
+            {product.stock_type === 'LIMITED' && product.stock_quantity !== null && !isOutOfStock && (
+                <div className="mt-2 text-sm text-amber-500">
+                    Only {product.stock_quantity} left in stock!
+                </div>
+            )}
+
             <Separator className="my-6" />
 
             <div className="space-y-4">
@@ -189,10 +216,10 @@ export default function ProductPage() {
                 <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>-</Button>
-                    <Input id="quantity" type="number" value={quantity} readOnly className="h-11 w-16 text-center text-lg" />
-                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)}>+</Button>
+                    <Input id="quantity" type="number" value={quantity} onChange={(e) => handleQuantityChange(parseInt(e.target.value))} className="h-11 w-16 text-center text-lg" max={maxQuantity} />
+                    <Button variant="outline" size="icon" className="h-11 w-11" onClick={() => handleQuantityChange(quantity + 1)} disabled={quantity >= maxQuantity}>+</Button>
                   </div>
-                  <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto flex-grow text-lg py-6">
+                  <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto flex-grow text-lg py-6" disabled={quantity > maxQuantity}>
                     <ShoppingCart className="mr-2 h-5 w-5" />{t.cart.addToCart}
                   </Button>
                 </div>
@@ -261,3 +288,5 @@ export default function ProductPage() {
     </div>
   );
 }
+
+    

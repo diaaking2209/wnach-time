@@ -5,7 +5,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useCa
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { Product } from '@/components/product-card';
+import { Product } from '@/lib/types';
 
 export interface CartItem {
   id: string; // This will be the product_id from the database perspective
@@ -13,6 +13,8 @@ export interface CartItem {
   price: number;
   imageUrl: string;
   quantity: number;
+  stock_type: 'INFINITE' | 'LIMITED';
+  stock_quantity: number | null;
 }
 
 export interface AppliedCoupon {
@@ -62,7 +64,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                     name,
                     price,
                     image_url,
-                    stock_status
+                    stock_status,
+                    stock_type,
+                    stock_quantity
                 )
             `)
             .eq('user_id', user.id);
@@ -70,13 +74,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (error) throw error;
         
         const fetchedCart: CartItem[] = cartData
-            .filter(item => item.products && (item.products as Product).stockStatus !== 'Out of Stock') // Ensure product data exists and is in stock
+            .filter(item => item.products && (item.products as Product).stock_status !== 'Out of Stock') // Ensure product data exists and is in stock
             .map(item => ({
                 id: (item.products as Product).id!,
                 name: (item.products as Product).name,
                 price: (item.products as Product).price,
-                imageUrl: (item.products as Product).imageUrl,
+                imageUrl: (item.products as Product).image_url,
                 quantity: item.quantity,
+                stock_type: (item.products as Product).stock_type,
+                stock_quantity: (item.products as Product).stock_quantity,
             }));
 
         setCart(fetchedCart);
@@ -115,12 +121,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 
   const addToCart = async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
-    if (!user || !session) return; // This should be handled by the component calling this function
+    if (!user || !session) return;
 
     setIsAddingToCart(true);
     const addQuantity = item.quantity || 1;
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     const newQuantity = existingItem ? existingItem.quantity + addQuantity : addQuantity;
+
+    // Stock Check
+    if (item.stock_type === 'LIMITED' && item.stock_quantity !== null && newQuantity > item.stock_quantity) {
+        toast({
+            variant: "destructive",
+            title: "Not Enough Stock",
+            description: `Only ${item.stock_quantity} of ${item.name} available.`,
+        });
+        setIsAddingToCart(false);
+        return;
+    }
 
     try {
         const { error } = await supabase.from('cart_items').upsert(
@@ -151,7 +168,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         
         toast({
             title: "Added to Cart",
-            description: `1 x ${item.name} has been added to your cart.`,
+            description: `${addQuantity} x ${item.name} has been added to your cart.`,
         });
 
 
@@ -182,21 +199,38 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateQuantity = async (productId: string, quantity: number) => {
+  const updateQuantity = async (productId: string, newQuantity: number) => {
     if (!user) return;
 
-    if (quantity <= 0) {
+    if (newQuantity <= 0) {
       removeFromCart(productId);
       return;
     }
 
+    const itemToUpdate = cart.find(item => item.id === productId);
+    if (!itemToUpdate) return;
+    
+    // Stock Check
+    if (itemToUpdate.stock_type === 'LIMITED' && itemToUpdate.stock_quantity !== null && newQuantity > itemToUpdate.stock_quantity) {
+        toast({
+            variant: "destructive",
+            title: "Not Enough Stock",
+            description: `Only ${itemToUpdate.stock_quantity} of ${itemToUpdate.name} available.`,
+        });
+        // We don't revert here, the user can decide to lower the quantity.
+        // The UI should reflect the invalid state though (e.g. disable checkout).
+        setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
+        return;
+    }
+
+
     // Optimistic UI Update
     const prevCart = cart;
-    setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, quantity } : item));
+    setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
 
     const { error } = await supabase
       .from('cart_items')
-      .update({ quantity: quantity })
+      .update({ quantity: newQuantity })
       .match({ user_id: user.id, product_id: productId });
 
     if (error) {
@@ -250,3 +284,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+    

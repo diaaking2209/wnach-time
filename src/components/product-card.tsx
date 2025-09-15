@@ -61,6 +61,8 @@ export function ProductCard({ product }: { product: Product }) {
                 price: product.price,
                 imageUrl: product.image_url,
                 quantity: 1,
+                stock_type: product.stock_type,
+                stock_quantity: product.stock_quantity
             });
         }
     } else {
@@ -70,7 +72,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   const priceToDisplay = product.price;
-  const isOutOfStock = product.stock_status === 'Out of Stock';
+  const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
   const hasDiscount = product.discount && product.discount > 0 && !isOutOfStock;
 
   return (
@@ -156,6 +158,11 @@ export function ProductCard({ product }: { product: Product }) {
                   Out of Stock
               </Badge>
             )}
+             {product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity > 0 && product.stock_quantity <= 10 && (
+                <Badge variant="secondary" className="absolute top-2 left-2 z-10 bg-amber-500 text-black">
+                    Only {product.stock_quantity} left!
+                </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -163,3 +170,5 @@ export function ProductCard({ product }: { product: Product }) {
     </>
   );
 }
+
+    
