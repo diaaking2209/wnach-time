@@ -1,7 +1,8 @@
+
 "use client"
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ProductCard, type Product } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
@@ -36,9 +37,9 @@ type ProductData = {
   relatedProducts: Product[];
 }
 
-const fetchProductData = async (productId: string): Promise<ProductData> => {
-    if (!productId) {
-      throw new Error("Product ID is required");
+const fetchProductData = async (productId: string | undefined | string[]): Promise<ProductData | null> => {
+    if (!productId || Array.isArray(productId)) {
+      return null;
     }
 
     const { data: productResult, error: productError } = await supabase
@@ -48,7 +49,8 @@ const fetchProductData = async (productId: string): Promise<ProductData> => {
       .single();
     
     if (productError || !productResult) {
-      throw new Error(productError?.message || "Product not found");
+        console.error('Error fetching product:', productError);
+        return null;
     }
     
     const formattedProduct: Product = {
@@ -112,8 +114,9 @@ const fetchProductData = async (productId: string): Promise<ProductData> => {
 };
 
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const productId = params.id;
+export default function ProductPage() {
+  const params = useParams();
+  const productId = params.id as string;
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { language } = useLanguage();
@@ -121,9 +124,10 @@ export default function ProductPage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: productData, isLoading, isError } = useQuery<ProductData>({
+  const { data: productData, isLoading, isError } = useQuery<ProductData | null>({
     queryKey: ['product', productId],
     queryFn: () => fetchProductData(productId),
+    enabled: !!productId,
   });
 
   const onReviewSubmitted = () => {
