@@ -103,7 +103,8 @@ export const translations = {
         copied: 'Copied!',
         copiedDesc: 'The ID has been copied to your clipboard.',
         checkoutErrorTitle: 'Checkout Failed',
-        checkoutErrorDesc: 'There was an unexpected error placing your order. Please try again.'
+        checkoutErrorDesc: 'There was an unexpected error placing your order. Please try again.',
+        outOfStock: 'Some items in your cart are out of stock.'
     },
     profile: {
         title: 'Profile',
@@ -427,8 +428,10 @@ export const translations = {
                 discountPlaceholder: 'e.g. 10',
                 stock: 'Stock',
                 selectStock: 'Select stock status',
-                inStock: 'In Stock',
+                inStock: 'Infinite Stock',
                 outOfStock: 'Out of Stock',
+                limitedStock: 'Limited Stock',
+                quantityPlaceholder: 'Quantity in stock',
                 platforms: 'Platforms',
                 tags: 'Tags',
                 tagsPlaceholder: 'Add tags (press Enter)',
@@ -589,7 +592,8 @@ export const translations = {
         copied: 'تم النسخ!',
         copiedDesc: 'تم نسخ المعرف إلى الحافظة الخاصة بك.',
         checkoutErrorTitle: 'فشل إتمام الطلب',
-        checkoutErrorDesc: 'حدث خطأ غير متوقع أثناء تقديم طلبك. حاول مرة اخرى.'
+        checkoutErrorDesc: 'حدث خطأ غير متوقع أثناء تقديم طلبك. حاول مرة اخرى.',
+        outOfStock: 'بعض المنتجات في سلتك نفدت من المخزون.'
     },
     profile: {
         title: 'الملف الشخصي',
@@ -913,8 +917,10 @@ export const translations = {
                 discountPlaceholder: 'e.g. 10',
                 stock: 'Stock',
                 selectStock: 'Select stock status',
-                inStock: 'In Stock',
+                inStock: 'Infinite Stock',
                 outOfStock: 'Out of Stock',
+                limitedStock: 'Limited Stock',
+                quantityPlaceholder: 'Quantity in stock',
                 platforms: 'Platforms',
                 tags: 'Tags',
                 tagsPlaceholder: 'Add tags (press Enter)',

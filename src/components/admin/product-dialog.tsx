@@ -22,13 +22,14 @@ import {
     SelectValue,
   } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase";
-import { Product } from "@/components/product-card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Switch } from "../ui/switch";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import type { Product } from "@/lib/types";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 interface ProductDialogProps {
   isOpen: boolean;
@@ -39,7 +40,6 @@ interface ProductDialogProps {
 
 const categories = ["Games", "Cards", "Subscriptions", "In-game Purchases", "Computer Programs"];
 const platformOptions = ["PC", "Xbox", "Playstation", "Mobile"];
-const stockStatusOptions = ["In Stock", "Out of Stock"];
 
 
 export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDialogProps) {
@@ -53,8 +53,9 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [currentTagInput, setCurrentTagInput] = useState("");
-  const [stockStatus, setStockStatus] = useState("In Stock");
   const [isActive, setIsActive] = useState(true);
+  const [stockType, setStockType] = useState<'INFINITE' | 'LIMITED'>('INFINITE');
+  const [stockQuantity, setStockQuantity] = useState<number | string>('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { language } = useLanguage();
@@ -64,15 +65,16 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     if (product) {
       setName(product.name);
       setDescription(product.description || "");
-      setPrice(product.originalPrice || product.price); // Use original price for editing
+      setPrice(product.original_price || product.price); // Use original price for editing
       setDiscount(product.discount || "");
       setPlatforms(product.platforms || []);
-      setImageUrl(product.imageUrl || "");
-      setBannerUrl(product.bannerUrl || "");
+      setImageUrl(product.image_url || "");
+      setBannerUrl(product.banner_url || "");
       setCategory(product.category || "");
       setTags(product.tags || []);
-      setStockStatus(product.stockStatus || "In Stock");
-      setIsActive(product.isActive === false ? false : true);
+      setIsActive(product.is_active === false ? false : true);
+      setStockType(product.stock_type || 'INFINITE');
+      setStockQuantity(product.stock_quantity ?? '');
     } else {
       // Reset form for new product
       setName("");
@@ -84,8 +86,9 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       setBannerUrl("");
       setCategory("");
       setTags([]);
-      setStockStatus("In Stock");
       setIsActive(true);
+      setStockType('INFINITE');
+      setStockQuantity('');
     }
   }, [product, isOpen]);
 
@@ -104,7 +107,6 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -117,6 +119,14 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
         ? originalPriceNum - (originalPriceNum * (discountNum / 100))
         : originalPriceNum;
 
+    const isLimitedStock = stockType === 'LIMITED';
+    const finalStockQuantity = isLimitedStock ? Number(stockQuantity) : null;
+
+    if (isLimitedStock && (finalStockQuantity === null || isNaN(finalStockQuantity) || finalStockQuantity < 0)) {
+        toast({ variant: "destructive", title: "Invalid Stock", description: "Please enter a valid, non-negative stock quantity for limited stock type." });
+        setIsSaving(false);
+        return;
+    }
 
     const productData = {
       name,
@@ -129,8 +139,10 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       banner_url: bannerUrl,
       category,
       tags,
-      stock_status: stockStatus,
+      stock_status: stockType === 'LIMITED' && finalStockQuantity === 0 ? 'Out of Stock' : 'In Stock',
       is_active: isActive,
+      stock_type: stockType,
+      stock_quantity: finalStockQuantity,
     };
 
     let error;
@@ -206,18 +218,33 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
               <Label htmlFor="discount" className="text-right">{t.products.discount}</Label>
               <Input id="discount" type="number" placeholder={t.products.discountPlaceholder} value={discount} onChange={(e) => setDiscount(e.target.value)} className="col-span-3" />
             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="stockStatus" className="text-right">{t.products.stock}</Label>
-                <Select value={stockStatus} onValueChange={setStockStatus}>
-                    <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder={t.products.selectStock} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="In Stock">{t.products.inStock}</SelectItem>
-                        <SelectItem value="Out of Stock">{t.products.outOfStock}</SelectItem>
-                    </SelectContent>
-                </Select>
+
+            <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">{t.products.stock}</Label>
+                <div className="col-span-3 space-y-3">
+                    <RadioGroup value={stockType} onValueChange={(value) => setStockType(value as 'INFINITE' | 'LIMITED')}>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="INFINITE" id="infinite" />
+                            <Label htmlFor="infinite">{t.products.inStock}</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="LIMITED" id="limited" />
+                            <Label htmlFor="limited">{t.products.limitedStock}</Label>
+                        </div>
+                    </RadioGroup>
+                    {stockType === 'LIMITED' && (
+                        <Input
+                            type="number"
+                            placeholder={t.products.quantityPlaceholder}
+                            value={stockQuantity}
+                            onChange={(e) => setStockQuantity(e.target.value)}
+                            min="0"
+                            required
+                        />
+                    )}
+                </div>
             </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="platforms" className="text-right">{t.products.platforms}</Label>
                  <div className="col-span-3">

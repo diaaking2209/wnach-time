@@ -83,32 +83,49 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     // This part runs only if the user is a member
     setIsProcessing(true);
     try {
-        const orderItemsForJson = cart.map(item => ({
-            product_id: item.id,
-            quantity: item.quantity,
-            price_at_purchase: item.price,
-            product_name: item.name,
-            product_image_url: item.imageUrl,
-            product_emoji: '📦'
-        }));
-        
-        const { data: newOrder, error } = await supabase.from('pending_orders').insert({
-            user_id: user.id,
-            customer_username: user.user_metadata.full_name,
-            customer_email: user.email,
-            customer_provider_id: user.user_metadata.provider_id,
-            sub_total: orderSummary.subTotal,
-            discount_amount: orderSummary.discountAmount,
-            total_amount: orderSummary.total,
-            applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            items: orderItemsForJson
-        }).select('display_id').single();
+        const { error: rpcError } = await supabase.rpc('process_order', {
+            p_user_id: user.id,
+            p_customer_username: user.user_metadata.full_name,
+            p_customer_email: user.email,
+            p_customer_provider_id: user.user_metadata.provider_id,
+            p_sub_total: orderSummary.subTotal,
+            p_discount_amount: orderSummary.discountAmount,
+            p_total_amount: orderSummary.total,
+            p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
+            p_items: cart.map(item => ({
+                product_id: item.id,
+                quantity: item.quantity,
+                price_at_purchase: item.price,
+                product_name: item.name,
+                product_image_url: item.imageUrl,
+            }))
+        });
 
-        if (error) throw error;
-        
-        if (newOrder?.display_id) {
-            setNewOrderDisplayId(newOrder.display_id);
+        if (rpcError) {
+             if (rpcError.message.includes("Not enough stock")) {
+                toast({
+                    variant: "destructive",
+                    title: "Out of Stock",
+                    description: `Sorry, an item in your cart is out of stock. Please remove it and try again.`,
+                });
+             } else {
+                throw rpcError;
+             }
         }
+        
+        // On success, we assume the RPC returned the display_id or handled it.
+        // We'll fetch the last order to show the ID.
+        const { data: lastOrder, error: orderError } = await supabase
+            .from('pending_orders')
+            .select('display_id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (orderError) throw orderError;
+        
+        setNewOrderDisplayId(lastOrder.display_id);
         
         // Clear the client-side cart and show success
         clearCart(); 

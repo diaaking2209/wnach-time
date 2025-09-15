@@ -15,23 +15,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ServerGateDialog } from "./server-gate-dialog";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-
-export type Product = {
-  id?: string;
-  name: string;
-  price: number; // in USD
-  originalPrice?: number; // in USD
-  discount?: number;
-  platforms?: ("PC" | "Xbox" | "Playstation" | "Mobile")[];
-  tags?: string[];
-  imageUrl: string;
-  bannerUrl?: string;
-  description?: string;
-  aiHint?: string;
-  category?: string;
-  stockStatus?: 'In Stock' | 'Out of Stock';
-  isActive?: boolean;
-};
+import type { Product } from "@/lib/types";
 
 const platformIcons: { [key: string]: React.ComponentType<{ className?: string }> } = {
   PC: PcIcon,
@@ -75,7 +59,7 @@ export function ProductCard({ product }: { product: Product }) {
                 id: product.id,
                 name: product.name,
                 price: product.price,
-                imageUrl: product.imageUrl,
+                imageUrl: product.image_url,
                 quantity: 1,
             });
         }
@@ -86,7 +70,7 @@ export function ProductCard({ product }: { product: Product }) {
   };
   
   const priceToDisplay = product.price;
-  const isOutOfStock = product.stockStatus === 'Out of Stock';
+  const isOutOfStock = product.stock_status === 'Out of Stock';
   const hasDiscount = product.discount && product.discount > 0 && !isOutOfStock;
 
   return (
@@ -98,14 +82,14 @@ export function ProductCard({ product }: { product: Product }) {
       >
         <CardContent className="flex flex-grow flex-col p-0">
           <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-t-lg bg-muted/20">
-            {product.imageUrl ? (
+            {product.image_url ? (
               <Image
-                src={product.imageUrl}
+                src={product.image_url}
                 alt={product.name}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
-                data-ai-hint={product.aiHint}
+                data-ai-hint={product.ai_hint}
               />
             ) : (
               <Package className="w-16 h-16 text-muted-foreground/50" />
@@ -143,9 +127,9 @@ export function ProductCard({ product }: { product: Product }) {
                     <p className="text-base font-bold text-foreground">
                         {formatPrice(priceToDisplay)}
                     </p>
-                    {product.originalPrice && hasDiscount && (
+                    {product.original_price && hasDiscount && (
                         <span className="text-xs text-muted-foreground line-through sm:text-sm">
-                            {formatPrice(product.originalPrice)}
+                            {formatPrice(product.original_price)}
                         </span>
                     )}
                   </div>

@@ -1,3 +1,4 @@
+
 "use client"
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Product } from "@/components/product-card";
 import { PlusCircle, MoreHorizontal, Loader2, Trash2, Edit } from "lucide-react";
 import {
     DropdownMenu,
@@ -44,28 +44,14 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Product } from "@/lib/types";
 
 const fetchProducts = async (): Promise<Product[]> => {
     const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (error) {
       throw new Error(error.message);
     }
-    
-    return data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        originalPrice: item.original_price,
-        discount: item.discount,
-        platforms: item.platforms || [],
-        imageUrl: item.image_url,
-        bannerUrl: item.banner_url,
-        description: item.description,
-        category: item.category,
-        tags: item.tags || [],
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
-    }));
+    return data as Product[];
 }
 
 export function ProductsTab() {
@@ -186,25 +172,25 @@ export function ProductsTab() {
                         <div className="whitespace-pre-wrap">{product.name}</div>
                         <div className="sm:hidden mt-2 flex flex-col gap-2 text-xs">
                              <div>
-                                <Badge variant={product.isActive ? "default" : "secondary"} className={cn("w-fit", product.isActive ? "bg-green-600" : "bg-gray-500")}>
-                                    {product.isActive ? t.on : t.off}
+                                <Badge variant={product.is_active ? "default" : "secondary"} className={cn("w-fit", product.is_active ? "bg-green-600" : "bg-gray-500")}>
+                                    {product.is_active ? t.on : t.off}
                                 </Badge>
                             </div>
                             <div>
-                                <Badge variant={product.stockStatus === 'In Stock' ? "outline" : "destructive"} className="w-fit">
-                                    {product.stockStatus === 'In Stock' ? t.inStock : t.outOfStock}
+                                <Badge variant={product.stock_status === 'In Stock' ? "outline" : "destructive"} className="w-fit">
+                                    {product.stock_status === 'In Stock' ? t.inStock : t.outOfStock}
                                 </Badge>
                             </div>
                         </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                        <Badge variant={product.isActive ? "default" : "secondary"} className={cn(product.isActive ? "bg-green-600" : "bg-gray-500")}>
-                            {product.isActive ? t.on : t.off}
+                        <Badge variant={product.is_active ? "default" : "secondary"} className={cn(product.is_active ? "bg-green-600" : "bg-gray-500")}>
+                            {product.is_active ? t.on : t.off}
                         </Badge>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                        <Badge variant={product.stockStatus === 'In Stock' ? "outline" : "destructive"}>
-                           {product.stockStatus === 'In Stock' ? t.inStock : t.outOfStock}
+                        <Badge variant={product.stock_status === 'In Stock' ? "outline" : "destructive"}>
+                           {product.stock_status === 'In Stock' ? t.inStock : t.outOfStock}
                         </Badge>
                     </TableCell>
                     <TableCell>${product.price.toFixed(2)}</TableCell>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { notFound, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ProductCard, type Product } from "@/components/product-card";
+import { ProductCard } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
@@ -18,18 +18,7 @@ import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-type ReviewWithUser = {
-    id: string;
-    rating: number;
-    comment: string;
-    created_at: string;
-    is_featured: boolean;
-    user_profiles: {
-        username: string;
-        avatar_url: string;
-    } | null;
-};
+import type { Product, ReviewWithUser } from "@/lib/types";
 
 type ProductData = {
   product: Product;
@@ -57,16 +46,18 @@ const fetchProductData = async (productId: string | undefined | string[]): Promi
         id: productResult.id,
         name: productResult.name,
         price: productResult.price,
-        originalPrice: productResult.original_price,
+        original_price: productResult.original_price,
         discount: productResult.discount,
         platforms: productResult.platforms || [],
         tags: productResult.tags || [],
-        imageUrl: productResult.image_url,
-        bannerUrl: productResult.banner_url,
+        image_url: productResult.image_url,
+        banner_url: productResult.banner_url,
         description: productResult.description,
         category: productResult.category,
-        stockStatus: productResult.stock_status,
-        isActive: productResult.is_active,
+        stock_status: productResult.stock_status,
+        is_active: productResult.is_active,
+        stock_type: productResult.stock_type,
+        stock_quantity: productResult.stock_quantity,
     };
 
     const reviewsPromise = supabase
@@ -94,16 +85,18 @@ const fetchProductData = async (productId: string | undefined | string[]): Promi
         id: item.id,
         name: item.name,
         price: item.price,
-        originalPrice: item.original_price,
+        original_price: item.original_price,
         discount: item.discount,
         platforms: item.platforms || [],
         tags: item.tags || [],
-        imageUrl: item.image_url,
-        bannerUrl: item.banner_url,
+        image_url: item.image_url,
+        banner_url: item.banner_url,
         description: item.description,
         category: item.category,
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
+        stock_status: item.stock_status,
+        is_active: item.is_active,
+        stock_type: item.stock_type,
+        stock_quantity: item.stock_quantity,
     }));
     
     return {
@@ -147,15 +140,15 @@ export default function ProductPage() {
 
   const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
   const handleQuantityChange = (newQuantity: number) => newQuantity >= 1 && setQuantity(newQuantity);
-  const handleAddToCart = () => product?.id && addToCart({ id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, quantity });
+  const handleAddToCart = () => product?.id && addToCart({ id: product.id, name: product.name, price: product.price, imageUrl: product.image_url, quantity });
   
-  const isOutOfStock = product.stockStatus === 'Out of Stock';
+  const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {product.bannerUrl && (
+      {product.banner_url && (
         <div className="relative mb-8 h-48 w-full overflow-hidden rounded-lg md:h-64">
-          <Image src={product.bannerUrl} alt={`${product.name} banner`} fill className="object-cover" priority />
+          <Image src={product.banner_url} alt={`${product.name} banner`} fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
         </div>
       )}
@@ -169,10 +162,10 @@ export default function ProductPage() {
 
             <div className="space-y-4">
               <div className="flex items-baseline gap-3">
-                  {product.originalPrice && product.discount && product.discount > 0 ? (
+                  {product.original_price && product.discount && product.discount > 0 ? (
                       <>
                           <span className="text-xl font-bold text-primary">{formatPrice(product.price)}</span>
-                          <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
+                          <span className="text-lg text-muted-foreground line-through">{formatPrice(product.original_price)}</span>
                           <Badge variant="destructive">-{product.discount}%</Badge>
                       </>
                   ) : (
@@ -208,7 +201,7 @@ export default function ProductPage() {
           </div>
           <div className="hidden md:block">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg shadow-lg transition-transform hover:scale-105">
-              <Image src={product.imageUrl} alt={product.name} fill className="object-cover" priority />
+              <Image src={product.image_url} alt={product.name} fill className="object-cover" priority />
             </div>
           </div>
         </div>
