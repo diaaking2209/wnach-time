@@ -1,3 +1,4 @@
+
 'use client'
 import Image from "next/image";
 import { ProductCard, type Product } from "@/components/product-card";
@@ -241,7 +242,7 @@ const fetchFeaturedReviews = async () => {
             user_profiles ( username, avatar_url )
         `)
         .eq('is_featured', true)
-        .limit(3);
+        .limit(9);
     
     if (error) {
         throw new Error("Error fetching featured reviews");
@@ -250,6 +251,11 @@ const fetchFeaturedReviews = async () => {
 }
 
 function FeaturedReviews() {
+    const { language } = useLanguage();
+    const plugin = useRef(
+        Autoplay({ delay: 4000, stopOnInteraction: true, stopOnMouseEnter: true })
+    );
+
     const { data: reviews, isLoading } = useQuery<FeaturedReview[]>({
         queryKey: ['homepageFeaturedReviews'],
         queryFn: fetchFeaturedReviews
@@ -264,32 +270,41 @@ function FeaturedReviews() {
     }
     
     return (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {reviews.map(review => (
-                <Card key={review.id} className="bg-card/50">
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                            <Avatar className="h-12 w-12">
-                                <AvatarImage src={review.user_profiles?.avatar_url} alt={review.user_profiles?.username || 'user'} />
-                                <AvatarFallback><User /></AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
-                                <p className="text-sm text-muted-foreground">{translations.en.productPage.about} {review.products?.name || ''}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1 mb-4">
-                            {[...Array(5)].map((_, i) => (
-                                <Star key={i} className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400' : 'text-gray-500'}`} fill="currentColor" />
-                            ))}
-                        </div>
-                        <p className="text-muted-foreground text-sm line-clamp-3">
-                           &quot;{review.comment}&quot;
-                        </p>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+        <Carousel
+            opts={{ align: "start", loop: reviews.length > 3 }}
+            plugins={[plugin.current]}
+            className="w-full"
+            dir={language === 'ar' ? 'rtl' : 'ltr'}
+        >
+            <CarouselContent className="-ml-6">
+                {reviews.map(review => (
+                    <CarouselItem key={review.id} className="pl-6 basis-full md:basis-1/2 lg:basis-1/3">
+                        <Card className="bg-card/50 h-full">
+                            <CardContent className="p-6 h-full flex flex-col">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <Avatar className="h-12 w-12">
+                                        <AvatarImage src={review.user_profiles?.avatar_url} alt={review.user_profiles?.username || 'user'} />
+                                        <AvatarFallback><User /></AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-semibold">{review.user_profiles?.username || 'Anonymous'}</p>
+                                        <p className="text-sm text-muted-foreground">{translations.en.productPage.about} {review.products?.name || ''}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 mb-4">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400' : 'text-gray-500'}`} fill="currentColor" />
+                                    ))}
+                                </div>
+                                <p className="text-muted-foreground text-sm line-clamp-3 flex-grow">
+                                &quot;{review.comment}&quot;
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+        </Carousel>
     )
 }
 
