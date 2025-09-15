@@ -149,6 +149,50 @@ export const translations = {
         close: 'Close',
         goToTicket: 'Create a Ticket'
     },
+    termsPage: {
+        title: 'Terms of Use',
+        lastUpdated: 'Last Updated',
+        content: [
+            {
+                heading: '1. Introduction',
+                text: 'Welcome to Wnash time. By accessing our website, you agree to be bound by these Terms of Use. Please read them carefully.'
+            },
+            {
+                heading: '2. Digital Products',
+                text: 'All products sold on our platform are digital. Upon successful payment, you will receive your product in your account or via email. All sales are final and non-refundable unless otherwise specified.'
+            },
+            {
+                heading: '3. Account Responsibility',
+                text: 'You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.'
+            },
+            {
+                heading: '4. Prohibited Conduct',
+                text: 'You may not use our services for any illegal or unauthorized purpose. Harassment, fraud, and other malicious activities are strictly forbidden.'
+            },
+        ]
+    },
+    privacyPage: {
+        title: 'Privacy Policy',
+        lastUpdated: 'Last Updated',
+        content: [
+            {
+                heading: '1. Information We Collect',
+                text: 'We collect information you provide directly to us, such as when you create an account, place an order, or contact us for support. This includes your name, email address, and order details.'
+            },
+            {
+                heading: '2. How We Use Your Information',
+                text: 'We use the information we collect to operate, maintain, and provide you with the features and functionality of the service, to process your transactions, and to communicate with you.'
+            },
+            {
+                heading: '3. Information Sharing',
+                text: 'We do not sell or rent your personal information to third parties. We may share information with third-party vendors and service providers who perform services on our behalf.'
+            },
+            {
+                heading: '4. Data Security',
+                text: 'We use commercially reasonable safeguards to help keep the information collected through the service secure and take reasonable steps to verify your identity before granting you access to your account.'
+            },
+        ]
+    },
     admin: {
         title: 'Admin Panel',
         description: "Manage your store's content, products, and settings.",
@@ -590,6 +634,50 @@ export const translations = {
         orderIdLabel: 'رقم طلبك:',
         close: 'إغلاق',
         goToTicket: 'افتح تذكرة'
+    },
+    termsPage: {
+        title: 'شروط الاستخدام',
+        lastUpdated: 'آخر تحديث',
+        content: [
+            {
+                heading: '١. مقدمة',
+                text: 'مرحبًا بك في ونش تايم. من خلال الوصول إلى موقعنا، فإنك توافق على الالتزام بشروط الاستخدام هذه. يرجى قراءتها بعناية.'
+            },
+            {
+                heading: '٢. المنتجات الرقمية',
+                text: 'جميع المنتجات المباعة على منصتنا رقمية. عند نجاح عملية الدفع، ستتلقى منتجك في حسابك أو عبر البريد الإلكتروني. جميع المبيعات نهائية وغير قابلة للاسترداد ما لم يُنص على خلاف ذلك.'
+            },
+            {
+                heading: '٣. مسؤولية الحساب',
+                text: 'أنت مسؤول عن الحفاظ على سرية حسابك وكلمة المرور. أنت توافق على قبول المسؤولية عن جميع الأنشطة التي تحدث تحت حسابك.'
+            },
+            {
+                heading: '٤. السلوك المحظور',
+                text: 'لا يجوز لك استخدام خدماتنا لأي غرض غير قانوني أو غير مصرح به. يُمنع منعًا باتًا التحرش والاحتيال والأنشطة الخبيثة الأخرى.'
+            },
+        ]
+    },
+    privacyPage: {
+        title: 'سياسة الخصوصية',
+        lastUpdated: 'آخر تحديث',
+        content: [
+            {
+                heading: '١. المعلومات التي نجمعها',
+                text: 'نحن نجمع المعلومات التي تقدمها لنا مباشرة، مثل عند إنشاء حساب أو تقديم طلب أو الاتصال بنا للحصول على الدعم. وهذا يشمل اسمك وعنوان بريدك الإلكتروني وتفاصيل الطلب.'
+            },
+            {
+                heading: '٢. كيف نستخدم معلوماتك',
+                text: 'نحن نستخدم المعلومات التي نجمعها لتشغيل الخدمة وصيانتها وتزويدك بميزاتها ووظائفها، ولمعالجة معاملاتك، وللتواصل معك.'
+            },
+            {
+                heading: '٣. مشاركة المعلومات',
+                text: 'نحن لا نبيع أو نؤجر معلوماتك الشخصية لأطراف ثالثة. قد نشارك المعلومات مع بائعين ومقدمي خدمات من أطراف ثالثة يؤدون خدمات نيابة عنا.'
+            },
+            {
+                heading: '٤. أمن البيانات',
+                text: 'نحن نستخدم ضمانات معقولة تجاريًا للمساعدة في الحفاظ على أمان المعلومات التي تم جمعها من خلال الخدمة ونتخذ خطوات معقولة للتحقق من هويتك قبل منحك الوصول إلى حسابك.'
+            },
+        ]
     },
     admin: {
         title: 'Admin Panel',

@@ -23,8 +23,8 @@ export function Footer() {
 
   const footerLinks = [
     { name: t.footer.about, href: "#" },
-    { name: t.footer.privacy, href: "#" },
-    { name: t.footer.terms, href: "#" },
+    { name: t.footer.privacy, href: "/privacy" },
+    { name: t.footer.terms, href: "/terms" },
   ];
 
   return (
