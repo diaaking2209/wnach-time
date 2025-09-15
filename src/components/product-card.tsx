@@ -94,7 +94,9 @@ export function ProductCard({ product }: { product: Product }) {
                 data-ai-hint={product.ai_hint}
               />
             ) : (
-              <Package className="w-16 h-16 text-muted-foreground/50" />
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted/30 to-muted/10">
+                <Package className="h-24 w-24 text-muted-foreground/30" />
+              </div>
             )}
             {isOutOfStock && <div className="absolute inset-0 bg-black/50" />}
           </div>
