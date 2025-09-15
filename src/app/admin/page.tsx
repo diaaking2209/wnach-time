@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
+import { StatisticsTab } from "@/components/admin/tabs/statistics-tab";
 
 export default function AdminPage() {
   const { isUserAdmin, userRole, isLoading } = useAuth();
@@ -50,6 +51,7 @@ export default function AdminPage() {
     { value: "products", label: t.admin.tabs.products, visible: true },
     { value: "orders", label: t.admin.tabs.orders, visible: isOwner },
     { value: "reviews", label: t.admin.tabs.reviews, visible: isOwner },
+    { value: "statistics", label: t.admin.tabs.statistics, visible: isOwner },
     { value: "homepage", label: t.admin.tabs.homepage, visible: isOwner },
     { value: "coupons", label: t.admin.tabs.coupons, visible: isOwner },
     { value: "admins", label: t.admin.tabs.admins, visible: isSuperOwner },
@@ -82,6 +84,11 @@ export default function AdminPage() {
         {isOwner && (
             <TabsContent value="reviews" className="mt-6">
                 <ReviewsTab />
+            </TabsContent>
+        )}
+        {isOwner && (
+            <TabsContent value="statistics" className="mt-6">
+                <StatisticsTab />
             </TabsContent>
         )}
         {isOwner && (
