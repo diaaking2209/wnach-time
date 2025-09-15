@@ -162,17 +162,29 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{product.name}</h1>
             
             <Separator className="my-6" />
-            <div className="flex items-baseline gap-3">
-              {product.originalPrice && product.discount && product.discount > 0 ? (
-                <>
-                  <span className="text-3xl font-bold text-primary">{formatPrice(product.price)}</span>
-                  <span className="text-xl text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
-                  <Badge variant="destructive" className="text-base py-1">-{product.discount}%</Badge>
-                </>
-              ) : (
-                <p className="text-3xl font-bold text-primary">{formatPrice(product.price)}</p>
-              )}
+
+            <div className="space-y-4">
+              <div className="flex items-baseline gap-3">
+                  {product.originalPrice && product.discount && product.discount > 0 ? (
+                      <>
+                          <span className="text-xl font-bold text-primary">{formatPrice(product.price)}</span>
+                          <span className="text-lg text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
+                          <Badge variant="destructive">-{product.discount}%</Badge>
+                      </>
+                  ) : (
+                      <p className="text-xl font-bold text-primary">{formatPrice(product.price)}</p>
+                  )}
+                   <span className="text-sm text-muted-foreground">/ per item</span>
+              </div>
+
+               <div className="rounded-lg bg-card p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-medium text-muted-foreground">Total Price</span>
+                    <span className="text-3xl font-bold text-primary">{formatPrice(product.price * quantity)}</span>
+                  </div>
+               </div>
             </div>
+            
             <div className="mt-6">
               {isOutOfStock ? (
                 <Badge variant="destructive" className="px-4 py-2 text-lg">Out of Stock</Badge>
