@@ -29,15 +29,17 @@ const fetchSearchResults = async (searchQuery: string | null): Promise<Product[]
         id: item.id,
         name: item.name,
         price: item.price,
-        originalPrice: item.original_price,
+        original_price: item.original_price,
         discount: item.discount,
         platforms: item.platforms || [],
         tags: item.tags || [],
-        imageUrl: item.image_url,
+        image_url: item.image_url,
         description: item.description,
         category: item.category,
-        stockStatus: item.stock_status,
-        isActive: item.is_active,
+        stock_status: item.stock_status,
+        is_active: item.is_active,
+        stock_type: item.stock_type,
+        stock_quantity: item.stock_quantity,
     }));
 };
 

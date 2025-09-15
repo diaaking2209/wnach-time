@@ -59,7 +59,7 @@ export function ProductCard({ product }: { product: Product }) {
                 id: product.id,
                 name: product.name,
                 price: product.price,
-                imageUrl: product.image_url,
+                image_url: product.image_url,
                 quantity: 1,
                 stock_type: product.stock_type,
                 stock_quantity: product.stock_quantity

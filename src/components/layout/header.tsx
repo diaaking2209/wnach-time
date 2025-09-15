@@ -20,7 +20,7 @@ import { translations } from "@/lib/translations";
 import { NotificationsPopover } from "../notifications-popover";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { Product } from "../product-card";
+import type { Product } from "@/lib/types";
 
 export function Header() {
   const { cart } = useCart();
@@ -79,7 +79,9 @@ export function Header() {
                 id: item.id,
                 name: item.name,
                 price: item.price,
-                imageUrl: item.image_url,
+                image_url: item.image_url,
+                stock_type: item.stock_type,
+                stock_quantity: item.stock_quantity,
             }));
             setSuggestions(formattedProducts);
             setIsSuggestionsOpen(true);
@@ -137,7 +139,7 @@ export function Header() {
                                     className="flex items-center gap-3 p-3 hover:bg-muted/50"
                                     onClick={handleSuggestionClick}
                                 >
-                                     <Image src={product.imageUrl || "https://placehold.co/40x40.png"} alt={product.name} width={40} height={40} className="rounded-md object-cover" />
+                                     <Image src={product.image_url || "https://placehold.co/40x40.png"} alt={product.name} width={40} height={40} className="rounded-md object-cover" />
                                     <span className="text-sm font-medium">{product.name}</span>
                                 </Link>
                             </li>

@@ -11,7 +11,7 @@ export interface CartItem {
   id: string; // This will be the product_id from the database perspective
   name: string;
   price: number;
-  imageUrl: string;
+  image_url: string;
   quantity: number;
   stock_type: 'INFINITE' | 'LIMITED';
   stock_quantity: number | null;
@@ -24,7 +24,7 @@ export interface AppliedCoupon {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'|'image_url'> & { quantity?: number, image_url?: string }) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -79,7 +79,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 id: (item.products as Product).id!,
                 name: (item.products as Product).name,
                 price: (item.products as Product).price,
-                imageUrl: (item.products as Product).image_url,
+                image_url: (item.products as Product).image_url,
                 quantity: item.quantity,
                 stock_type: (item.products as Product).stock_type,
                 stock_quantity: (item.products as Product).stock_quantity,
@@ -120,7 +120,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [appliedCoupon]);
 
 
-  const addToCart = async (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => {
+  const addToCart = async (item: Omit<CartItem, 'quantity'|'image_url'> & { quantity?: number, image_url?: string }) => {
     if (!user || !session) return;
 
     setIsAddingToCart(true);
@@ -163,7 +163,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 )
             );
         } else {
-            setCart(prevCart => [...prevCart, { ...item, quantity: addQuantity }]);
+            setCart(prevCart => [...prevCart, { ...item, quantity: addQuantity, image_url: item.image_url || '' }]);
         }
         
         toast({
