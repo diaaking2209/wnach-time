@@ -234,3 +234,5 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     </>
   );
 }
+
+    
