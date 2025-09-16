@@ -93,7 +93,8 @@ export function CheckoutDialog({
         product_emoji: "📦", // Default emoji
       }));
 
-      // The correct fix as provided by the user.
+      // The correct way to call the RPC function with a JSONB array.
+      // Supabase client handles the serialization automatically.
       const { error } = await supabase.rpc("process_order", {
         p_user_id: user.id,
         p_customer_username: user.user_metadata.full_name,
@@ -103,7 +104,7 @@ export function CheckoutDialog({
         p_discount_amount: orderSummary.discountAmount,
         p_total_amount: orderSummary.total,
         p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-        p_items: JSON.stringify(itemsPayload),
+        p_items: itemsPayload,
       });
 
       if (error) {
