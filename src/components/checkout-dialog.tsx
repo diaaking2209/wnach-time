@@ -81,53 +81,36 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     if (!user || cart.length === 0) return;
 
     setIsProcessing(true);
-    let lastProcessedOrderId: string | null = null;
     try {
-        const orderPromises = cart.map(item => {
-            // For each item in the cart, call the RPC.
-            // The `p_items` parameter now takes a single item object, not an array.
-            const itemPayload = {
-                product_id: item.id,
-                quantity: item.quantity,
-                price_at_purchase: item.price,
-                product_name: item.name,
-                product_image_url: item.image_url,
-                product_emoji: "📦" // Default emoji
-            };
-            
-            // We calculate the total for this single item.
-            // The backend likely handles the actual total calculation, but we adjust here for clarity.
-            const singleItemTotal = item.price * item.quantity;
-            // The discount is applied proportionally if a coupon exists.
-            const proportionalDiscount = orderSummary.appliedCoupon 
-                ? (singleItemTotal / orderSummary.subTotal) * orderSummary.discountAmount
-                : 0;
+        // Map cart items to the format expected by the DB
+        const itemsPayload = cart.map(item => ({
+            product_id: item.id,
+            quantity: item.quantity,
+            price_at_purchase: item.price,
+            product_name: item.name,
+            product_image_url: item.image_url,
+            product_emoji: "📦" // Default emoji
+        }));
+        
+        // Call the RPC function ONCE with all items
+        const { error } = await supabase.rpc('process_order', {
+            p_user_id: user.id,
+            p_customer_username: user.user_metadata.full_name,
+            p_customer_email: user.email,
+            p_customer_provider_id: user.user_metadata.provider_id,
+            p_sub_total: orderSummary.subTotal,
+            p_discount_amount: orderSummary.discountAmount,
+            p_total_amount: orderSummary.total,
+            p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
+            p_items: itemsPayload // Pass the full array of items
+        });
 
-            return supabase.rpc('process_order', {
-                p_user_id: user.id,
-                p_customer_username: user.user_metadata.full_name,
-                p_customer_email: user.email,
-                p_customer_provider_id: user.user_metadata.provider_id,
-                p_sub_total: singleItemTotal,
-                p_discount_amount: proportionalDiscount,
-                p_total_amount: singleItemTotal - proportionalDiscount,
-                p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-                p_items: itemPayload // Pass the single item object
-            });
-        });
-        
-        // Execute all order RPC calls
-        const results = await Promise.all(orderPromises);
-        
-        // Check for any errors in the results
-        results.forEach(result => {
-            if (result.error) {
-                 if (result.error.message.includes("Not enough stock")) {
-                    throw new Error("One or more items in your cart are out of stock. Please review your cart and try again.");
-                 }
-                throw result.error;
-            }
-        });
+        if (error) {
+             if (error.message.includes("Not enough stock")) {
+                throw new Error("One or more items in your cart are out of stock. Please review your cart and try again.");
+             }
+            throw error;
+        }
         
         // On success, fetch the LAST order's display ID to show to the user.
         const { data: lastOrder, error: orderError } = await supabase
@@ -142,7 +125,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         
         setNewOrderDisplayId(lastOrder.display_id);
         
-        // Clear the client-side cart and show success
         clearCart(); 
         setIsSuccess(true);
 
@@ -248,3 +230,5 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     </>
   );
 }
+
+    
