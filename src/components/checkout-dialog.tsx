@@ -97,7 +97,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
                 quantity: item.quantity,
                 price_at_purchase: item.price,
                 product_name: item.name,
-                product_image_url: item.imageUrl,
+                product_image_url: item.image_url,
             }))
         });
 
