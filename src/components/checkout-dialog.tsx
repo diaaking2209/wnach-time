@@ -105,6 +105,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             p_items: itemsPayload
         });
 
+
         if (error) {
              if (error.message.includes("Not enough stock")) {
                 throw new Error("One or more items in your cart are out of stock. Please review your cart and try again.");
