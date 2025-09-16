@@ -139,31 +139,32 @@ export default function ProductPage() {
   const { product, reviews, relatedProducts } = productData;
 
   const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+  
+  const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
+  const maxQuantity = product.stock_type === 'LIMITED' && product.stock_quantity !== null ? product.stock_quantity : Infinity;
+
   const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1) {
-        if (product.stock_type === 'LIMITED' && product.stock_quantity !== null && newQuantity > product.stock_quantity) {
-            setQuantity(product.stock_quantity);
-        } else {
-            setQuantity(newQuantity);
-        }
+    if (newQuantity < 1) return;
+    if (newQuantity > maxQuantity) {
+      setQuantity(maxQuantity);
+      return;
     }
+    setQuantity(newQuantity);
   };
+  
   const handleAddToCart = () => {
     if (product?.id) {
         addToCart({
             id: product.id,
             name: product.name,
             price: product.price,
-            imageUrl: product.image_url,
+            image_url: product.image_url,
             quantity: quantity,
             stock_type: product.stock_type,
             stock_quantity: product.stock_quantity,
         });
     }
   };
-  
-  const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
-  const maxQuantity = product.stock_type === 'LIMITED' && product.stock_quantity !== null ? product.stock_quantity : Infinity;
 
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

@@ -126,7 +126,9 @@ export function CartPageContent() {
                                 </div>
                             ) : (
                                 <div className="space-y-6">
-                                    {cart.map(item => (
+                                    {cart.map(item => {
+                                        const maxQuantity = item.stock_type === 'LIMITED' && item.stock_quantity !== null ? item.stock_quantity : Infinity;
+                                        return (
                                         <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-border/40 pb-6 last:border-b-0">
                                             <div className="relative h-24 w-24 sm:h-20 sm:w-20 flex-shrink-0 overflow-hidden rounded-md">
                                                 <Image src={item.image_url || 'https://placehold.co/100x100.png'} alt={item.name} fill className="object-cover"/>
@@ -138,7 +140,7 @@ export function CartPageContent() {
                                             <div className="flex items-center gap-2">
                                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>-</Button>
                                                  <Input type="number" value={item.quantity} onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))} className="h-8 w-14 text-center" />
-                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity + 1)}>+</Button>
+                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleQuantityChange(item.id, item.quantity + 1)} disabled={item.quantity >= maxQuantity}>+</Button>
                                             </div>
                                              <div className="text-right font-semibold w-full sm:w-auto mt-2 sm:mt-0">
                                                 {formatPrice(item.price * item.quantity)}
@@ -147,7 +149,7 @@ export function CartPageContent() {
                                                 <Trash2 className="h-4 w-4"/>
                                             </Button>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             )}
                         </CardContent>

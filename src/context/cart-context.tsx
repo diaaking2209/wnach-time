@@ -211,16 +211,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!itemToUpdate) return;
     
     // Stock Check
-    if (itemToUpdate.stock_type === 'LIMITED' && itemToUpdate.stock_quantity !== null && newQuantity > itemToUpdate.stock_quantity) {
+    const maxQuantity = itemToUpdate.stock_type === 'LIMITED' && itemToUpdate.stock_quantity !== null ? itemToUpdate.stock_quantity : Infinity;
+    if (newQuantity > maxQuantity) {
         toast({
             variant: "destructive",
             title: "Not Enough Stock",
-            description: `Only ${itemToUpdate.stock_quantity} of ${itemToUpdate.name} available.`,
+            description: `Only ${maxQuantity} of ${itemToUpdate.name} available.`,
         });
-        // We don't revert here, the user can decide to lower the quantity.
-        // The UI should reflect the invalid state though (e.g. disable checkout).
-        setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
-        return;
+        // Clamp to max quantity instead of just showing a toast
+        newQuantity = maxQuantity;
     }
 
 
@@ -284,5 +283,3 @@ export const useCart = () => {
   }
   return context;
 };
-
-    
