@@ -102,7 +102,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             p_discount_amount: orderSummary.discountAmount,
             p_total_amount: orderSummary.total,
             p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            p_items: itemsPayload // Pass the full array of items
+            p_items: itemsPayload
         });
 
         if (error) {
@@ -230,5 +230,3 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
     </>
   );
 }
-
-    
