@@ -78,44 +78,58 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   };
   
   const placeOrder = async () => {
-     if (!user) return; 
+    if (!user || cart.length === 0) return;
 
-    // This part runs only if the user is a member
     setIsProcessing(true);
+    let lastProcessedOrderId: string | null = null;
     try {
-        const { error: rpcError } = await supabase.rpc('process_order', {
-            p_user_id: user.id,
-            p_customer_username: user.user_metadata.full_name,
-            p_customer_email: user.email,
-            p_customer_provider_id: user.user_metadata.provider_id,
-            p_sub_total: orderSummary.subTotal,
-            p_discount_amount: orderSummary.discountAmount,
-            p_total_amount: orderSummary.total,
-            p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            p_items: cart.map(item => ({
+        const orderPromises = cart.map(item => {
+            // For each item in the cart, call the RPC.
+            // The `p_items` parameter now takes a single item object, not an array.
+            const itemPayload = {
                 product_id: item.id,
                 quantity: item.quantity,
                 price_at_purchase: item.price,
                 product_name: item.name,
                 product_image_url: item.image_url,
                 product_emoji: "📦" // Default emoji
-            }))
-        });
+            };
+            
+            // We calculate the total for this single item.
+            // The backend likely handles the actual total calculation, but we adjust here for clarity.
+            const singleItemTotal = item.price * item.quantity;
+            // The discount is applied proportionally if a coupon exists.
+            const proportionalDiscount = orderSummary.appliedCoupon 
+                ? (singleItemTotal / orderSummary.subTotal) * orderSummary.discountAmount
+                : 0;
 
-        if (rpcError) {
-             if (rpcError.message.includes("Not enough stock")) {
-                toast({
-                    variant: "destructive",
-                    title: "Out of Stock",
-                    description: `Sorry, an item in your cart is out of stock. Please remove it and try again.`,
-                });
-             } else {
-                throw rpcError;
-             }
-        }
+            return supabase.rpc('process_order', {
+                p_user_id: user.id,
+                p_customer_username: user.user_metadata.full_name,
+                p_customer_email: user.email,
+                p_customer_provider_id: user.user_metadata.provider_id,
+                p_sub_total: singleItemTotal,
+                p_discount_amount: proportionalDiscount,
+                p_total_amount: singleItemTotal - proportionalDiscount,
+                p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
+                p_items: itemPayload // Pass the single item object
+            });
+        });
         
-        // On success, we assume the RPC returned the display_id or handled it.
-        // We'll fetch the last order to show the ID.
+        // Execute all order RPC calls
+        const results = await Promise.all(orderPromises);
+        
+        // Check for any errors in the results
+        results.forEach(result => {
+            if (result.error) {
+                 if (result.error.message.includes("Not enough stock")) {
+                    throw new Error("One or more items in your cart are out of stock. Please review your cart and try again.");
+                 }
+                throw result.error;
+            }
+        });
+        
+        // On success, fetch the LAST order's display ID to show to the user.
         const { data: lastOrder, error: orderError } = await supabase
             .from('pending_orders')
             .select('display_id')
@@ -133,7 +147,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
         setIsSuccess(true);
 
     } catch (error: any) {
-        console.error("Checkout error:", error.message || error);
+        console.error("Checkout error:", error);
         toast({
             variant: "destructive",
             title: t.toast.checkoutErrorTitle,
