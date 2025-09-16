@@ -39,6 +39,9 @@ body {
     --card: 222 22% 15%;               /* Background color for cards */
     --card-foreground: 210 40% 98%;    /* Text color inside cards */
 
+    --popover: 222 22% 15%;            /* Popover background (was 222 22% 13%) */
+    --popover-foreground: 210 40% 98%; /* Popover text color */
+
     --secondary: 217 33% 17%;          /* Secondary elements background */
     --secondary-foreground: 210 40% 98%;/* Secondary elements text color */
 
