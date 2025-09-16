@@ -92,16 +92,14 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             p_discount_amount: orderSummary.discountAmount,
             p_total_amount: orderSummary.total,
             p_applied_coupon_code: orderSummary.appliedCoupon?.code || null,
-            p_items: {
-                items: cart.map(item => ({
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    price_at_purchase: item.price,
-                    product_name: item.name,
-                    product_image_url: item.image_url,
-                    product_emoji: "📦" // Default emoji
-                }))
-            }
+            p_items: cart.map(item => ({
+                product_id: item.id,
+                quantity: item.quantity,
+                price_at_purchase: item.price,
+                product_name: item.name,
+                product_image_url: item.image_url,
+                product_emoji: "📦" // Default emoji
+            }))
         });
 
         if (rpcError) {
