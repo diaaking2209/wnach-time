@@ -83,7 +83,6 @@ export function CheckoutDialog({
 
     setIsProcessing(true);
     try {
-      // Map cart items to the format expected by the DB
       const itemsPayload = cart.map((item) => ({
         product_id: item.id,
         quantity: item.quantity,
@@ -93,8 +92,6 @@ export function CheckoutDialog({
         product_emoji: "📦", // Default emoji
       }));
 
-      // The correct way to call the RPC function with a JSONB array.
-      // Supabase client handles the serialization automatically.
       const { error } = await supabase.rpc("process_order", {
         p_user_id: user.id,
         p_customer_username: user.user_metadata.full_name,
