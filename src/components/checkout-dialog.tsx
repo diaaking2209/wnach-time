@@ -106,6 +106,28 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
 
         if (error) throw error;
         
+        // After successful order, update stock for limited items
+        for (const item of cart) {
+            if (item.stock_type === 'LIMITED' && item.stock_quantity !== null) {
+                const newQuantity = item.stock_quantity - item.quantity;
+                const newStatus = newQuantity <= 0 ? 'Out of Stock' : 'In Stock';
+
+                const { error: stockUpdateError } = await supabase
+                    .from('products')
+                    .update({
+                        stock_quantity: newQuantity,
+                        stock_status: newStatus
+                    })
+                    .eq('id', item.id);
+                
+                if (stockUpdateError) {
+                    // Log the error but don't block the user. The order is already placed.
+                    // This could be reported to an error tracking service.
+                    console.error(`Failed to update stock for product ${item.id}:`, stockUpdateError);
+                }
+            }
+        }
+        
         if (newOrder?.display_id) {
             setNewOrderDisplayId(newOrder.display_id);
         }
