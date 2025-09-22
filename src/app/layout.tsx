@@ -23,16 +23,10 @@ function PageshowRefetcher() {
 }
 
 function AppProviders({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        // This ensures queries are considered "stale" immediately,
-        // prompting a refetch on component mount or window focus
-        // without complex manual logic.
-        staleTime: 0,
-      },
-    },
-  }));
+  // By removing the default staleTime: 0, we allow TanStack Query
+  // to use its default caching behavior, which keeps data fresh for
+  // a few minutes and prevents immediate refetching on navigation.
+  const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
