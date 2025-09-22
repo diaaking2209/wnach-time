@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
 /**
@@ -10,18 +10,16 @@ import { useEffect } from 'react'
  * This hook listens for the 'pageshow' event and invalidates all TanStack Query
  * queries if the page is being restored from the BFCache, ensuring fresh data is fetched.
  */
-export function useForceRefetchOnPageshow() {
-  const queryClient = useQueryClient()
-
+export function useForceRefetchOnPageshow(queryClient: QueryClient) {
   useEffect(() => {
-    const handler = (event: PageTransitionEvent) => {
-      // The `persisted` property is true if the page is being restored from BFCache.
-      if (event.persisted) {
-        queryClient.invalidateQueries();
+    const onPageShow = (e: PageTransitionEvent) => {
+      const persisted = (e as any).persisted
+      if (persisted) {
+        // Only refetch when returning from BFCache
+        queryClient.invalidateQueries()
       }
-    };
-
-    window.addEventListener('pageshow', handler);
-    return () => window.removeEventListener('pageshow', handler);
-  }, [queryClient]);
+    }
+    window.addEventListener('pageshow', onPageShow as EventListener)
+    return () => window.removeEventListener('pageshow', onPageShow as EventListener)
+  }, [queryClient])
 }

@@ -1,7 +1,6 @@
 
 "use client"
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -17,22 +16,28 @@ import React, { useState } from 'react';
 import { useForceRefetchOnPageshow } from '@/hooks/use-force-refetch-on-pageshow';
 
 // A new client component to safely call the hook within the provider's context.
-function PageshowRefetcher() {
-  useForceRefetchOnPageshow();
+function PageshowRefetcher({ client }: { client: QueryClient }) {
+  useForceRefetchOnPageshow(client);
   return null;
 }
 
 function AppProviders({ children }: { children: React.ReactNode }) {
-  // By removing the default staleTime: 0, we allow TanStack Query
-  // to use its default caching behavior, which keeps data fresh for
-  // a few minutes and prevents immediate refetching on navigation.
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 1000 * 60 * 5,      // Data is fresh for 5 minutes
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        retry: 1
+      }
+    }
+  }));
 
   return (
     <QueryClientProvider client={queryClient}>
         <AuthProvider>
             <CartProvider>
-              <PageshowRefetcher />
+              <PageshowRefetcher client={queryClient} />
               {children}
             </CartProvider>
         </AuthProvider>
