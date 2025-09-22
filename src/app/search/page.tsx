@@ -1,12 +1,14 @@
+
 'use client'
 
-import { useEffect, Suspense, useCallback } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ProductCard, type Product } from "@/components/product-card";
+import { ProductCard } from "@/components/product-card";
 import { Loader2 } from "lucide-react";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { useQuery } from "@tanstack/react-query";
+import type { Product } from "@/lib/types";
 
 const fetchSearchResults = async (searchQuery: string | null): Promise<Product[]> => {
     if (!searchQuery) {

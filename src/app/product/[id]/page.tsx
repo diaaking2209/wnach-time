@@ -1,6 +1,7 @@
 
 "use client"
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import Image from "next/image";
 import { notFound, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ShoppingCart, Star, User, Package } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ReviewForm } from "@/components/review-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
@@ -31,11 +32,14 @@ const fetchProductData = async (productId: string | undefined | string[]): Promi
       return null;
     }
 
-    const { data: productResult, error: productError } = await supabase
+    // Use Promise.all to fetch data in parallel
+    const productPromise = supabase
       .from('products')
       .select('*')
       .eq('id', productId)
       .single();
+    
+    const { data: productResult, error: productError } = await productPromise;
     
     if (productError || !productResult) {
         console.error('Error fetching product:', productError);
@@ -68,6 +72,7 @@ const fetchProductData = async (productId: string | undefined | string[]): Promi
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
     
+    // Fetch related products based on category OR tags for better recommendations
     const relatedPromise = supabase
         .from('products')
         .select('*')
@@ -124,7 +129,6 @@ export default function ProductPage() {
   });
 
   const onReviewSubmitted = () => {
-    toast({ title: "Review Submitted", description: "Thank you! Your review is pending approval." });
     queryClient.invalidateQueries({ queryKey: ['product', productId] });
   };
 
