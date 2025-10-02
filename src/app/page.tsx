@@ -1,7 +1,7 @@
 
 'use client'
 import Image from "next/image";
-import { ProductCard, type Product } from "@/components/product-card";
+import { ProductCard } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import {
   Carousel,
@@ -23,13 +23,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-
-type CarouselDeal = {
-    title: string;
-    imageUrl: string;
-    aiHint: string;
-    link: string;
-}
+import type { Product, CarouselDeal, ReviewWithUser } from "@/lib/types";
 
 const categories = [
     { nameKey: "games", icon: Gamepad2, href: "/games" },
@@ -222,19 +216,6 @@ function TopProducts() {
     );
 }
 
-type FeaturedReview = {
-  id: string;
-  rating: number;
-  comment: string;
-  products: {
-    name: string;
-  } | null;
-  user_profiles: {
-    username: string;
-    avatar_url: string;
-  } | null;
-};
-
 const fetchFeaturedReviews = async () => {
     const { data, error } = await supabase
         .from('reviews')
@@ -251,7 +232,7 @@ const fetchFeaturedReviews = async () => {
     if (error) {
         throw new Error("Error fetching featured reviews");
     }
-    return data as FeaturedReview[];
+    return data as ReviewWithUser[];
 }
 
 function FeaturedReviews() {
@@ -260,7 +241,7 @@ function FeaturedReviews() {
         Autoplay({ delay: 4000, stopOnInteraction: true, stopOnMouseEnter: true })
     );
 
-    const { data: reviews, isLoading } = useQuery<FeaturedReview[]>({
+    const { data: reviews, isLoading } = useQuery<ReviewWithUser[]>({
         queryKey: ['homepageFeaturedReviews'],
         queryFn: fetchFeaturedReviews
     });
