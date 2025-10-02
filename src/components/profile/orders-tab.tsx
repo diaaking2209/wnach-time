@@ -23,6 +23,7 @@ import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
+import { useCurrency } from "@/context/currency-context";
 import { translations } from "@/lib/translations";
 import { useQuery } from "@tanstack/react-query";
 
@@ -91,6 +92,7 @@ const fetchDiscordTicketUrl = async (): Promise<string> => {
 export function OrdersTab() {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const t = translations[language].profile.orders;
   
   const { data: orders, isLoading, isError } = useQuery<Order[]>({
@@ -103,14 +105,6 @@ export function OrdersTab() {
     queryKey: ['discordTicketUrl'],
     queryFn: fetchDiscordTicketUrl,
   });
-  
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
   
   if (isLoading) {
     return (

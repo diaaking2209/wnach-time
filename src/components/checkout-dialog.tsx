@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useCart, type AppliedCoupon } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
+import { useCurrency } from "@/context/currency-context";
 import { translations } from "@/lib/translations";
 import { Separator } from "./ui/separator";
 import { useAuth } from "@/hooks/use-auth";
@@ -60,6 +61,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
   const { clearCart, cart } = useCart();
   const { language } = useLanguage();
   const { user, checkGuildMembership } = useAuth();
+  const { formatPrice } = useCurrency();
   const t = translations[language];
 
   const { data: discordTicketUrl, isLoading: isUrlLoading } = useQuery({
@@ -67,15 +69,6 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
       queryFn: fetchDiscordUrl,
       staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(price);
-  };
   
   const placeOrder = async () => {
      if (!user) return; 

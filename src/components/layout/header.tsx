@@ -16,6 +16,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/cart-context";
 import { useLanguage, Language } from "@/context/language-context";
+import { useCurrency } from "@/context/currency-context";
 import { translations } from "@/lib/translations";
 import { NotificationsPopover } from "../notifications-popover";
 import { useState, useEffect, useRef } from "react";
@@ -27,6 +28,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage } = useLanguage();
+  const { currency, setCurrency, availableCurrencies } = useCurrency();
   const t = translations[language];
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,12 +167,23 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                     <Globe className="h-5 w-5" />
-                    <span className="sr-only">Change Language</span>
+                    <span className="sr-only">Change Language/Currency</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <span className="font-bold mr-2">Language:</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLanguage('en' as Language)}>English</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLanguage('ar' as Language)}>العربية</DropdownMenuItem>
+                  <DropdownMenuItem>
+                     <span className="font-bold mr-2">Currency:</span>
+                  </DropdownMenuItem>
+                   {availableCurrencies.map(c => (
+                    <DropdownMenuItem key={c.code} onClick={() => setCurrency(c.code)}>
+                      {c.name} ({c.symbol})
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
             </DropdownMenu>
 

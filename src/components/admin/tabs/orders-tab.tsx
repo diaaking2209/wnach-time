@@ -20,6 +20,7 @@ import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, Send, Play,
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/context/currency-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,14 +84,6 @@ const statusMap: Record<OrderStatus, OrderTable> = {
 
 const ORDERS_PER_PAGE = 10;
 
-
-const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-};
-
 const fetchAllOrders = async (): Promise<Record<OrderStatus, Order[]>> => {
     const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
         const table = statusMap[status];
@@ -114,6 +107,7 @@ export function OrdersTab() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const t = translations[language].admin.ordersTab;
   const queryClient = useQueryClient();
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);

@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { ProductCard } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
+import { useCurrency } from "@/context/currency-context";
 import { translations } from "@/lib/translations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +119,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const t = translations[language];
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -141,8 +143,6 @@ export default function ProductPage() {
   }
 
   const { product, reviews, relatedProducts } = productData;
-
-  const formatPrice = (price: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
   
   const isOutOfStock = product.stock_status === 'Out of Stock' || (product.stock_type === 'LIMITED' && product.stock_quantity !== null && product.stock_quantity < 1);
   const maxQuantity = product.stock_type === 'LIMITED' && product.stock_quantity !== null ? product.stock_quantity : Infinity;

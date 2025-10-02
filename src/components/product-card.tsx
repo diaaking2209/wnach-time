@@ -12,6 +12,7 @@ import { Badge } from "./ui/badge";
 import Link from "next/link";
 import { useCart } from "@/context/cart-context";
 import { useAuth } from "@/hooks/use-auth";
+import { useCurrency } from "@/context/currency-context";
 import { ServerGateDialog } from "./server-gate-dialog";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -29,18 +30,9 @@ const platformIcons: { [key: string]: React.ComponentType<{ className?: string }
 export function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { handleSignIn, session, checkGuildMembership } = useAuth();
+  const { formatPrice } = useCurrency();
   const [isGateOpen, setGateOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price);
-  };
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

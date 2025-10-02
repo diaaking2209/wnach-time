@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/context/cart-context";
+import { useCurrency } from "@/context/currency-context";
 import { ShoppingCart, Trash2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,6 +23,7 @@ export function CartPageContent() {
     const { cart, updateQuantity, removeFromCart, clearCart, appliedCoupon, applyCoupon, removeCoupon } = useCart();
     const { toast } = useToast();
     const { language } = useLanguage();
+    const { formatPrice } = useCurrency();
     const t = translations[language];
 
     const [couponInput, setCouponInput] = useState("");
@@ -32,15 +34,6 @@ export function CartPageContent() {
     const discountAmount = appliedCoupon ? subTotal * (appliedCoupon.discount / 100) : 0;
     const vat = 0; // Placeholder for VAT logic
     const total = subTotal - discountAmount + vat;
-
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(price);
-    };
     
     const handleQuantityChange = (productId: string, newQuantity: number) => {
         if (newQuantity >= 1) {
@@ -202,7 +195,7 @@ export function CartPageContent() {
 
                             <Separator className="bg-border/60" />
                             <div className="flex justify-between font-semibold">
-                                <span>{t.cart.total} (USD):</span>
+                                <span>{t.cart.total}:</span>
                                 <span>{formatPrice(total)}</span>
                             </div>
                             <Button 
@@ -220,4 +213,3 @@ export function CartPageContent() {
         </>
     );
 }
-

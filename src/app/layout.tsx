@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { AuthProvider } from '@/hooks/use-auth';
 import { CartProvider } from '@/context/cart-context';
 import { LanguageProvider } from '@/context/language-context';
+import { CurrencyProvider } from '@/context/currency-context';
 import {
   QueryClient,
   QueryClientProvider,
@@ -36,10 +37,12 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
         <AuthProvider>
-            <CartProvider>
+          <CartProvider>
+            <CurrencyProvider>
               <PageshowRefetcher client={queryClient} />
               {children}
-            </CartProvider>
+            </CurrencyProvider>
+          </CartProvider>
         </AuthProvider>
     </QueryClientProvider>
   );
