@@ -146,50 +146,23 @@ export function OrdersTab() {
   });
 
 
-  const getFullOrderDetails = async (orderId: string, fromTable: string) => {
-    const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
-    if (error) throw error;
-    return data;
-  }
-
-  const createNotification = async (userId: string, orderId: string, message: string) => {
-      const { error } = await supabase.from('notifications').insert({ user_id: userId, order_id: orderId, message });
-      if (error) {
-          console.error("Failed to create notification:", error);
-      }
-  }
-
- const handleMoveOrder = async (orderId: string, from: 'pending' | 'processing', to: 'processing' | 'cancelled') => {
+  const handleMoveOrder = async (orderId: string, fromStatus: OrderStatus, toStatus: OrderStatus) => {
     if (!user) return;
+    
     try {
-        const fromTable = `${from}_orders`;
-        const toTable = `${to}_orders`;
+        const fromTable = statusMap[fromStatus];
+        const toTable = statusMap[toStatus];
         
-        const fullOrder = await getFullOrderDetails(orderId, fromTable);
-        if(!fullOrder) throw new Error("Order not found");
-        
-        const orderDataWithAdmin = {
-            ...fullOrder,
-            last_modified_by_admin_id: user.id,
-            last_modified_by_admin_username: user.user_metadata.full_name,
-        };
+        // This RPC will handle moving the order, deleting the old one, and creating a notification
+        const { error } = await supabase.rpc('move_order_status', {
+            order_id_to_move: orderId,
+            from_table: fromTable,
+            to_table: toTable,
+            admin_id: user.id,
+            admin_username: user.user_metadata.full_name,
+        });
 
-        const { error: insertError } = await supabase.from(toTable).insert(orderDataWithAdmin);
-        if (insertError) throw insertError;
-        
-        const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', orderId);
-        if (deleteError) {
-            await supabase.from(toTable).delete().eq('id', orderId);
-            throw deleteError;
-        };
-
-        let message = '';
-        if(to === 'processing') message = `${t.notification.processing} ${fullOrder.display_id || ''}.`;
-        if(to === 'cancelled') message = `${t.notification.cancelled} ${fullOrder.display_id || ''}.`;
-        
-        if (message) {
-            await createNotification(fullOrder.user_id, orderId, message);
-        }
+        if (error) throw error;
         
         toast({ title: t.statusUpdated });
         queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
@@ -198,6 +171,7 @@ export function OrdersTab() {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
     }
   }
+
 
   const handleOpenDeliveryDialog = (order: Order) => {
     setSelectedOrder(order);
@@ -304,7 +278,7 @@ export function OrdersTab() {
                                 <DropdownMenuLabel>{t.actions.title}</DropdownMenuLabel>
                                 
                                 {status === 'Pending' && (
-                                        <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'pending', 'processing')}>
+                                        <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'Pending', 'Processing')}>
                                             <Play className="mr-2 h-4 w-4" />
                                             <span>{t.actions.process}</span>
                                         </DropdownMenuItem>
@@ -335,7 +309,7 @@ export function OrdersTab() {
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter className="gap-2 sm:flex-row sm:justify-end sm:space-x-2">
                                                     <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
+                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, status, 'Cancelled')}>
                                                         {t.confirm.continue}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
