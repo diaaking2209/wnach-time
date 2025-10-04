@@ -1,4 +1,3 @@
-
 'use client'
 import { ProductCard } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";

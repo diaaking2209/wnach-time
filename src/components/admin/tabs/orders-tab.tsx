@@ -47,7 +47,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRealtime } from "@/hooks/use-realtime";
 
 export type OrderItem = {
     product_id: string;
@@ -112,32 +111,22 @@ export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
+  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
   });
 
-  useRealtime({
-    channelName: 'admin-orders-channel-pending',
-    tableName: 'pending_orders',
-    queryKey: ['adminOrders']
-  });
-  useRealtime({
-    channelName: 'admin-orders-channel-processing',
-    tableName: 'processing_orders',
-    queryKey: ['adminOrders']
-  });
-   useRealtime({
-    channelName: 'admin-orders-channel-completed',
-    tableName: 'completed_orders',
-    queryKey: ['adminOrders']
-  });
-   useRealtime({
-    channelName: 'admin-orders-channel-cancelled',
-    tableName: 'cancelled_orders',
-    queryKey: ['adminOrders']
-  });
-
+  useEffect(() => {
+    const channel = supabase.channel('admin-orders-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_orders' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'processing_orders' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'completed_orders' }, () => refetch())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cancelled_orders' }, () => refetch())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
   const handleMoveOrder = async (orderId: string, fromStatus: OrderStatus, toStatus: OrderStatus) => {
     if (!user) return;

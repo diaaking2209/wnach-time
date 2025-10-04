@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, BellOff, Bell } from "lucide-react";
@@ -11,7 +11,6 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRealtime } from "@/hooks/use-realtime";
 
 type Notification = {
   id: string;
@@ -42,19 +41,34 @@ export function NotificationsPopover() {
   const { user, session } = useAuth();
   const queryClient = useQueryClient();
   
-  const { data: notifications = [], isLoading } = useQuery<Notification[]>({
+  const { data: notifications = [], isLoading, refetch } = useQuery<Notification[]>({
     queryKey: ['notifications', user?.id],
     queryFn: () => fetchNotifications(user?.id),
     enabled: !!user,
   });
 
-  useRealtime({
-    channelName: `user-notifications:${user?.id}`,
-    tableName: 'notifications',
-    filter: `user_id=eq.${user?.id}`,
-    queryKey: ['notifications', user?.id],
-    enabled: !!user,
-  });
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`user-notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, refetch]);
   
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
