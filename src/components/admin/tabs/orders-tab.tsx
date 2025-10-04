@@ -1,4 +1,3 @@
-
 "use client"
 import { useState } from "react";
 import {
@@ -143,12 +142,11 @@ export function OrdersTab() {
   const handleMoveOrder = async (orderId: string, fromStatus: OrderStatus, toStatus: OrderStatus) => {
     if (!user) return;
     
+    const fromTable = statusMap[fromStatus];
+    const toTable = statusMap[toStatus];
+    
     try {
-        const fromTable = statusMap[fromStatus];
-        const toTable = statusMap[toStatus];
-        
-        // This RPC will handle moving the order, deleting the old one, and creating a notification
-        const { error } = await supabase.rpc('move_order_status', {
+        const { error: rpcError } = await supabase.rpc('move_order_status', {
             order_id_to_move: orderId,
             from_table: fromTable,
             to_table: toTable,
@@ -156,7 +154,7 @@ export function OrdersTab() {
             admin_username: user.user_metadata.full_name,
         });
 
-        if (error) throw error;
+        if (rpcError) throw rpcError;
         
         toast({ title: t.statusUpdated });
         queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
