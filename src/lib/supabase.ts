@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 let supabaseInstance: SupabaseClient | null = null;
 
-const getSupabase = () => {
+export const getSupabase = () => {
     if (supabaseInstance) {
         return supabaseInstance;
     }
