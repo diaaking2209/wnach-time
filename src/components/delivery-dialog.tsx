@@ -44,44 +44,16 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
     setIsSaving(true);
     
     try {
-        const fromTable = 'processing_orders';
-        const toTable = 'completed_orders';
-
-        // 1. Get the full order object from the 'processing_orders' table
-        const { data: fullOrder, error: getError } = await supabase.from(fromTable).select('*').eq('id', order.id).single();
-        if (getError) throw getError;
-        if (!fullOrder) throw new Error("Order not found in processing.");
-
-        // 2. Prepare the data for the 'completed_orders' table
-        const completedOrderData = {
-            ...fullOrder,
-            delivery_details: deliveryDetails,
-            send_on_discord: true, // Hardcoded as per request
-            last_modified_by_admin_id: user.id,
-            last_modified_by_admin_username: user.user_metadata.full_name,
-        };
-
-        // 3. Insert the order into the 'completed_orders' table
-        const { error: insertError } = await supabase.from(toTable).insert(completedOrderData);
-        if (insertError) throw insertError;
-
-        // 4. Delete the order from the 'processing_orders' table
-        const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', order.id);
-        if (deleteError) {
-             // If deletion fails, try to roll back the insert
-            await supabase.from(toTable).delete().eq('id', order.id);
-            throw deleteError;
-        }
-        
-        // 5. Create a notification for the user
-        const message = `Your order ${fullOrder.display_id || ''} has been completed and delivered.`;
-        const { error: notificationError } = await supabase.from('notifications').insert({
-            user_id: fullOrder.user_id,
-            order_id: order.id,
-            message: message,
+        const { error } = await supabase.rpc('move_order_to_completed', {
+            order_id_to_move: order.id,
+            delivery_details_text: deliveryDetails,
+            admin_id: user.id,
+            admin_username: user.user_metadata.full_name,
         });
-        if (notificationError) console.error("Failed to create notification:", notificationError);
 
+        if (error) {
+            throw error;
+        }
 
         toast({
             title: "Order Delivered",

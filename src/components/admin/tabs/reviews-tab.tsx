@@ -1,4 +1,3 @@
-
 "use client"
 import { Button } from "@/components/ui/button";
 import {
@@ -44,7 +43,6 @@ import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRealtime } from "@/hooks/use-realtime";
 
 type ReviewWithProductAndUser = {
   id: string;
@@ -94,13 +92,6 @@ export function ReviewsTab() {
     queryKey: ['adminReviews'],
     queryFn: fetchReviews,
   });
-
-  useRealtime({
-    channelName: 'admin-reviews-channel',
-    tableName: 'reviews',
-    queryKey: ['adminReviews']
-  });
-
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
     const { error } = await supabase

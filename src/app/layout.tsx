@@ -1,7 +1,6 @@
 
 "use client"
 
-import type { Metadata } from 'next';
 import './globals.css';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -14,11 +13,14 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import React, { useState } from 'react';
-import { useForceRefetchOnPageshow } from '@/hooks/use-force-refetch-on-pageshow';
+import useForceRefetchOnPageShow from '@/hooks/use-force-refetch-on-pageshow';
+import { CurrencyProvider } from '@/context/currency-context';
+
 
 // A new client component to safely call the hook within the provider's context.
 function PageshowRefetcher() {
-  useForceRefetchOnPageshow();
+  const queryClient = new QueryClient();
+  useForceRefetchOnPageShow(queryClient);
   return null;
 }
 
@@ -26,22 +28,21 @@ function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        // This ensures queries are considered "stale" immediately,
-        // prompting a refetch on component mount or window focus
-        // without complex manual logic.
-        staleTime: 0,
+        staleTime: 1000 * 60 * 5, // 5 minutes
       },
     },
   }));
 
   return (
     <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-            <CartProvider>
-              <PageshowRefetcher />
-              {children}
-            </CartProvider>
-        </AuthProvider>
+      <AuthProvider>
+        <CurrencyProvider>
+          <CartProvider>
+            <PageshowRefetcher />
+            {children}
+          </CartProvider>
+        </CurrencyProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

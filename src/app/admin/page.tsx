@@ -1,4 +1,3 @@
-
 "use client"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsTab } from "@/components/admin/tabs/products-tab";

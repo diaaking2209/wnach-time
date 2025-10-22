@@ -12,7 +12,6 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { ScrollArea } from "./ui/scroll-area";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRealtime } from "@/hooks/use-realtime";
 
 type Notification = {
   id: string;
@@ -49,14 +48,6 @@ export function NotificationsPopover() {
     enabled: !!user,
   });
 
-  useRealtime({
-    channelName: `user-notifications:${user?.id}`,
-    tableName: 'notifications',
-    filter: `user_id=eq.${user?.id}`,
-    queryKey: ['notifications', user?.id],
-    enabled: !!user,
-  });
-  
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleMarkAsRead = async (notificationId: string) => {

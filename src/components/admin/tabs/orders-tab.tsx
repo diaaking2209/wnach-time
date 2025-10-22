@@ -1,4 +1,3 @@
-
 "use client"
 import { useState } from "react";
 import {
@@ -47,7 +46,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRealtime } from "@/hooks/use-realtime";
 
 export type OrderItem = {
     product_id: string;
@@ -119,85 +117,93 @@ export function OrdersTab() {
   const [isDeliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const { data: ordersByStatus, isLoading } = useQuery<Record<OrderStatus, Order[]>>({
+  const { data: ordersByStatus, isLoading, refetch } = useQuery<Record<OrderStatus, Order[]>>({
     queryKey: ['adminOrders'],
     queryFn: fetchAllOrders,
   });
 
-  useRealtime({
-    channelName: 'admin-orders-channel-pending',
-    tableName: 'pending_orders',
-    queryKey: ['adminOrders']
-  });
-  useRealtime({
-    channelName: 'admin-orders-channel-processing',
-    tableName: 'processing_orders',
-    queryKey: ['adminOrders']
-  });
-   useRealtime({
-    channelName: 'admin-orders-channel-completed',
-    tableName: 'completed_orders',
-    queryKey: ['adminOrders']
-  });
-   useRealtime({
-    channelName: 'admin-orders-channel-cancelled',
-    tableName: 'cancelled_orders',
-    queryKey: ['adminOrders']
-  });
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin_orders_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        if (payload.table.includes('_orders')) {
+            refetch();
+        }
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch]);
 
-
-  const getFullOrderDetails = async (orderId: string, fromTable: string) => {
-    const { data, error } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
-    if (error) throw error;
-    return data;
-  }
-
-  const createNotification = async (userId: string, orderId: string, message: string) => {
-      const { error } = await supabase.from('notifications').insert({ user_id: userId, order_id: orderId, message });
-      if (error) {
-          console.error("Failed to create notification:", error);
-      }
-  }
-
- const handleMoveOrder = async (orderId: string, from: 'pending' | 'processing', to: 'processing' | 'cancelled') => {
+  const handleMoveOrder = async (orderId: string, from: OrderStatus, to: OrderStatus) => {
     if (!user) return;
+    
+    const fromTable = statusMap[from];
+    const toTable = statusMap[to];
+
     try {
-        const fromTable = `${from}_orders`;
-        const toTable = `${to}_orders`;
-        
-        const fullOrder = await getFullOrderDetails(orderId, fromTable);
-        if(!fullOrder) throw new Error("Order not found");
-        
+        const { data: orderToMove, error: getError } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
+        if (getError || !orderToMove) throw new Error(getError?.message || 'Order not found');
+
         const orderDataWithAdmin = {
-            ...fullOrder,
+            ...orderToMove,
             last_modified_by_admin_id: user.id,
             last_modified_by_admin_username: user.user_metadata.full_name,
         };
+        delete orderDataWithAdmin.id; // Let the new table generate its own ID if needed, or handle conflicts. This is simplified.
 
+        // This assumes the structure is identical, which it should be.
         const { error: insertError } = await supabase.from(toTable).insert(orderDataWithAdmin);
         if (insertError) throw insertError;
         
         const { error: deleteError } = await supabase.from(fromTable).delete().eq('id', orderId);
         if (deleteError) {
-            await supabase.from(toTable).delete().eq('id', orderId);
+            // Rollback-like logic
+            await supabase.from(toTable).delete().eq('id', orderId); // Attempt to remove the mistakenly inserted record
             throw deleteError;
         };
 
-        let message = '';
-        if(to === 'processing') message = `${t.notification.processing} ${fullOrder.display_id || ''}.`;
-        if(to === 'cancelled') message = `${t.notification.cancelled} ${fullOrder.display_id || ''}.`;
-        
-        if (message) {
-            await createNotification(fullOrder.user_id, orderId, message);
-        }
-        
         toast({ title: t.statusUpdated });
-        queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+        refetch();
 
     } catch(error: any) {
          toast({ variant: "destructive", title: t.statusUpdateError, description: error.message });
     }
   }
+
+  const handleCancelOrder = async (orderId: string, from: OrderStatus) => {
+    if (!user) return;
+    try {
+      await supabase.rpc('move_order_to_cancelled', { 
+        p_order_id: orderId, 
+        p_from_table: statusMap[from],
+        p_admin_id: user.id,
+        p_admin_username: user.user_metadata.full_name
+      });
+      toast({ title: "Order Cancelled" });
+      refetch();
+    } catch(error: any) {
+      toast({ variant: "destructive", title: "Failed to cancel order", description: error.message });
+    }
+  };
+
+  const handleProcessOrder = async (orderId: string) => {
+    if (!user) return;
+    try {
+       await supabase.rpc('move_pending_to_processing', { 
+        p_order_id: orderId, 
+        p_admin_id: user.id,
+        p_admin_username: user.user_metadata.full_name
+      });
+      toast({ title: "Order is now Processing" });
+      refetch();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed to process order", description: error.message });
+    }
+  };
+
 
   const handleOpenDeliveryDialog = (order: Order) => {
     setSelectedOrder(order);
@@ -206,7 +212,7 @@ export function OrdersTab() {
   
   const handleDeliverySave = () => {
     setDeliveryDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+    refetch();
   }
 
   const [currentPages, setCurrentPages] = useState<Record<OrderStatus, number>>({
@@ -304,17 +310,17 @@ export function OrdersTab() {
                                 <DropdownMenuLabel>{t.actions.title}</DropdownMenuLabel>
                                 
                                 {status === 'Pending' && (
-                                        <DropdownMenuItem onClick={() => handleMoveOrder(order.id, 'pending', 'processing')}>
-                                            <Play className="mr-2 h-4 w-4" />
-                                            <span>{t.actions.process}</span>
-                                        </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleProcessOrder(order.id)}>
+                                        <Play className="mr-2 h-4 w-4" />
+                                        <span>{t.actions.process}</span>
+                                    </DropdownMenuItem>
                                 )}
 
                                 {status === 'Processing' && (
-                                        <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
-                                            <Send className="mr-2 h-4 w-4" />
-                                            <span>{t.actions.deliver}</span>
-                                        </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
+                                        <Send className="mr-2 h-4 w-4" />
+                                        <span>{t.actions.deliver}</span>
+                                    DropdownMenuItem>
                                 )}
 
                                 {status !== 'Cancelled' && status !== 'Completed' && (
@@ -335,7 +341,7 @@ export function OrdersTab() {
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter className="gap-2 sm:flex-row sm:justify-end sm:space-x-2">
                                                     <AlertDialogCancel>{t.confirm.cancel}</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleMoveOrder(order.id, status.toLowerCase() as 'pending' | 'processing', 'cancelled')}>
+                                                    <AlertDialogAction onClick={() => handleCancelOrder(order.id, status)}>
                                                         {t.confirm.continue}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
@@ -397,7 +403,7 @@ export function OrdersTab() {
     <Card>
       <CardHeader>
         <CardTitle>{t.title}</CardTitle>
-        <CardDescription>{t.description}</CardDescription>
+        <CardDescription>{t.description}</CardHeader>
       </CardHeader>
       <CardContent>
          <Tabs defaultValue="Pending" className="w-full">
@@ -405,19 +411,19 @@ export function OrdersTab() {
                 <TabsList className="inline-flex h-auto">
                     <TabsTrigger value="Pending">
                         <Hourglass className="mr-2 h-4 w-4" />
-                        <span>{t.statuses.Pending}</span>
+                        <span>{t.statuses.Pending} ({ordersByStatus?.Pending?.length || 0})</span>
                     </TabsTrigger>
                     <TabsTrigger value="Processing">
                         <Loader2 className="mr-2 h-4 w-4" />
-                        <span>{t.statuses.Processing}</span>
+                        <span>{t.statuses.Processing} ({ordersByStatus?.Processing?.length || 0})</span>
                     </TabsTrigger>
                     <TabsTrigger value="Completed">
                         <PackageCheck className="mr-2 h-4 w-4" />
-                        <span>{t.statuses.Completed}</span>
+                        <span>{t.statuses.Completed} ({ordersByStatus?.Completed?.length || 0})</span>
                     </TabsTrigger>
                     <TabsTrigger value="Cancelled">
                         <PackageX className="mr-2 h-4 w-4" />
-                        <span>{t.statuses.Cancelled}</span>
+                        <span>{t.statuses.Cancelled} ({ordersByStatus?.Cancelled?.length || 0})</span>
                     </TabsTrigger>
                 </TabsList>
             </div>
