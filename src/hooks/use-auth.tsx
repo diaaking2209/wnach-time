@@ -29,16 +29,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const supabase = getSupabase();
-
+  
   const handleSignOut = useCallback(async () => {
+    const supabase = getSupabase();
     await supabase.auth.signOut();
-  }, [supabase]);
+  }, []);
   
   const syncUserProfileInfo = useCallback(async (user: User): Promise<boolean> => {
     const { id, user_metadata } = user;
     if (!id || !user_metadata?.full_name || !user_metadata?.provider_id) return false;
 
+    const supabase = getSupabase();
     const { error } = await supabase.from('user_profiles')
       .upsert({
         user_id: id,
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
     }
     return true;
-  }, [supabase]);
+  }, []);
 
 
   const checkAdminStatus = useCallback(async (user: User | null) => {
@@ -62,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const supabase = getSupabase();
     const { data, error } = await supabase.from('admins').select('role').eq('provider_id', user.user_metadata.provider_id).single();
     if(error && error.code !== 'PGRST116') {
         console.error("Error fetching admin status:", error);
@@ -78,12 +80,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { provider_id, full_name, avatar_url } = user.user_metadata;
         await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
     }
-  }, [supabase]);
+  }, []);
 
   const handleSignIn = async () => {
     if (isSigningIn) return;
     setIsSigningIn(true);
     try {
+      const supabase = getSupabase();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: { scopes: 'identify email guilds.join' },
@@ -103,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
     }
     
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('guild_members')
         .select('provider_id')
@@ -116,10 +120,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     return !!data;
-  }, [user, toast, supabase]);
+  }, [user, toast]);
 
   useEffect(() => {
     setIsLoading(true);
+    const supabase = getSupabase();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user ?? null;
       
@@ -139,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus, syncUserProfileInfo, supabase]);
+  }, [checkAdminStatus, syncUserProfileInfo]);
 
 
   return (
