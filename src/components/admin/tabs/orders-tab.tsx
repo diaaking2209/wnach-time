@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -46,6 +46,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRealtime } from "@/hooks/use-realtime";
 
 export type OrderItem = {
     product_id: string;
@@ -122,20 +123,11 @@ export function OrdersTab() {
     queryFn: fetchAllOrders,
   });
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('admin_orders_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-        if (payload.table.includes('_orders')) {
-            refetch();
-        }
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch]);
+  useRealtime({ channelName: 'admin_orders_realtime', tableName: 'pending_orders', queryKey: ['adminOrders']});
+  useRealtime({ channelName: 'admin_orders_realtime', tableName: 'processing_orders', queryKey: ['adminOrders']});
+  useRealtime({ channelName: 'admin_orders_realtime', tableName: 'completed_orders', queryKey: ['adminOrders']});
+  useRealtime({ channelName: 'admin_orders_realtime', tableName: 'cancelled_orders', queryKey: ['adminOrders']});
+
 
   const handleMoveOrder = async (orderId: string, from: OrderStatus, to: OrderStatus) => {
     if (!user) return;
@@ -320,7 +312,7 @@ export function OrdersTab() {
                                     <DropdownMenuItem onClick={() => handleOpenDeliveryDialog(order)}>
                                         <Send className="mr-2 h-4 w-4" />
                                         <span>{t.actions.deliver}</span>
-                                    DropdownMenuItem>
+                                    </DropdownMenuItem>
                                 )}
 
                                 {status !== 'Cancelled' && status !== 'Completed' && (
@@ -403,7 +395,7 @@ export function OrdersTab() {
     <Card>
       <CardHeader>
         <CardTitle>{t.title}</CardTitle>
-        <CardDescription>{t.description}</CardHeader>
+        <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
          <Tabs defaultValue="Pending" className="w-full">
