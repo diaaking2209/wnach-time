@@ -1,7 +1,7 @@
 
 "use client"
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import { useToast } from './use-toast';
 
@@ -29,10 +29,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const supabase = getSupabase();
 
   const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut();
-  }, []);
+  }, [supabase]);
   
   const syncUserProfileInfo = useCallback(async (user: User): Promise<boolean> => {
     const { id, user_metadata } = user;
@@ -51,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
     }
     return true;
-  }, []);
+  }, [supabase]);
 
 
   const checkAdminStatus = useCallback(async (user: User | null) => {
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { provider_id, full_name, avatar_url } = user.user_metadata;
         await supabase.from('admins').update({ username: full_name, avatar_url: avatar_url }).eq('provider_id', provider_id);
     }
-  }, []);
+  }, [supabase]);
 
   const handleSignIn = async () => {
     if (isSigningIn) return;
@@ -115,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     
     return !!data;
-  }, [user, toast]);
+  }, [user, toast, supabase]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -138,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [checkAdminStatus, syncUserProfileInfo]);
+  }, [checkAdminStatus, syncUserProfileInfo, supabase]);
 
 
   return (

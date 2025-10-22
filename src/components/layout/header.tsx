@@ -19,7 +19,7 @@ import { useLanguage, Language } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { NotificationsPopover } from "../notifications-popover";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import type { Product } from "@/lib/types";
 
 export function Header() {
@@ -65,6 +65,7 @@ export function Header() {
             return;
         }
         setIsSearching(true);
+        const supabase = getSupabase();
         const { data, error } = await supabase
             .from('products')
             .select('*')

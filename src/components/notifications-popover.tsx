@@ -2,7 +2,7 @@
 "use client"
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, BellOff, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,7 +23,7 @@ type Notification = {
 
 const fetchNotifications = async (userId: string | undefined): Promise<Notification[]> => {
     if (!userId) return [];
-    
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -56,7 +56,7 @@ export function NotificationsPopover() {
     queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
         oldData ? oldData.map(n => n.id === notificationId ? {...n, is_read: true} : n) : []
     );
-
+    const supabase = getSupabase();
     const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
@@ -74,7 +74,7 @@ export function NotificationsPopover() {
     queryClient.setQueryData(['notifications', user.id], (oldData: Notification[] | undefined) => 
         oldData ? oldData.map(n => ({...n, is_read: true})) : []
     );
-
+    const supabase = getSupabase();
     const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })

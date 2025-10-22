@@ -10,7 +10,7 @@ import { useCart } from "@/context/cart-context";
 import { ShoppingCart, Trash2, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/context/language-context";
@@ -51,7 +51,7 @@ export function CartPageContent() {
     const handleApplyCoupon = async () => {
         if (!couponInput.trim()) return;
         setIsApplyingCoupon(true);
-
+        const supabase = getSupabase();
         try {
             const { data, error } = await supabase
                 .from('coupons')
@@ -220,4 +220,3 @@ export function CartPageContent() {
         </>
     );
 }
-

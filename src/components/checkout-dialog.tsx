@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useCart, type AppliedCoupon } from "@/context/cart-context";
@@ -35,6 +36,7 @@ interface CheckoutDialogProps {
 const fetchDiscordUrl = async (): Promise<string> => {
     // This query is now safe for all users, including logged-out ones,
     // because of the public read policy on the app_settings table.
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('app_settings')
         .select('value')
@@ -91,6 +93,7 @@ export function CheckoutDialog({ isOpen, setIsOpen, orderSummary }: CheckoutDial
             product_emoji: '📦'
         }));
         
+        const supabase = getSupabase();
         const { data: newOrder, error } = await supabase.from('pending_orders').insert({
             user_id: user.id,
             customer_username: user.user_metadata.full_name,

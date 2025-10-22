@@ -1,6 +1,7 @@
+
 "use client"
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, CheckCircle, Clock } from "lucide-react";
 import {
@@ -35,7 +36,7 @@ const fetchUserReviews = async (userId: string | undefined): Promise<UserReview[
     if (!userId) {
         return [];
     };
-
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('reviews')
         .select(`

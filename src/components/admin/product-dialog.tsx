@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Badge } from "../ui/badge";
@@ -144,7 +144,8 @@ export function ProductDialog({ isOpen, setIsOpen, product, onSave }: ProductDia
       stock_type: stockType,
       stock_quantity: finalStockQuantity,
     };
-
+    
+    const supabase = getSupabase();
     let error;
     if (product && product.id) {
       // Update existing product

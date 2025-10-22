@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useEffect } from "react";
 import {
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/table"
 import { Loader2, MoreHorizontal, PackageCheck, PackageX, Hourglass, Send, Play, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -91,6 +92,7 @@ const formatPrice = (price: number) => {
 };
 
 const fetchAllOrders = async (): Promise<Record<OrderStatus, Order[]>> => {
+    const supabase = getSupabase();
     const promises = (Object.keys(statusMap) as OrderStatus[]).map(async (status) => {
         const table = statusMap[status];
         const { data, error } = await supabase
@@ -136,6 +138,7 @@ export function OrdersTab() {
     const toTable = statusMap[to];
 
     try {
+        const supabase = getSupabase();
         const { data: orderToMove, error: getError } = await supabase.from(fromTable).select('*').eq('id', orderId).single();
         if (getError || !orderToMove) throw new Error(getError?.message || 'Order not found');
 
@@ -168,6 +171,7 @@ export function OrdersTab() {
   const handleCancelOrder = async (orderId: string, from: OrderStatus) => {
     if (!user) return;
     try {
+      const supabase = getSupabase();
       await supabase.rpc('move_order_to_cancelled', { 
         p_order_id: orderId, 
         p_from_table: statusMap[from],
@@ -184,6 +188,7 @@ export function OrdersTab() {
   const handleProcessOrder = async (orderId: string) => {
     if (!user) return;
     try {
+       const supabase = getSupabase();
        await supabase.rpc('move_pending_to_processing', { 
         p_order_id: orderId, 
         p_admin_id: user.id,

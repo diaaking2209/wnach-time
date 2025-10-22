@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/lib/types';
@@ -55,6 +55,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     
     setLoading(true);
     try {
+        const supabase = getSupabase();
         const { data: cartData, error } = await supabase
             .from('cart_items')
             .select(`
@@ -140,6 +141,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
+        const supabase = getSupabase();
         const { error } = await supabase.from('cart_items').upsert(
             {
                 user_id: user.id,
@@ -186,7 +188,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Optimistic UI update
     const prevCart = cart;
     setCart(currentCart => currentCart.filter(item => item.id !== productId));
-
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('cart_items')
       .delete()
@@ -226,7 +228,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Optimistic UI Update
     const prevCart = cart;
     setCart(currentCart => currentCart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
-
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('cart_items')
       .update({ quantity: newQuantity })
@@ -245,7 +247,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Optimistic UI update
     const prevCart = cart;
     setCart([]);
-
+    const supabase = getSupabase();
     const { error } = await supabase
         .from('cart_items')
         .delete()

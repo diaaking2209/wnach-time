@@ -1,13 +1,14 @@
 'use client'
 import { ProductCard, type Product } from "@/components/product-card";
 import { ScrollToTop } from "@/components/scroll-to-top";
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { useLanguage } from "@/context/language-context";
 import { translations } from "@/lib/translations";
 import { Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 const fetchProgramProducts = async () => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('products')
         .select('*')

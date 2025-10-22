@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Switch } from "../ui/switch";
@@ -74,6 +74,7 @@ export function CouponDialog({ isOpen, setIsOpen, coupon, onSave }: CouponDialog
       is_active: isActive,
     };
 
+    const supabase = getSupabase();
     let error;
     if (coupon && coupon.id) {
       // Update existing coupon

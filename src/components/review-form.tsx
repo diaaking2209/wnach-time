@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -48,7 +48,7 @@ export function ReviewForm({ productId, onReviewSubmitted }: ReviewFormProps) {
             }
 
             setIsLoading(true);
-
+            const supabase = getSupabase();
             // Check if user has already reviewed this product
             const { data: existingReview, error: reviewError } = await supabase
                 .from('reviews')
@@ -99,6 +99,7 @@ export function ReviewForm({ productId, onReviewSubmitted }: ReviewFormProps) {
 
         setIsSubmitting(true);
         try {
+            const supabase = getSupabase();
             const { data, error } = await supabase
                 .from('reviews')
                 .insert({

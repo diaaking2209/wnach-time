@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, GripVertical, Plus, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,7 @@ export function HomePageTab() {
   const fetchHomePageContent = useCallback(async () => {
     setLoading(true);
     try {
+        const supabase = getSupabase();
         const slidesPromise = supabase.from('homepage_carousel').select('*').order('sort_order');
         const topProdsPromise = supabase.from('homepage_top_products').select('*, products(*)').order('sort_order');
         const allProdsPromise = supabase.from('products').select('*').order('name');
@@ -111,6 +112,7 @@ export function HomePageTab() {
   const handleAddCarouselSlide = async () => {
     if (!data) return;
     setIsSaving(true);
+    const supabase = getSupabase();
     const { data: newSlide, error } = await supabase.from('homepage_carousel').insert([{ 
         title: "New Slide", 
         image_url: "https://placehold.co/1200x400",
@@ -132,6 +134,7 @@ export function HomePageTab() {
   const handleDeleteCarouselSlide = async (id: string) => {
      if (!data) return;
     setIsSaving(true);
+    const supabase = getSupabase();
     const { error } = await supabase.from('homepage_carousel').delete().match({ id });
      if(error) {
         toast({ variant: "destructive", title: t.deleteSlideError, description: error.message });
@@ -150,6 +153,7 @@ export function HomePageTab() {
         return;
     }
     setIsSaving(true);
+    const supabase = getSupabase();
     const { data: newTopProduct, error } = await supabase.from('homepage_top_products').insert([{
         product_id: productId,
         sort_order: data.topProducts.length
@@ -169,6 +173,7 @@ export function HomePageTab() {
   const handleDeleteTopProduct = async (id: string) => {
     if (!data) return;
     setIsSaving(true);
+    const supabase = getSupabase();
     const { error } = await supabase.from('homepage_top_products').delete().match({ id });
     if(error) {
         toast({ variant: "destructive", title: t.removeProductError, description: error.message });
@@ -183,6 +188,7 @@ export function HomePageTab() {
   const handleSaveAll = async () => {
     if (!data || !user) return;
     setIsSaving(true);
+    const supabase = getSupabase();
     try {
         const carouselUpsert = data.slides.map((slide, index) => ({
             ...slide,

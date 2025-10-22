@@ -1,3 +1,4 @@
+
 "use client"
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +56,7 @@ export type Coupon = {
 };
 
 const fetchCoupons = async (): Promise<Coupon[]> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.from('coupons').select('*').order('created_at', { ascending: false });
     if (error) {
         throw new Error(error.message);
@@ -86,6 +88,7 @@ export function CouponsTab() {
   };
 
   const handleDeleteCoupon = async (couponId: string) => {
+    const supabase = getSupabase();
     const { error } = await supabase.from('coupons').delete().match({ id: couponId });
     if(error) {
       toast({

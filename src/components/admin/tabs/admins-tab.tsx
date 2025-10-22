@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, PlusCircle, User, RefreshCw, MoreHorizontal } from "lucide-react";
 import {
@@ -51,12 +52,14 @@ const roleHierarchy = {
 };
 
 const fetchAdmins = async (): Promise<AdminUser[]> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.from("admins").select("*").order("created_at");
     if (error) throw error;
     return data as AdminUser[];
 }
 
 async function getSupabaseUserIdFromProviderId(providerId: string): Promise<string | null> {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('user_profiles')
         .select('user_id')
@@ -96,6 +99,7 @@ function AddAdminDialog({ onAdd }: { onAdd: () => void }) {
 
         setIsSaving(true);
         try {
+            const supabase = getSupabase();
             const { data: existingAdmin, error: checkError } = await supabase.from('admins').select('id').eq('provider_id', trimmedId).single();
             if(checkError && checkError.code !== 'PGRST116') throw checkError;
             if(existingAdmin) {
@@ -215,6 +219,7 @@ export function AdminsTab() {
 
     setIsSaving(true);
     try {
+      const supabase = getSupabase();
       const supabaseUserId = await getSupabaseUserIdFromProviderId(trimmedId);
       if (!supabaseUserId) {
         toast({ variant: "destructive", title: t.addError, description: "User not found or has not logged in yet. Please ask them to sign in first." });
@@ -250,6 +255,7 @@ export function AdminsTab() {
   const handleDeleteAdmin = async (adminId: string, providerId: string) => {
     setIsSaving(true);
     try {
+        const supabase = getSupabase();
         const { error } = await supabase.from('admins').delete().eq('id', adminId);
         if (error) throw error;
 
@@ -270,6 +276,7 @@ export function AdminsTab() {
   const handleRoleChange = async (adminId: string, newRole: 'owner' | 'product_adder' | 'super_owner' | 'owner_ship') => {
     setIsSaving(true);
     try {
+      const supabase = getSupabase();
       const { error } = await supabase.from('admins').update({ role: newRole }).eq('id', adminId).select().single();
       if (error) throw error;
       
@@ -409,5 +416,3 @@ export function AdminsTab() {
     </div>
   );
 }
-
-    

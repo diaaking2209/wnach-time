@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -12,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { Order } from "./tabs/orders-tab";
@@ -47,6 +48,7 @@ export function DeliveryDialog({ isOpen, setIsOpen, order, onSave }: DeliveryDia
     setIsSaving(true);
     
     try {
+        const supabase = getSupabase();
         const { error } = await supabase.rpc('move_order_to_completed', {
             order_id_to_move: order.id,
             delivery_details_text: deliveryDetails,

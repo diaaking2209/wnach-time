@@ -8,7 +8,7 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel"
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { CreditCard, Gamepad2, Code, ShoppingBag, CalendarDays, Star, User } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +47,7 @@ function CarouselSkeleton() {
 }
 
 const fetchCarouselDeals = async () => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('homepage_carousel')
         .select('*')
@@ -165,6 +166,7 @@ function TopProductsSkeleton() {
 }
 
 const fetchTopProducts = async () => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('homepage_top_products')
         .select('products(*)')
@@ -235,6 +237,7 @@ type FeaturedReview = {
 };
 
 const fetchFeaturedReviews = async () => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('reviews')
         .select(`

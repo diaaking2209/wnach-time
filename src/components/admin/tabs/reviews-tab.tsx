@@ -1,3 +1,4 @@
+
 "use client"
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,6 +64,7 @@ type ReviewWithProductAndUser = {
 };
 
 const fetchReviews = async (): Promise<ReviewWithProductAndUser[]> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
     .from('reviews')
     .select(`
@@ -94,6 +96,7 @@ export function ReviewsTab() {
   });
 
   const handleToggleApproval = async (review: ReviewWithProductAndUser) => {
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('reviews')
       .update({ is_approved: !review.is_approved })
@@ -108,6 +111,7 @@ export function ReviewsTab() {
   }
 
   const handleToggleFeatured = async (review: ReviewWithProductAndUser) => {
+    const supabase = getSupabase();
     const { error } = await supabase
       .from('reviews')
       .update({ is_featured: !review.is_featured })
@@ -122,6 +126,7 @@ export function ReviewsTab() {
   }
 
   const handleDeleteReview = async (reviewId: string) => {
+    const supabase = getSupabase();
     const { error } = await supabase.from('reviews').delete().match({ id: reviewId });
     if(error) {
       toast({ variant: "destructive", title: t.deleteError, description: error.message });

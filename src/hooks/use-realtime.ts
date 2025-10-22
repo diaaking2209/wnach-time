@@ -1,6 +1,7 @@
+
 "use client"
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -37,6 +38,7 @@ export const useRealtime = ({
             return;
         }
 
+        const supabase = getSupabase();
         // Create the channel instance.
         const channel = supabase.channel(channelName);
         channelRef.current = channel;

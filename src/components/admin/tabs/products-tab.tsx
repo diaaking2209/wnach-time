@@ -1,3 +1,4 @@
+
 "use client"
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
     DropdownMenuTrigger,
   } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { ProductDialog } from "@/components/admin/product-dialog";
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Product } from "@/lib/types";
 
 const fetchProducts = async (): Promise<Product[]> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
     if (error) {
       throw new Error(error.message);
@@ -77,6 +79,7 @@ export function ProductsTab() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    const supabase = getSupabase();
     const { error } = await supabase.from('products').delete().match({ id: productId });
     if(error) {
       toast({

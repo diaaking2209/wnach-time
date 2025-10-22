@@ -1,6 +1,7 @@
+
 "use client"
 
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { Loader2, BadgeCheck, Hourglass, X, KeySquare } from "lucide-react";
 import {
   Card,
@@ -57,7 +58,8 @@ const fetchUserOrders = async (userId: string | undefined): Promise<Order[]> => 
     if (!userId) {
         return [];
     };
-
+    
+    const supabase = getSupabase();
     const tableNames = ['pending_orders', 'processing_orders', 'completed_orders', 'cancelled_orders'];
     const statuses: OrderStatus[] = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
@@ -74,6 +76,7 @@ const fetchUserOrders = async (userId: string | undefined): Promise<Order[]> => 
 }
 
 const fetchDiscordTicketUrl = async (): Promise<string> => {
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from('app_settings')
         .select('value')

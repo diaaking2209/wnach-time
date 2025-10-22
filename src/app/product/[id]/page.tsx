@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { notFound, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { ProductCard } from "@/components/product-card";
 import { useCart } from "@/context/cart-context";
 import { useLanguage } from "@/context/language-context";
@@ -29,7 +29,7 @@ const fetchProductData = async (productId: string | undefined | string[]): Promi
     if (!productId || Array.isArray(productId)) {
       return null;
     }
-
+    const supabase = getSupabase();
     const { data: productResult, error: productError } = await supabase
       .from('products')
       .select('*')

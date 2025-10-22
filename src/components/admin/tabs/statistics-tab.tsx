@@ -2,7 +2,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { 
     Package, 
     ShoppingCart, 
@@ -35,6 +35,7 @@ type Stats = {
 };
 
 const fetchStatistics = async (): Promise<Stats> => {
+    const supabase = getSupabase();
     const fetchCount = async (tableName: string) => {
         const { count, error } = await supabase.from(tableName).select('*', { count: 'exact', head: true });
         if (error) throw new Error(`Failed to fetch count for ${tableName}: ${error.message}`);
